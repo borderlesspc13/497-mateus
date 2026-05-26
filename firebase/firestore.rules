@@ -1,8 +1,7 @@
 rules_version = '2';
 
-// App usa apenas o SDK web no browser + login anônimo.
-// Qualquer usuário anônimo pode ler/escrever nas coleções operacionais.
-// Para produção com usuários reais, troque por regras baseadas em custom claims ou e-mail.
+// App usa Firebase Auth (e-mail/senha) no browser.
+// Usuários autenticados podem ler/escrever nas coleções operacionais.
 
 service cloud.firestore {
   match /databases/{database}/documents {

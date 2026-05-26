@@ -31,7 +31,8 @@ O app usa Firebase Admin SDK no servidor (Netlify/Vercel) e SDK web no browser
    NÃO use FIREBASE_SERVICE_ACCOUNT_PATH em produção (o arquivo não existe no servidor).
 
 2) Firebase Console
-   - Authentication → Sign-in method → Anonymous → Enable
+   - Authentication → Sign-in method → Email/Password → Enable
+   - Authentication → Sign-in method → Anonymous → pode desabilitar (não usado)
    - Firestore criado e regras publicadas (firebase deploy --only firestore:rules)
 
 3) Build Netlify

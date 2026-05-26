@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
-import { ensureFirebaseAuth } from "@/lib/firebase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const nav = [
   { href: "/", label: "Dashboard" },
@@ -41,14 +41,23 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  useEffect(() => {
-    void ensureFirebaseAuth().catch(() => {
-      // Falha silenciosa: módulos server-side continuam via Admin SDK.
-    });
-  }, []);
+  async function onSignOut() {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.replace("/login");
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+    }
+  }
 
+  const userLabel = user?.displayName?.trim() || user?.email || "Usuário";
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -120,8 +129,21 @@ export function AppShell({ children }: PropsWithChildren) {
                   Sistema de Gestão Operacional
                 </div>
               </div>
-              <div className="shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">
-                Admin
+              <div className="flex shrink-0 items-center gap-2">
+                <div
+                  className="hidden max-w-[12rem] truncate rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600 sm:block"
+                  title={user?.email ?? undefined}
+                >
+                  {userLabel}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void onSignOut()}
+                  disabled={signingOut}
+                  className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                >
+                  {signingOut ? "Saindo..." : "Sair"}
+                </button>
               </div>
             </div>
           </header>

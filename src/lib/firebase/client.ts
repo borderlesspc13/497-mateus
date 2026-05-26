@@ -2,18 +2,11 @@
 
 import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInAnonymously,
-  type Auth,
-  type User,
-} from "firebase/auth";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { firebasePublicConfig, isFirebasePublicConfigReady } from "@/lib/firebase/config";
 
-let analyticsInstance: Analytics | null = null;
-let authReadyPromise: Promise<User> | null = null;
+export { waitForAuthenticatedUser as ensureFirebaseAuth } from "@/lib/firebase/auth-client";
 
 export function getFirebaseClientApp(): FirebaseApp | null {
   if (typeof window === "undefined" || !isFirebasePublicConfigReady()) return null;
@@ -30,41 +23,7 @@ export function getClientFirestore(): Firestore | null {
   return app ? getFirestore(app) : null;
 }
 
-export function ensureFirebaseAuth(): Promise<User> {
-  if (authReadyPromise) return authReadyPromise;
-
-  authReadyPromise = new Promise((resolve, reject) => {
-    const auth = getClientAuth();
-    if (!auth) {
-      reject(new Error("Firebase não configurado. Verifique as variáveis NEXT_PUBLIC_FIREBASE_*."));
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        if (user) {
-          unsubscribe();
-          resolve(user);
-          return;
-        }
-
-        void signInAnonymously(auth)
-          .then((credential) => resolve(credential.user))
-          .catch((error: unknown) => {
-            authReadyPromise = null;
-            reject(error instanceof Error ? error : new Error("Falha na autenticação anônima."));
-          });
-      },
-      (error) => {
-        authReadyPromise = null;
-        reject(error);
-      },
-    );
-  });
-
-  return authReadyPromise;
-}
+let analyticsInstance: Analytics | null = null;
 
 export async function getFirebaseAnalytics(): Promise<Analytics | null> {
   if (analyticsInstance) return analyticsInstance;
