@@ -21,10 +21,10 @@ function isNavActive(pathname: string, href: string) {
 
 function navLinkClass(active: boolean) {
   return [
-    "block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400",
+    "block rounded-xl px-4 py-3 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400",
     active
-      ? "bg-zinc-900 text-white"
-      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+      ? "bg-zinc-900 text-white shadow-sm"
+      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-sm",
   ].join(" ");
 }
 
@@ -58,6 +58,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }
 
   const userLabel = user?.displayName?.trim() || user?.email || "Usuário";
+
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -79,9 +80,9 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="flex min-h-screen w-full">
-        <aside className="hidden w-64 shrink-0 border-r border-zinc-200 bg-white md:sticky md:top-0 md:flex md:h-svh md:flex-col md:px-5 md:py-6">
-          <div className="flex items-center gap-3 px-1">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-zinc-900 text-sm font-semibold text-white">
+        <aside className="hidden w-[17rem] shrink-0 border-r border-zinc-200 bg-white md:sticky md:top-0 md:flex md:h-svh md:flex-col md:px-6 md:py-7">
+          <div className="flex items-center gap-3.5 px-1">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-900 text-sm font-bold text-white shadow-sm">
               GO
             </div>
             <div className="min-w-0 leading-tight">
@@ -90,31 +91,31 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
           </div>
 
-          <nav className="mt-8 flex flex-col gap-1 px-1" aria-label="Menu principal">
+          <nav className="mt-10 flex flex-col gap-1.5 px-1" aria-label="Menu principal">
             {nav.map((item) => (
               <NavLink key={item.href} href={item.href} label={item.label} />
             ))}
           </nav>
 
-          <div className="mt-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-xs leading-5 text-zinc-600">
-            Consorciados, administradoras, planos e vendas no Firestore (Firebase).
+          <div className="mt-auto rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 text-xs leading-5 text-zinc-600">
+            Dados operacionais sincronizados com Firebase Firestore.
           </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 backdrop-blur">
-            <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur-md">
+            <div className="flex h-[4.25rem] items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-800 outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 md:hidden"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-800 shadow-sm outline-none transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-400 md:hidden"
                   aria-expanded={mobileOpen}
                   aria-controls="mobile-nav"
                   aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
                   onClick={() => setMobileOpen((o) => !o)}
                 >
                   {mobileOpen ? (
-                    <span className="text-lg leading-none" aria-hidden>
+                    <span className="text-xl leading-none" aria-hidden>
                       ×
                     </span>
                   ) : (
@@ -125,13 +126,18 @@ export function AppShell({ children }: PropsWithChildren) {
                     </span>
                   )}
                 </button>
-                <div className="min-w-0 truncate text-sm font-medium text-zinc-700 sm:text-base">
-                  Sistema de Gestão Operacional
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-zinc-900 sm:text-base">
+                    Sistema de Gestão Operacional
+                  </div>
+                  <div className="hidden truncate text-xs text-zinc-500 sm:block">
+                    Consórcio · painel administrativo
+                  </div>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2.5">
                 <div
-                  className="hidden max-w-[12rem] truncate rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600 sm:block"
+                  className="hidden max-w-[14rem] truncate rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2 text-xs font-medium text-zinc-700 sm:block"
                   title={user?.email ?? undefined}
                 >
                   {userLabel}
@@ -140,7 +146,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   type="button"
                   onClick={() => void onSignOut()}
                   disabled={signingOut}
-                  className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                  className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-60"
                 >
                   {signingOut ? "Saindo..." : "Sair"}
                 </button>
@@ -156,9 +162,9 @@ export function AppShell({ children }: PropsWithChildren) {
                 aria-label="Fechar menu"
                 onClick={() => setMobileOpen(false)}
               />
-              <div className="absolute left-0 top-0 flex h-full w-[min(18rem,88vw)] flex-col border-r border-zinc-200 bg-white p-5 shadow-xl">
+              <div className="absolute left-0 top-0 flex h-full w-[min(19rem,88vw)] flex-col border-r border-zinc-200 bg-white p-6 shadow-xl">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-zinc-900 text-sm font-semibold text-white">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-zinc-900 text-sm font-bold text-white">
                     GO
                   </div>
                   <div className="leading-tight">
@@ -166,7 +172,7 @@ export function AppShell({ children }: PropsWithChildren) {
                     <div className="text-xs text-zinc-500">Consórcio</div>
                   </div>
                 </div>
-                <nav className="mt-6 flex flex-col gap-1" aria-label="Menu principal">
+                <nav className="mt-8 flex flex-col gap-1.5" aria-label="Menu principal">
                   {nav.map((item) => {
                     const active = isNavActive(pathname, item.href);
                     return (
@@ -186,7 +192,7 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
           ) : null}
 
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
             {children}
           </main>
         </div>

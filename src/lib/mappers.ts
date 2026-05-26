@@ -1,3 +1,4 @@
+import { DEFAULT_CHECKLIST_ATIVACAO } from "@/lib/vendas/pos-venda";
 import { formatCnpj } from "@/lib/validators/cnpj";
 import type {
   AdministradoraDoc,
@@ -108,6 +109,9 @@ export function toVendaRow(
     valorCentavos: venda.valorCentavos,
     dataVenda: venda.dataVenda,
     observacoes: venda.observacoes,
+    checklistAtivacao: venda.checklistAtivacao ?? DEFAULT_CHECKLIST_ATIVACAO,
+    dataPendencia: venda.dataPendencia ?? null,
+    alertaAtivo: venda.alertaAtivo ?? false,
     createdAt: venda.createdAt,
     updatedAt: venda.updatedAt,
   };

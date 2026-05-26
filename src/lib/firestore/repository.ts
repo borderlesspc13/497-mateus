@@ -1,5 +1,6 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { buildDashboardStats } from "@/lib/dashboard/stats";
+import { DEFAULT_CHECKLIST_ATIVACAO } from "@/lib/vendas/pos-venda";
 import {
   COLLECTIONS,
   newId,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/mappers";
 import type {
   AdministradoraRow,
+  ChecklistAtivacao,
   ConsorciadoMini,
   ConsorciadoRow,
   PlanoMini,
@@ -237,6 +239,22 @@ function normalizeVendaDoc(raw: DocWithId<VendaDoc>): DocWithId<VendaDoc> {
   return {
     ...raw,
     consorciadoId: raw.consorciadoId ?? null,
+    checklistAtivacao: {
+      documentacaoRecebida: raw.checklistAtivacao?.documentacaoRecebida ?? false,
+      taxaPaga: raw.checklistAtivacao?.taxaPaga ?? false,
+      contratoAssinado: raw.checklistAtivacao?.contratoAssinado ?? false,
+    },
+    dataPendencia: raw.dataPendencia ?? null,
+    alertaAtivo: raw.alertaAtivo ?? false,
+  };
+}
+
+function withVendaPosVendaDefaults(data: VendaCreateInput): Omit<VendaDoc, "createdAt" | "updatedAt"> {
+  return {
+    ...data,
+    checklistAtivacao: data.checklistAtivacao ?? DEFAULT_CHECKLIST_ATIVACAO,
+    dataPendencia: data.dataPendencia ?? null,
+    alertaAtivo: data.alertaAtivo ?? false,
   };
 }
 
@@ -274,8 +292,17 @@ export async function getVenda(id: string): Promise<VendaRow | null> {
   return toVendaRow(venda, adm, plano, consorciado);
 }
 
+export type VendaCreateInput = Omit<
+  VendaDoc,
+  "createdAt" | "updatedAt" | "checklistAtivacao" | "dataPendencia" | "alertaAtivo"
+> & {
+  checklistAtivacao?: ChecklistAtivacao;
+  dataPendencia?: string | null;
+  alertaAtivo?: boolean;
+};
+
 export async function createVenda(
-  data: Omit<VendaDoc, "createdAt" | "updatedAt">,
+  data: VendaCreateInput,
 ): Promise<VendaRow> {
   const adm = await getAdministradoraDoc(data.administradoraId);
   if (!adm) throw new Error("Administradora não encontrada.");
@@ -294,7 +321,11 @@ export async function createVenda(
   }
   const ts = nowIso();
   const id = newId();
-  const doc: VendaDoc = { ...data, createdAt: ts, updatedAt: ts };
+  const doc: VendaDoc = {
+    ...withVendaPosVendaDefaults(data),
+    createdAt: ts,
+    updatedAt: ts,
+  };
   await db().collection(COLLECTIONS.vendas).doc(id).set(doc);
   return toVendaRow({ id, ...doc }, adm, plano, consorciado);
 }

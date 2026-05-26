@@ -1,10 +1,14 @@
-import type { VendaStatus } from "@/lib/types/domain";
+import type { ChecklistAtivacao, VendaStatus } from "@/lib/types/domain";
 
 export const COLLECTIONS = {
   administradoras: "administradoras",
   planos: "planos",
   vendas: "vendas",
   consorciados: "consorciados",
+} as const;
+
+export const VENDA_SUBCOLLECTIONS = {
+  historico: "historico",
 } as const;
 
 export type AdministradoraDoc = {
@@ -46,6 +50,12 @@ export type ConsorciadoDoc = {
   criadoEm: string;
 };
 
+export type HistoricoAtendimentoDoc = {
+  data: string;
+  tipo: "chamada" | "email" | "nota" | "atualizacao";
+  descricao: string;
+};
+
 export type VendaDoc = {
   administradoraId: string;
   planoId: string | null;
@@ -56,6 +66,9 @@ export type VendaDoc = {
   valorCentavos: number | null;
   dataVenda: string | null;
   observacoes: string | null;
+  checklistAtivacao: ChecklistAtivacao;
+  dataPendencia: string | null;
+  alertaAtivo: boolean;
   createdAt: string;
   updatedAt: string;
 };

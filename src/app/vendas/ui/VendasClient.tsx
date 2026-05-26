@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { deleteVenda } from "@/actions/vendas";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { PendenciaBadge } from "@/components/vendas/PendenciaBadge";
 import {
   dangerActionClass,
   dataTableClass,
@@ -12,8 +15,8 @@ import {
   primaryActionClass,
   secondaryActionClass,
   tableCellClass,
-  tableEmptyCellClass,
   tableHeadCellClass,
+  tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import type { AdministradoraMini, VendaRow } from "@/lib/types/domain";
@@ -23,37 +26,6 @@ type VendasClientProps = {
   initialItems: VendaRow[];
   initialAdministradoras: AdministradoraMini[];
 };
-
-function StatusBadge({ status }: { status: VendaRow["status"] }) {
-  const style =
-    status === "FECHADA"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : status === "CANCELADA"
-        ? "border-red-200 bg-red-50 text-red-700"
-        : status === "ENVIADA"
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-zinc-200 bg-zinc-50 text-zinc-700";
-
-  const label =
-    status === "RASCUNHO"
-      ? "Rascunho"
-      : status === "ENVIADA"
-        ? "Enviada"
-        : status === "FECHADA"
-          ? "Fechada"
-          : "Cancelada";
-
-  return (
-    <span
-      className={[
-        "inline-flex h-7 items-center rounded-full border px-2.5 text-xs font-medium",
-        style,
-      ].join(" ")}
-    >
-      {label}
-    </span>
-  );
-}
 
 export default function VendasClient({
   initialItems,
@@ -143,6 +115,23 @@ export default function VendasClient({
         ) : null
       }
     >
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={items.length === 0 ? "Nenhuma venda cadastrada" : "Nenhum resultado encontrado"}
+          description={
+            items.length === 0
+              ? "Cadastre a primeira venda vinculada a um consorciado e administradora."
+              : "Ajuste os filtros ou o termo de busca para ver outros registros."
+          }
+          action={
+            items.length === 0 ? (
+              <Link href="/vendas/nova" className={primaryActionClass()}>
+                Nova venda
+              </Link>
+            ) : undefined
+          }
+        />
+      ) : (
       <div className={tableWrapClass()}>
         <table className={dataTableClass()}>
           <thead>
@@ -152,6 +141,7 @@ export default function VendasClient({
               <th className={tableHeadCellClass()}>Administradora</th>
               <th className={tableHeadCellClass()}>Plano</th>
               <th className={tableHeadCellClass()}>Status</th>
+              <th className={tableHeadCellClass()}>Pós-venda</th>
               <th className={tableHeadCellClass()}>Valor</th>
               <th className={tableHeadCellClass()}>Data da venda</th>
               <th className={tableHeadCellClass()}>Criado em</th>
@@ -159,17 +149,8 @@ export default function VendasClient({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td className={tableEmptyCellClass()} colSpan={9}>
-                  {items.length === 0
-                    ? "Nenhuma venda cadastrada."
-                    : "Nenhum resultado para os filtros atuais."}
-                </td>
-              </tr>
-            ) : (
-              filtered.map((v) => (
-                <tr key={v.id}>
+              {filtered.map((v, index) => (
+                <tr key={v.id} className={tableRowClass(index)}>
                   <td className={`${tableCellClass()} font-medium text-zinc-900`}>{v.titulo}</td>
                   <td className={tableCellClass()}>
                     <div className="leading-5">
@@ -219,6 +200,9 @@ export default function VendasClient({
                   <td className={tableCellClass()}>
                     <StatusBadge status={v.status} />
                   </td>
+                  <td className={tableCellClass()}>
+                    <PendenciaBadge venda={v} />
+                  </td>
                   <td className={`${tableCellClass()} whitespace-nowrap tabular-nums`}>
                     {formatMoneyPtBrFromCentavos(v.valorCentavos)}
                   </td>
@@ -244,11 +228,11 @@ export default function VendasClient({
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
         </table>
       </div>
+      )}
     </DataListPanel>
   );
 }

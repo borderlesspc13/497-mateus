@@ -5,15 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { deletePlano } from "@/actions/planos";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   dangerActionClass,
   dataTableClass,
   formControlClass,
+  panelClass,
   primaryActionClass,
   secondaryActionClass,
   tableCellClass,
-  tableEmptyCellClass,
   tableHeadCellClass,
+  tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import type { AdministradoraMini, PlanoRow } from "@/lib/types/domain";
@@ -105,6 +107,23 @@ export default function PlanosClient({
         ) : null
       }
     >
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={items.length === 0 ? "Nenhum plano cadastrado" : "Nenhum resultado encontrado"}
+          description={
+            items.length === 0
+              ? "Cadastre planos vinculados às administradoras parceiras."
+              : "Ajuste os filtros ou o termo de busca."
+          }
+          action={
+            items.length === 0 ? (
+              <Link href="/planos/nova" className={primaryActionClass()}>
+                Novo plano
+              </Link>
+            ) : undefined
+          }
+        />
+      ) : (
       <div className={tableWrapClass()}>
         <table className={dataTableClass()}>
           <thead>
@@ -118,17 +137,8 @@ export default function PlanosClient({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td className={tableEmptyCellClass()} colSpan={6}>
-                  {items.length === 0
-                    ? "Nenhum plano cadastrado."
-                    : "Nenhum resultado para os filtros atuais."}
-                </td>
-              </tr>
-            ) : (
-              filtered.map((p) => (
-                <tr key={p.id}>
+              {filtered.map((p, index) => (
+                <tr key={p.id} className={tableRowClass(index)}>
                   <td className={`${tableCellClass()} font-medium text-zinc-900`}>{p.nome}</td>
                   <td className={tableCellClass()}>
                     <div className="leading-5">
@@ -164,11 +174,11 @@ export default function PlanosClient({
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
         </table>
       </div>
+      )}
     </DataListPanel>
   );
 }

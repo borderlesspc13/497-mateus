@@ -9,6 +9,7 @@ import { CurrencyInput } from "@/components/form/MaskedInputs";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
+import { VendaPosVendaPanel } from "@/components/vendas/VendaPosVendaPanel";
 import type { AdministradoraMini, ConsorciadoMini, PlanoMini, VendaRow } from "@/lib/types/domain";
 import {
   formatCentavosToCurrencyInput,
@@ -324,6 +325,15 @@ export default function EditarVendaForm({
           </button>
         </div>
       </form>
+
+      <VendaPosVendaPanel
+        vendaId={item.id}
+        initial={{
+          checklistAtivacao: item.checklistAtivacao,
+          dataPendencia: item.dataPendencia,
+          alertaAtivo: item.alertaAtivo,
+        }}
+      />
     </>
   );
 }

@@ -8,15 +8,18 @@ import {
   listConsorciados,
 } from "@/lib/firestore/consorciados-client";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import {
   dangerActionClass,
   dataTableClass,
   formControlClass,
+  panelClass,
   primaryActionClass,
   secondaryActionClass,
   tableCellClass,
-  tableEmptyCellClass,
   tableHeadCellClass,
+  tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import type { ConsorciadoRow } from "@/lib/types/domain";
@@ -77,8 +80,8 @@ export default function ConsorciadosClient() {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600">
-        Carregando consorciados...
+      <div className={`${panelClass()} p-6`}>
+        <TableSkeleton rows={6} columns={5} />
       </div>
     );
   }
@@ -106,6 +109,23 @@ export default function ConsorciadosClient() {
         ) : null
       }
     >
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={items.length === 0 ? "Nenhum consorciado cadastrado" : "Nenhum resultado encontrado"}
+          description={
+            items.length === 0
+              ? "Cadastre consorciados para vincular às vendas e ao CRM."
+              : "Tente buscar por outro nome ou documento."
+          }
+          action={
+            items.length === 0 ? (
+              <Link href="/consorciados/nova" className={primaryActionClass()}>
+                Novo consorciado
+              </Link>
+            ) : undefined
+          }
+        />
+      ) : (
       <div className={tableWrapClass()}>
         <table className={dataTableClass()}>
           <thead>
@@ -119,17 +139,8 @@ export default function ConsorciadosClient() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td className={tableEmptyCellClass()} colSpan={6}>
-                  {items.length === 0
-                    ? "Nenhum consorciado cadastrado."
-                    : "Nenhum resultado para a busca atual."}
-                </td>
-              </tr>
-            ) : (
-              filtered.map((item) => (
-                <tr key={item.id}>
+              {filtered.map((item, index) => (
+                <tr key={item.id} className={tableRowClass(index)}>
                   <td className={`${tableCellClass()} font-medium text-zinc-900`}>{item.nome}</td>
                   <td className={tableCellClass()}>{item.documento}</td>
                   <td className={tableCellClass()}>{item.telefone}</td>
@@ -153,11 +164,11 @@ export default function ConsorciadosClient() {
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
         </table>
       </div>
+      )}
     </DataListPanel>
   );
 }

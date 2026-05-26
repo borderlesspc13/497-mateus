@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { deleteAdministradora } from "@/actions/administradoras";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   dangerActionClass,
   dataTableClass,
@@ -12,8 +13,8 @@ import {
   primaryActionClass,
   secondaryActionClass,
   tableCellClass,
-  tableEmptyCellClass,
   tableHeadCellClass,
+  tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import type { AdministradoraRow } from "@/lib/types/domain";
@@ -76,6 +77,23 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
         ) : null
       }
     >
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={items.length === 0 ? "Nenhuma administradora cadastrada" : "Nenhum resultado encontrado"}
+          description={
+            items.length === 0
+              ? "Cadastre a primeira administradora parceira do sistema."
+              : "Tente outro termo na busca."
+          }
+          action={
+            items.length === 0 ? (
+              <Link href="/administradoras/nova" className={primaryActionClass()}>
+                Nova administradora
+              </Link>
+            ) : undefined
+          }
+        />
+      ) : (
       <div className={tableWrapClass()}>
         <table className={dataTableClass()}>
           <thead>
@@ -89,17 +107,8 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td className={tableEmptyCellClass()} colSpan={6}>
-                  {items.length === 0
-                    ? "Nenhuma administradora cadastrada."
-                    : "Nenhum resultado para a busca atual."}
-                </td>
-              </tr>
-            ) : (
-              filtered.map((a) => (
-                <tr key={a.id}>
+              {filtered.map((a, index) => (
+                <tr key={a.id} className={tableRowClass(index)}>
                   <td className={`${tableCellClass()} font-medium text-zinc-900`}>{a.nome}</td>
                   <td className={`${tableCellClass()} whitespace-nowrap`}>{a.cnpj}</td>
                   <td className={tableCellClass()}>
@@ -137,11 +146,11 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
         </table>
       </div>
+      )}
     </DataListPanel>
   );
 }

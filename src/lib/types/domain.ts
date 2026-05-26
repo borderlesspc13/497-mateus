@@ -1,5 +1,20 @@
 export type VendaStatus = "RASCUNHO" | "ENVIADA" | "FECHADA" | "CANCELADA";
 
+export type ChecklistAtivacao = {
+  documentacaoRecebida: boolean;
+  taxaPaga: boolean;
+  contratoAssinado: boolean;
+};
+
+export type HistoricoAtendimentoTipo = "chamada" | "email" | "nota" | "atualizacao";
+
+export type HistoricoAtendimentoRow = {
+  id: string;
+  data: string;
+  tipo: HistoricoAtendimentoTipo;
+  descricao: string;
+};
+
 export type AdministradoraRow = {
   id: string;
   nome: string;
@@ -63,6 +78,9 @@ export type VendaRow = {
   valorCentavos: number | null;
   dataVenda: string | null;
   observacoes: string | null;
+  checklistAtivacao: ChecklistAtivacao;
+  dataPendencia: string | null;
+  alertaAtivo: boolean;
   createdAt: string;
   updatedAt: string;
 };
