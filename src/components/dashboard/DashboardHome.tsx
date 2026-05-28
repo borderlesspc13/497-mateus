@@ -158,14 +158,13 @@ export function DashboardHome({ stats }: DashboardHomeProps) {
   const maxMesQtd = Math.max(...stats.vendasPorMes.map((m) => m.quantidade), 1);
 
   const statusRows = [
-    { label: "Fechadas", count: stats.nVendasFechadas, tone: "bg-emerald-500" },
-    { label: "Enviadas", count: stats.nVendasEnviadas, tone: "bg-sky-500" },
-    { label: "Rascunho", count: stats.nVendasRascunho, tone: "bg-zinc-400" },
+    { label: "Ativas", count: stats.nVendasAtivas, tone: "bg-emerald-500" },
+    { label: "Inadimplentes", count: stats.nVendasInadimplentes, tone: "bg-amber-500" },
     { label: "Canceladas", count: stats.nVendasCanceladas, tone: "bg-red-400" },
   ];
 
-  const taxaFechamento =
-    stats.nVendas > 0 ? Math.round((stats.nVendasFechadas / stats.nVendas) * 100) : 0;
+  const taxaAtivas =
+    stats.nVendas > 0 ? Math.round((stats.nVendasAtivas / stats.nVendas) * 100) : 0;
 
   return (
     <>
@@ -203,7 +202,7 @@ export function DashboardHome({ stats }: DashboardHomeProps) {
         <KpiCard
           label="Vendas"
           value={String(stats.nVendas)}
-          hint={`${stats.nVendasFechadas} fechadas · ${taxaFechamento}% de fechamento`}
+          hint={`${stats.nVendasAtivas} ativas · ${taxaAtivas}% da carteira`}
           icon={<IconCart />}
           href="/vendas"
           linkLabel="Ver todas"
@@ -214,7 +213,7 @@ export function DashboardHome({ stats }: DashboardHomeProps) {
         <KpiCard
           label="Valor total"
           value={formatMoneyPtBrFromCentavos(stats.valorTotalCentavos)}
-          hint={`Fechadas: ${formatMoneyPtBrFromCentavos(stats.valorFechadasCentavos)}`}
+          hint={`Ativas: ${formatMoneyPtBrFromCentavos(stats.valorAtivasCentavos)}`}
           icon={<IconCurrency />}
         />
         <KpiCard

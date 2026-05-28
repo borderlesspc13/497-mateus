@@ -51,14 +51,13 @@ export function buildDashboardStats(
   nAdministradoras: number,
   nPlanos: number,
 ): DashboardStats {
-  const nVendasFechadas = vendas.filter((v) => v.status === "FECHADA").length;
-  const nVendasRascunho = vendas.filter((v) => v.status === "RASCUNHO").length;
-  const nVendasEnviadas = vendas.filter((v) => v.status === "ENVIADA").length;
-  const nVendasCanceladas = vendas.filter((v) => v.status === "CANCELADA").length;
+  const nVendasAtivas = vendas.filter((v) => v.status === "ATIVO").length;
+  const nVendasInadimplentes = vendas.filter((v) => v.status === "INADIMPLENTE").length;
+  const nVendasCanceladas = vendas.filter((v) => v.status === "CANCELADO").length;
 
   const vendasComValor = vendas.filter((v) => v.valorCentavos !== null);
   const valorTotalCentavos = sumValores(vendas);
-  const valorFechadasCentavos = sumValores(vendas.filter((v) => v.status === "FECHADA"));
+  const valorAtivasCentavos = sumValores(vendas.filter((v) => v.status === "ATIVO"));
   const ticketMedioCentavos =
     vendasComValor.length > 0 ? Math.round(valorTotalCentavos / vendasComValor.length) : null;
 
@@ -112,12 +111,11 @@ export function buildDashboardStats(
     nAdministradoras,
     nPlanos,
     nVendas: vendas.length,
-    nVendasFechadas,
-    nVendasRascunho,
-    nVendasEnviadas,
+    nVendasAtivas,
+    nVendasInadimplentes,
     nVendasCanceladas,
     valorTotalCentavos,
-    valorFechadasCentavos,
+    valorAtivasCentavos,
     ticketMedioCentavos,
     vendasPorMes,
     vendasRecentes,

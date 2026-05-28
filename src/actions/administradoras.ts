@@ -32,6 +32,7 @@ export type AdministradoraInput = {
 
 function revalidateAdministradoras() {
   revalidatePath("/");
+  revalidatePath("/configuracoes");
   revalidatePath("/administradoras");
   revalidatePath("/planos");
   revalidatePath("/vendas");

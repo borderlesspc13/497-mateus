@@ -4,20 +4,16 @@ const STATUS_CONFIG: Record<
   VendaStatus,
   { label: string; className: string }
 > = {
-  FECHADA: {
-    label: "Fechada",
+  ATIVO: {
+    label: "Ativo",
     className: "border-emerald-200 bg-emerald-50 text-emerald-800",
   },
-  ENVIADA: {
-    label: "Enviada",
-    className: "border-sky-200 bg-sky-50 text-sky-800",
+  INADIMPLENTE: {
+    label: "Inadimplente",
+    className: "border-amber-200 bg-amber-50 text-amber-800",
   },
-  RASCUNHO: {
-    label: "Rascunho",
-    className: "border-zinc-200 bg-zinc-100 text-zinc-700",
-  },
-  CANCELADA: {
-    label: "Cancelada",
+  CANCELADO: {
+    label: "Cancelado",
     className: "border-red-200 bg-red-50 text-red-800",
   },
 };

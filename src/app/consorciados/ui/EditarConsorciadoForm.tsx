@@ -18,28 +18,25 @@ type EditarConsorciadoFormProps = {
 
 type FormState = {
   nome: string;
-  documento: string;
+  cpf_cnpj: string;
   telefone: string;
   email: string;
-  endereco: string;
 };
 
 function validateForm(form: FormState): string | null {
   if (!form.nome.trim()) return "Informe o nome.";
-  if (!form.documento.trim()) return "Informe o CPF ou CNPJ.";
+  if (!form.cpf_cnpj.trim()) return "Informe o CPF ou CNPJ.";
   if (!form.telefone.trim()) return "Informe o telefone.";
   if (!form.email.trim()) return "Informe o e-mail.";
-  if (!form.endereco.trim()) return "Informe o endereço.";
   return null;
 }
 
 function toInput(form: FormState): ConsorciadoInput {
   return {
     nome: form.nome.trim(),
-    documento: form.documento.trim(),
+    cpf_cnpj: form.cpf_cnpj.trim(),
     telefone: form.telefone.trim(),
     email: form.email.trim(),
-    endereco: form.endereco.trim(),
   };
 }
 
@@ -49,10 +46,9 @@ export default function EditarConsorciadoForm({ id }: EditarConsorciadoFormProps
   const [notFound, setNotFound] = useState(false);
   const [form, setForm] = useState<FormState>({
     nome: "",
-    documento: "",
+    cpf_cnpj: "",
     telefone: "",
     email: "",
-    endereco: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,10 +67,9 @@ export default function EditarConsorciadoForm({ id }: EditarConsorciadoFormProps
         }
         setForm({
           nome: item.nome,
-          documento: item.documento,
+          cpf_cnpj: item.cpf_cnpj,
           telefone: item.telefone,
           email: item.email,
-          endereco: item.endereco,
         });
       })
       .catch((e: unknown) => {
@@ -109,7 +104,7 @@ export default function EditarConsorciadoForm({ id }: EditarConsorciadoFormProps
     setSaving(true);
     try {
       await updateConsorciado(id, toInput(form));
-      router.push("/consorciados");
+      router.push(`/consorciados/${id}`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao salvar.");
@@ -128,22 +123,20 @@ export default function EditarConsorciadoForm({ id }: EditarConsorciadoFormProps
 
   if (notFound) {
     return (
-      <>
-        <PageFlowHeader
-          crumbs={[
-            { label: "Dashboard", href: "/" },
-            { label: "Consorciados", href: "/consorciados" },
-            { label: "Erro" },
-          ]}
-          title="Consorciado não encontrado"
-          description="Não foi possível carregar este registro."
-          actions={
-            <Link href="/consorciados" className={backLinkClass()}>
-              Voltar à lista
-            </Link>
-          }
-        />
-      </>
+      <PageFlowHeader
+        crumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: "Consorciados", href: "/consorciados" },
+          { label: "Erro" },
+        ]}
+        title="Consorciado não encontrado"
+        description="Não foi possível carregar este registro."
+        actions={
+          <Link href="/consorciados" className={backLinkClass()}>
+            Voltar à lista
+          </Link>
+        }
+      />
     );
   }
 
@@ -153,13 +146,14 @@ export default function EditarConsorciadoForm({ id }: EditarConsorciadoFormProps
         crumbs={[
           { label: "Dashboard", href: "/" },
           { label: "Consorciados", href: "/consorciados" },
-          { label: "Editar" },
+          { label: form.nome || "Editar", href: `/consorciados/${id}` },
+          { label: "Editar dados" },
         ]}
-        title={form.nome || "Editar consorciado"}
+        title="Editar consorciado"
         description="Atualize os dados cadastrais do consorciado."
         actions={
-          <Link href="/consorciados" className={backLinkClass()}>
-            Voltar à lista
+          <Link href={`/consorciados/${id}`} className={backLinkClass()}>
+            Voltar à ficha
           </Link>
         }
       />
@@ -183,8 +177,8 @@ export default function EditarConsorciadoForm({ id }: EditarConsorciadoFormProps
               CPF / CNPJ <span className="text-red-600">*</span>
             </div>
             <input
-              value={form.documento}
-              onChange={(e) => setForm((p) => ({ ...p, documento: e.target.value }))}
+              value={form.cpf_cnpj}
+              onChange={(e) => setForm((p) => ({ ...p, cpf_cnpj: e.target.value }))}
               className={formControlClass()}
             />
           </label>
@@ -207,16 +201,6 @@ export default function EditarConsorciadoForm({ id }: EditarConsorciadoFormProps
               value={form.email}
               onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
               className={formControlClass()}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
-              Endereço <span className="text-red-600">*</span>
-            </div>
-            <textarea
-              value={form.endereco}
-              onChange={(e) => setForm((p) => ({ ...p, endereco: e.target.value }))}
-              className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
             />
           </label>
         </div>

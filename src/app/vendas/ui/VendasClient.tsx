@@ -49,7 +49,7 @@ export default function VendasClient({
       if (status && v.status !== status) return false;
       if (administradoraId && v.administradoraId !== administradoraId) return false;
       if (!q) return true;
-      const hay = `${v.titulo} ${v.consorciado?.nome ?? ""} ${v.administradora?.nome ?? ""} ${v.plano?.nome ?? ""}`.toLowerCase();
+      const hay = `${v.titulo} ${v.contrato} ${v.grupo} ${v.cota} ${v.consorciado?.nome ?? ""} ${v.consorciado?.cpf_cnpj ?? ""} ${v.administradora?.nome ?? ""} ${v.plano?.nome ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [items, query, status, administradoraId]);
@@ -76,7 +76,7 @@ export default function VendasClient({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por título, consorciado ou administradora..."
+            placeholder="Buscar por contrato, grupo, cota ou consorciado..."
             className={formControlClass("lg")}
           />
           <select
@@ -97,10 +97,9 @@ export default function VendasClient({
             className={formControlClass("sm")}
           >
             <option value="">Todos status</option>
-            <option value="RASCUNHO">Rascunho</option>
-            <option value="ENVIADA">Enviada</option>
-            <option value="FECHADA">Fechada</option>
-            <option value="CANCELADA">Cancelada</option>
+            <option value="ATIVO">Ativo</option>
+            <option value="INADIMPLENTE">Inadimplente</option>
+            <option value="CANCELADO">Cancelado</option>
           </select>
           <Link href="/vendas/nova" className={primaryActionClass()}>
             Nova venda
@@ -136,8 +135,10 @@ export default function VendasClient({
         <table className={dataTableClass()}>
           <thead>
             <tr>
-              <th className={tableHeadCellClass()}>Título</th>
+              <th className={tableHeadCellClass()}>Contrato</th>
+              <th className={tableHeadCellClass()}>Grupo / Cota</th>
               <th className={tableHeadCellClass()}>Consorciado</th>
+              <th className={tableHeadCellClass()}>Equipe / Vendedor</th>
               <th className={tableHeadCellClass()}>Administradora</th>
               <th className={tableHeadCellClass()}>Plano</th>
               <th className={tableHeadCellClass()}>Status</th>
@@ -151,7 +152,15 @@ export default function VendasClient({
           <tbody>
               {filtered.map((v, index) => (
                 <tr key={v.id} className={tableRowClass(index)}>
-                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{v.titulo}</td>
+                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{v.contrato}</td>
+                  <td className={tableCellClass()}>
+                    <div className="leading-5">
+                      <div className="text-zinc-900">
+                        {v.grupo} / {v.cota}
+                      </div>
+                      <div className="text-xs text-zinc-500">Venc. dia {v.dataVencimento}</div>
+                    </div>
+                  </td>
                   <td className={tableCellClass()}>
                     <div className="leading-5">
                       {v.consorciado ? (
@@ -164,9 +173,15 @@ export default function VendasClient({
                       ) : (
                         <div className="text-zinc-800">—</div>
                       )}
-                      {v.consorciado?.documento ? (
-                        <div className="text-xs text-zinc-500">{v.consorciado.documento}</div>
+                      {v.consorciado?.cpf_cnpj ? (
+                        <div className="text-xs text-zinc-500">{v.consorciado.cpf_cnpj}</div>
                       ) : null}
+                    </div>
+                  </td>
+                  <td className={tableCellClass()}>
+                    <div className="leading-5">
+                      <div className="text-zinc-900">{v.equipe?.nome ?? "—"}</div>
+                      <div className="text-xs text-zinc-500">{v.vendedor?.nome ?? "—"}</div>
                     </div>
                   </td>
                   <td className={tableCellClass()}>

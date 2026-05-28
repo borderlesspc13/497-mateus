@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { listConsorciadosMini } from "@/actions/consorciados";
 import { listAdministradoras } from "@/actions/administradoras";
+import { listEquipesMini } from "@/actions/equipes";
 import { listPlanosMiniByAdministradora } from "@/actions/planos";
+import { listVendedoresMini } from "@/actions/vendedores";
 import { getVenda } from "@/actions/vendas";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
@@ -36,10 +38,12 @@ export default async function EditarVendaPage({ params }: PageProps) {
     );
   }
 
-  const [administradoras, initialPlanos, consorciados] = await Promise.all([
+  const [administradoras, initialPlanos, consorciados, equipes, vendedores] = await Promise.all([
     listAdministradoras(),
     listPlanosMiniByAdministradora(venda.administradoraId),
     listConsorciadosMini(),
+    listEquipesMini(),
+    listVendedoresMini(),
   ]);
 
   return (
@@ -52,6 +56,8 @@ export default async function EditarVendaPage({ params }: PageProps) {
       }))}
       initialPlanos={initialPlanos}
       consorciados={consorciados}
+      equipes={equipes}
+      vendedores={vendedores}
     />
   );
 }

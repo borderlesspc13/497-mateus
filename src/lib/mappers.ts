@@ -1,20 +1,27 @@
+import { readConsorciadoCpfCnpj, normalizeVendaFields } from "@/lib/firestore/legacy";
 import { DEFAULT_CHECKLIST_ATIVACAO } from "@/lib/vendas/pos-venda";
 import { formatCnpj } from "@/lib/validators/cnpj";
 import type {
   AdministradoraDoc,
   ConsorciadoDoc,
   DocWithId,
+  EquipeDoc,
   PlanoDoc,
   VendaDoc,
+  VendedorDoc,
 } from "@/lib/firestore/types";
 import type {
   AdministradoraMini,
   AdministradoraRow,
   ConsorciadoMini,
   ConsorciadoRow,
+  EquipeMini,
+  EquipeRow,
   PlanoMini,
   PlanoRow,
   VendaRow,
+  VendedorMini,
+  VendedorRow,
 } from "@/lib/types/domain";
 
 function toAdmMini(adm: DocWithId<AdministradoraDoc>): AdministradoraMini {
@@ -73,10 +80,9 @@ export function toConsorciadoRow(item: DocWithId<ConsorciadoDoc>): ConsorciadoRo
   return {
     id: item.id,
     nome: item.nome,
-    documento: item.documento,
+    cpf_cnpj: readConsorciadoCpfCnpj(item),
     telefone: item.telefone,
     email: item.email,
-    endereco: item.endereco,
     criadoEm: item.criadoEm,
   };
 }
@@ -85,8 +91,41 @@ export function toConsorciadoMini(item: DocWithId<ConsorciadoDoc>): ConsorciadoM
   return {
     id: item.id,
     nome: item.nome,
-    documento: item.documento,
+    cpf_cnpj: readConsorciadoCpfCnpj(item),
   };
+}
+
+export function toEquipeRow(item: DocWithId<EquipeDoc>): EquipeRow {
+  return {
+    id: item.id,
+    nome: item.nome,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+export function toEquipeMini(item: DocWithId<EquipeDoc>): EquipeMini {
+  return { id: item.id, nome: item.nome };
+}
+
+export function toVendedorRow(
+  item: DocWithId<VendedorDoc>,
+  equipe: DocWithId<EquipeDoc>,
+): VendedorRow {
+  return {
+    id: item.id,
+    nome: item.nome,
+    email: item.email,
+    telefone: item.telefone,
+    equipeId: item.equipeId,
+    equipe: toEquipeMini(equipe),
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+export function toVendedorMini(item: DocWithId<VendedorDoc>): VendedorMini {
+  return { id: item.id, nome: item.nome, equipeId: item.equipeId };
 }
 
 export function toVendaRow(
@@ -94,16 +133,28 @@ export function toVendaRow(
   administradora: DocWithId<AdministradoraDoc>,
   plano: DocWithId<PlanoDoc> | null,
   consorciado: DocWithId<ConsorciadoDoc> | null,
+  equipe: DocWithId<EquipeDoc> | null,
+  vendedor: DocWithId<VendedorDoc> | null,
 ): VendaRow {
+  const normalized = normalizeVendaFields(venda);
   return {
     id: venda.id,
     administradoraId: venda.administradoraId,
     planoId: venda.planoId,
     consorciadoId: venda.consorciadoId,
+    equipeId: normalized.equipeId,
+    vendedorId: normalized.vendedorId,
     administradora: toAdmMini(administradora),
     plano: plano ? toPlanoMini(plano) : null,
     consorciado: consorciado ? toConsorciadoMini(consorciado) : null,
-    status: venda.status,
+    equipe: equipe ? toEquipeMini(equipe) : null,
+    vendedor: vendedor ? toVendedorMini(vendedor) : null,
+    status: normalized.status,
+    statusInconsistencia: normalized.statusInconsistencia,
+    contrato: normalized.contrato,
+    grupo: normalized.grupo,
+    cota: normalized.cota,
+    dataVencimento: normalized.dataVencimento,
     titulo: venda.titulo,
     descricao: venda.descricao,
     valorCentavos: venda.valorCentavos,

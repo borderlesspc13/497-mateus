@@ -9,6 +9,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { ensureFirebaseAuth, getClientFirestore } from "@/lib/firebase/client";
+import { readConsorciadoCpfCnpj } from "@/lib/firestore/legacy";
 import {
   COLLECTIONS,
   newId,
@@ -23,10 +24,9 @@ function toConsorciadoRow(doc: DocWithId<ConsorciadoDoc>): ConsorciadoRow {
   return {
     id: doc.id,
     nome: doc.nome,
-    documento: doc.documento,
+    cpf_cnpj: readConsorciadoCpfCnpj(doc),
     telefone: doc.telefone,
     email: doc.email,
-    endereco: doc.endereco,
     criadoEm: doc.criadoEm,
   };
 }
@@ -35,7 +35,7 @@ function toConsorciadoMini(doc: DocWithId<ConsorciadoDoc>): ConsorciadoMini {
   return {
     id: doc.id,
     nome: doc.nome,
-    documento: doc.documento,
+    cpf_cnpj: readConsorciadoCpfCnpj(doc),
   };
 }
 
@@ -77,10 +77,9 @@ export async function getConsorciado(id: string): Promise<ConsorciadoRow | null>
 
 export type ConsorciadoInput = {
   nome: string;
-  documento: string;
+  cpf_cnpj: string;
   telefone: string;
   email: string;
-  endereco: string;
 };
 
 export async function createConsorciado(data: ConsorciadoInput): Promise<ConsorciadoRow> {
@@ -88,10 +87,9 @@ export async function createConsorciado(data: ConsorciadoInput): Promise<Consorc
   const id = newId();
   const docData: ConsorciadoDoc = {
     nome: data.nome,
-    documento: data.documento,
+    cpf_cnpj: data.cpf_cnpj,
     telefone: data.telefone,
     email: data.email,
-    endereco: data.endereco,
     criadoEm: nowIso(),
   };
   await setDoc(doc(db, COLLECTIONS.consorciados, id), docData);
@@ -111,10 +109,9 @@ export async function updateConsorciado(
   const next: ConsorciadoDoc = {
     ...current,
     nome: data.nome,
-    documento: data.documento,
+    cpf_cnpj: data.cpf_cnpj,
     telefone: data.telefone,
     email: data.email,
-    endereco: data.endereco,
   };
   await setDoc(ref, next);
   return toConsorciadoRow({ id, ...next });

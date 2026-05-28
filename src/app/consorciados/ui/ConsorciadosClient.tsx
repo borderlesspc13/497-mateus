@@ -1,17 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import {
-  deleteConsorciado,
-  listConsorciados,
-} from "@/lib/firestore/consorciados-client";
+import { listConsorciados } from "@/lib/firestore/consorciados-client";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import {
-  dangerActionClass,
   dataTableClass,
   formControlClass,
   panelClass,
@@ -25,12 +20,10 @@ import {
 import type { ConsorciadoRow } from "@/lib/types/domain";
 
 export default function ConsorciadosClient() {
-  const router = useRouter();
   const [items, setItems] = useState<ConsorciadoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -58,25 +51,10 @@ export default function ConsorciadosClient() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter((item) => {
-      const hay = `${item.nome} ${item.documento} ${item.email} ${item.telefone}`.toLowerCase();
+      const hay = `${item.nome} ${item.cpf_cnpj}`.toLowerCase();
       return hay.includes(q);
     });
   }, [items, query]);
-
-  async function onDelete(id: string) {
-    if (!confirm("Excluir consorciado?")) return;
-    setError(null);
-    setDeletingId(id);
-    try {
-      await deleteConsorciado(id);
-      setItems((prev) => prev.filter((x) => x.id !== id));
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao excluir.");
-    } finally {
-      setDeletingId(null);
-    }
-  }
 
   if (loading) {
     return (
@@ -93,7 +71,7 @@ export default function ConsorciadosClient() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por nome ou documento..."
+            placeholder="Buscar por nome ou CPF/CNPJ..."
             className={formControlClass("lg")}
           />
           <Link href="/consorciados/nova" className={primaryActionClass()}>
@@ -115,7 +93,7 @@ export default function ConsorciadosClient() {
           description={
             items.length === 0
               ? "Cadastre consorciados para vincular às vendas e ao CRM."
-              : "Tente buscar por outro nome ou documento."
+              : "Tente buscar por outro nome ou CPF/CNPJ."
           }
           action={
             items.length === 0 ? (
@@ -126,48 +104,38 @@ export default function ConsorciadosClient() {
           }
         />
       ) : (
-      <div className={tableWrapClass()}>
-        <table className={dataTableClass()}>
-          <thead>
-            <tr>
-              <th className={tableHeadCellClass()}>Nome</th>
-              <th className={tableHeadCellClass()}>Documento</th>
-              <th className={tableHeadCellClass()}>Telefone</th>
-              <th className={tableHeadCellClass()}>E-mail</th>
-              <th className={tableHeadCellClass()}>Cadastrado em</th>
-              <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div className={tableWrapClass()}>
+          <table className={dataTableClass()}>
+            <thead>
+              <tr>
+                <th className={tableHeadCellClass()}>Nome</th>
+                <th className={tableHeadCellClass()}>CPF / CNPJ</th>
+                <th className={tableHeadCellClass()}>Telefone</th>
+                <th className={tableHeadCellClass()}>E-mail</th>
+                <th className={tableHeadCellClass()}>Cadastrado em</th>
+                <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
               {filtered.map((item, index) => (
                 <tr key={item.id} className={tableRowClass(index)}>
                   <td className={`${tableCellClass()} font-medium text-zinc-900`}>{item.nome}</td>
-                  <td className={tableCellClass()}>{item.documento}</td>
+                  <td className={tableCellClass()}>{item.cpf_cnpj}</td>
                   <td className={tableCellClass()}>{item.telefone}</td>
                   <td className={tableCellClass()}>{item.email}</td>
                   <td className={`${tableCellClass()} whitespace-nowrap`}>
                     {new Date(item.criadoEm).toLocaleDateString("pt-BR")}
                   </td>
                   <td className={`${tableCellClass()} pr-0 text-right`}>
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/consorciados/${item.id}`} className={secondaryActionClass()}>
-                        Editar
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => void onDelete(item.id)}
-                        disabled={deletingId === item.id}
-                        className={dangerActionClass()}
-                      >
-                        {deletingId === item.id ? "Excluindo..." : "Excluir"}
-                      </button>
-                    </div>
+                    <Link href={`/consorciados/${item.id}`} className={secondaryActionClass()}>
+                      Acessar ficha
+                    </Link>
                   </td>
                 </tr>
               ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
       )}
     </DataListPanel>
   );

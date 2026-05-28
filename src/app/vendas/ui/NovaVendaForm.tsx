@@ -4,18 +4,33 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { listPlanosMiniByAdministradora } from "@/actions/planos";
+import { listVendedoresMiniByEquipe } from "@/actions/vendedores";
 import { createVenda } from "@/actions/vendas";
+import { ConsorciadoAutocomplete } from "@/components/form/ConsorciadoAutocomplete";
 import { CurrencyInput } from "@/components/form/MaskedInputs";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
-import type { AdministradoraMini, ConsorciadoMini, PlanoMini } from "@/lib/types/domain";
+import type {
+  AdministradoraMini,
+  ConsorciadoMini,
+  EquipeMini,
+  PlanoMini,
+  VendaStatus,
+  VendedorMini,
+} from "@/lib/types/domain";
 import { parseCurrencyToCentavos } from "@/lib/validators/currency";
 
 type FormState = {
   consorciadoId: string;
+  equipeId: string;
+  vendedorId: string;
   administradoraId: string;
   planoId: string;
+  contrato: string;
+  grupo: string;
+  cota: string;
+  dataVencimento: string;
   titulo: string;
-  status: "RASCUNHO" | "ENVIADA" | "FECHADA" | "CANCELADA";
+  status: VendaStatus;
   valor: string;
   dataVenda: string;
   descricao: string;
@@ -25,6 +40,8 @@ type FormState = {
 type NovaVendaFormProps = {
   administradoras: AdministradoraMini[];
   consorciados: ConsorciadoMini[];
+  equipes: EquipeMini[];
+  vendedores: VendedorMini[];
 };
 
 function Field({
@@ -59,20 +76,31 @@ function Field({
   );
 }
 
-export default function NovaVendaForm({ administradoras, consorciados }: NovaVendaFormProps) {
+export default function NovaVendaForm({
+  administradoras,
+  consorciados,
+  equipes,
+}: NovaVendaFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>({
-    consorciadoId: consorciados[0]?.id ?? "",
+    consorciadoId: "",
+    equipeId: equipes[0]?.id ?? "",
+    vendedorId: "",
     administradoraId: administradoras[0]?.id ?? "",
     planoId: "",
+    contrato: "",
+    grupo: "",
+    cota: "",
+    dataVencimento: "10",
     titulo: "",
-    status: "RASCUNHO",
+    status: "ATIVO",
     valor: "",
     dataVenda: "",
     descricao: "",
     observacoes: "",
   });
   const [planos, setPlanos] = useState<PlanoMini[]>([]);
+  const [vendedores, setVendedores] = useState<VendedorMini[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [valorTouched, setValorTouched] = useState(false);
@@ -100,6 +128,31 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
       alive = false;
     };
   }, [form.administradoraId]);
+
+  useEffect(() => {
+    if (!form.equipeId) {
+      setVendedores([]);
+      setForm((p) => ({ ...p, vendedorId: "" }));
+      return;
+    }
+    let alive = true;
+    void listVendedoresMiniByEquipe(form.equipeId)
+      .then((data) => {
+        if (!alive) return;
+        setVendedores(data);
+        setForm((p) => {
+          if (!p.vendedorId) return p;
+          return data.some((v) => v.id === p.vendedorId) ? p : { ...p, vendedorId: data[0]?.id ?? "" };
+        });
+      })
+      .catch(() => {
+        if (!alive) return;
+        setVendedores([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [form.equipeId]);
 
   const valorError = useMemo(() => {
     if (!valorTouched && !form.valor) return null;
@@ -135,6 +188,7 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
       return t ? t : null;
     };
 
+    const dataVencimento = Number.parseInt(form.dataVencimento, 10);
     if (!form.titulo.trim()) {
       setError("Informe o título da venda.");
       return;
@@ -143,13 +197,43 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
       setError("Selecione um consorciado.");
       return;
     }
+    if (!form.equipeId.trim()) {
+      setError("Selecione uma equipe.");
+      return;
+    }
+    if (!form.vendedorId.trim()) {
+      setError("Selecione o vendedor responsável.");
+      return;
+    }
+    if (!form.contrato.trim()) {
+      setError("Informe o contrato.");
+      return;
+    }
+    if (!form.grupo.trim()) {
+      setError("Informe o grupo.");
+      return;
+    }
+    if (!form.cota.trim()) {
+      setError("Informe a cota.");
+      return;
+    }
+    if (!Number.isInteger(dataVencimento) || dataVencimento < 1 || dataVencimento > 31) {
+      setError("Informe o dia de vencimento entre 1 e 31.");
+      return;
+    }
 
     setSaving(true);
     try {
       await createVenda({
         consorciadoId: form.consorciadoId,
+        equipeId: form.equipeId,
+        vendedorId: form.vendedorId,
         administradoraId: form.administradoraId,
         planoId: form.planoId.trim() ? form.planoId.trim() : null,
+        contrato: form.contrato.trim(),
+        grupo: form.grupo.trim(),
+        cota: form.cota.trim(),
+        dataVencimento,
         titulo: form.titulo.trim(),
         status: form.status,
         valorCentavos,
@@ -168,25 +252,20 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
 
   return (
     <form onSubmit={(e) => void onSubmit(e)} className={`${panelClass()} p-6`}>
-      <div className="text-sm font-medium">Dados da venda</div>
+      <div className="text-sm font-medium">Dados da venda (matriz)</div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <label className="block md:col-span-2">
           <div className="mb-1 text-xs font-medium text-zinc-600">
             Consorciado <span className="text-red-600"> *</span>
           </div>
-          <select
+          <ConsorciadoAutocomplete
+            consorciados={consorciados}
             value={form.consorciadoId}
-            onChange={(e) => setForm((p) => ({ ...p, consorciadoId: e.target.value }))}
-            className={formControlClass()}
+            onChange={(consorciadoId) => setForm((p) => ({ ...p, consorciadoId }))}
             disabled={consorciados.length === 0}
-          >
-            {consorciados.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome} ({c.documento})
-              </option>
-            ))}
-          </select>
+            required
+          />
           {consorciados.length === 0 ? (
             <div className="mt-2 text-xs text-zinc-500">
               Você precisa cadastrar um consorciado antes.{" "}
@@ -195,6 +274,97 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
                 className="font-medium text-zinc-800 underline-offset-2 hover:underline"
               >
                 Novo consorciado
+              </Link>
+            </div>
+          ) : null}
+        </label>
+
+        <Field
+          label="Contrato"
+          required
+          value={form.contrato}
+          onChange={(v) => setForm((p) => ({ ...p, contrato: v }))}
+          placeholder="Chave matriz do sistema"
+        />
+        <Field
+          label="Grupo"
+          required
+          value={form.grupo}
+          onChange={(v) => setForm((p) => ({ ...p, grupo: v }))}
+          placeholder="Ex.: 1234"
+        />
+        <Field
+          label="Cota"
+          required
+          value={form.cota}
+          onChange={(v) => setForm((p) => ({ ...p, cota: v }))}
+          placeholder="Ex.: 056"
+        />
+        <Field
+          label="Dia de vencimento"
+          required
+          type="number"
+          value={form.dataVencimento}
+          onChange={(v) => setForm((p) => ({ ...p, dataVencimento: v }))}
+          placeholder="1 a 31"
+        />
+
+        <label className="block">
+          <div className="mb-1 text-xs font-medium text-zinc-600">
+            Equipe <span className="text-red-600"> *</span>
+          </div>
+          <select
+            value={form.equipeId}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                equipeId: e.target.value,
+                vendedorId: "",
+              }))
+            }
+            className={formControlClass()}
+            disabled={equipes.length === 0}
+            required
+          >
+            {equipes.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.nome}
+              </option>
+            ))}
+          </select>
+          {equipes.length === 0 ? (
+            <div className="mt-2 text-xs text-zinc-500">
+              Cadastre uma equipe em{" "}
+              <Link href="/configuracoes/equipes/nova" className="font-medium underline">
+                Configurações → Equipes
+              </Link>
+            </div>
+          ) : null}
+        </label>
+
+        <label className="block">
+          <div className="mb-1 text-xs font-medium text-zinc-600">
+            Vendedor responsável <span className="text-red-600"> *</span>
+          </div>
+          <select
+            value={form.vendedorId}
+            onChange={(e) => setForm((p) => ({ ...p, vendedorId: e.target.value }))}
+            className={formControlClass()}
+            disabled={!form.equipeId || vendedores.length === 0}
+            required
+          >
+            <option value="">Selecione...</option>
+            {vendedores.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.nome}
+              </option>
+            ))}
+          </select>
+          {form.equipeId && vendedores.length === 0 ? (
+            <div className="mt-2 text-xs text-zinc-500">
+              Nenhum vendedor nesta equipe.{" "}
+              <Link href="/configuracoes/vendedores/nova" className="font-medium underline">
+                Cadastrar vendedor
               </Link>
             </div>
           ) : null}
@@ -250,17 +420,6 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
               </option>
             ))}
           </select>
-          {form.administradoraId && planos.length === 0 ? (
-            <div className="mt-2 text-xs text-zinc-500">
-              Nenhum plano para esta administradora.{" "}
-              <Link
-                href={`/planos/nova?administradoraId=${encodeURIComponent(form.administradoraId)}`}
-                className="font-medium text-zinc-800 underline-offset-2 hover:underline"
-              >
-                Cadastrar plano
-              </Link>
-            </div>
-          ) : null}
         </label>
 
         <Field
@@ -268,20 +427,19 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
           required
           value={form.titulo}
           onChange={(v) => setForm((p) => ({ ...p, titulo: v }))}
-          placeholder="Ex.: Venda consórcio Auto"
+          placeholder="Ex.: Cota Auto — Grupo 1234"
         />
 
         <label className="block">
           <div className="mb-1 text-xs font-medium text-zinc-600">Status</div>
           <select
             value={form.status}
-            onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as FormState["status"] }))}
+            onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as VendaStatus }))}
             className={formControlClass()}
           >
-            <option value="RASCUNHO">Rascunho</option>
-            <option value="ENVIADA">Enviada</option>
-            <option value="FECHADA">Fechada</option>
-            <option value="CANCELADA">Cancelada</option>
+            <option value="ATIVO">Ativo</option>
+            <option value="INADIMPLENTE">Inadimplente</option>
+            <option value="CANCELADO">Cancelado</option>
           </select>
         </label>
 
@@ -338,7 +496,13 @@ export default function NovaVendaForm({ administradoras, consorciados }: NovaVen
         <button
           type="submit"
           className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-          disabled={saving || administradoras.length === 0 || consorciados.length === 0}
+          disabled={
+            saving ||
+            administradoras.length === 0 ||
+            consorciados.length === 0 ||
+            equipes.length === 0 ||
+            vendedores.length === 0
+          }
         >
           {saving ? "Salvando..." : "Salvar"}
         </button>

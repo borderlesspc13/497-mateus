@@ -1,4 +1,15 @@
-export type VendaStatus = "RASCUNHO" | "ENVIADA" | "FECHADA" | "CANCELADA";
+export type VendaStatus = "ATIVO" | "INADIMPLENTE" | "CANCELADO";
+
+export type StatusInconsistencia = "CONSISTENTE" | "INCONSISTENTE";
+
+export type TipoRegistroAtendimento = "COBRANCA" | "POS_VENDA" | "INCONSISTENCIA";
+
+export type HistoricoAtendimentoUniversalRow = {
+  id: string;
+  dataRegistro: string;
+  tipoRegistro: TipoRegistroAtendimento;
+  observacao: string;
+};
 
 export type ChecklistAtivacao = {
   documentacaoRecebida: boolean;
@@ -55,24 +66,54 @@ export type PlanoMini = { id: string; nome: string; tipoBem: string };
 export type ConsorciadoRow = {
   id: string;
   nome: string;
-  documento: string;
+  cpf_cnpj: string;
   telefone: string;
   email: string;
-  endereco: string;
   criadoEm: string;
 };
 
-export type ConsorciadoMini = { id: string; nome: string; documento: string };
+export type ConsorciadoMini = { id: string; nome: string; cpf_cnpj: string };
+
+export type EquipeRow = {
+  id: string;
+  nome: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EquipeMini = { id: string; nome: string };
+
+export type VendedorRow = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  equipeId: string;
+  equipe: EquipeMini;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VendedorMini = { id: string; nome: string; equipeId: string };
 
 export type VendaRow = {
   id: string;
   administradoraId: string;
   planoId: string | null;
   consorciadoId: string | null;
+  equipeId: string;
+  vendedorId: string;
   administradora: AdministradoraMini;
   plano: PlanoMini | null;
   consorciado: ConsorciadoMini | null;
+  equipe: EquipeMini | null;
+  vendedor: VendedorMini | null;
   status: VendaStatus;
+  statusInconsistencia: StatusInconsistencia;
+  contrato: string;
+  grupo: string;
+  cota: string;
+  dataVencimento: number;
   titulo: string;
   descricao: string | null;
   valorCentavos: number | null;
@@ -89,7 +130,7 @@ export type DashboardCounts = {
   nAdministradoras: number;
   nPlanos: number;
   nVendas: number;
-  nVendasFechadas: number;
+  nVendasAtivas: number;
 };
 
 export type DashboardVendaResumo = {
@@ -121,12 +162,11 @@ export type DashboardStats = {
   nAdministradoras: number;
   nPlanos: number;
   nVendas: number;
-  nVendasFechadas: number;
-  nVendasRascunho: number;
-  nVendasEnviadas: number;
+  nVendasAtivas: number;
+  nVendasInadimplentes: number;
   nVendasCanceladas: number;
   valorTotalCentavos: number;
-  valorFechadasCentavos: number;
+  valorAtivasCentavos: number;
   ticketMedioCentavos: number | null;
   vendasPorMes: DashboardMesResumo[];
   vendasRecentes: DashboardVendaResumo[];

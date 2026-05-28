@@ -4,13 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { listPlanosMiniByAdministradora } from "@/actions/planos";
+import { listVendedoresMiniByEquipe } from "@/actions/vendedores";
 import { updateVenda } from "@/actions/vendas";
+import { ConsorciadoAutocomplete } from "@/components/form/ConsorciadoAutocomplete";
 import { CurrencyInput } from "@/components/form/MaskedInputs";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 import { VendaPosVendaPanel } from "@/components/vendas/VendaPosVendaPanel";
-import type { AdministradoraMini, ConsorciadoMini, PlanoMini, VendaRow } from "@/lib/types/domain";
+import type {
+  AdministradoraMini,
+  ConsorciadoMini,
+  EquipeMini,
+  PlanoMini,
+  VendaRow,
+  VendedorMini,
+} from "@/lib/types/domain";
 import {
   formatCentavosToCurrencyInput,
   parseCurrencyToCentavos,
@@ -21,6 +30,8 @@ type EditarVendaFormProps = {
   administradoras: AdministradoraMini[];
   initialPlanos: PlanoMini[];
   consorciados: ConsorciadoMini[];
+  equipes: EquipeMini[];
+  vendedores: VendedorMini[];
 };
 
 function dateToInputValue(iso: string | null) {
@@ -38,17 +49,25 @@ export default function EditarVendaForm({
   administradoras,
   initialPlanos,
   consorciados,
+  equipes,
 }: EditarVendaFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [valorTouched, setValorTouched] = useState(false);
   const [planos, setPlanos] = useState<PlanoMini[]>(initialPlanos);
+  const [vendedores, setVendedores] = useState<VendedorMini[]>([]);
 
   const [form, setForm] = useState({
     consorciadoId: item.consorciadoId ?? "",
+    equipeId: item.equipeId || equipes[0]?.id || "",
+    vendedorId: item.vendedorId ?? "",
     administradoraId: item.administradoraId,
     planoId: item.planoId ?? "",
+    contrato: item.contrato,
+    grupo: item.grupo,
+    cota: item.cota,
+    dataVencimento: String(item.dataVencimento),
     titulo: item.titulo,
     status: item.status,
     valor: formatCentavosToCurrencyInput(item.valorCentavos),
@@ -84,6 +103,30 @@ export default function EditarVendaForm({
       alive = false;
     };
   }, [form.administradoraId, item.administradoraId, initialPlanos]);
+
+  useEffect(() => {
+    if (!form.equipeId) {
+      setVendedores([]);
+      return;
+    }
+    let alive = true;
+    void listVendedoresMiniByEquipe(form.equipeId)
+      .then((data) => {
+        if (!alive) return;
+        setVendedores(data);
+        setForm((p) => {
+          if (!p.vendedorId) return p;
+          return data.some((v) => v.id === p.vendedorId) ? p : { ...p, vendedorId: data[0]?.id ?? "" };
+        });
+      })
+      .catch(() => {
+        if (!alive) return;
+        setVendedores([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [form.equipeId]);
 
   const valorError = useMemo(() => {
     if (!valorTouched && !form.valor) return null;
@@ -132,12 +175,50 @@ export default function EditarVendaForm({
       setSaving(false);
       return;
     }
+    if (!form.equipeId.trim()) {
+      setError("Selecione uma equipe.");
+      setSaving(false);
+      return;
+    }
+    if (!form.vendedorId.trim()) {
+      setError("Selecione o vendedor responsável.");
+      setSaving(false);
+      return;
+    }
+
+    const dataVencimento = Number.parseInt(form.dataVencimento, 10);
+    if (!form.contrato.trim()) {
+      setError("Informe o contrato.");
+      setSaving(false);
+      return;
+    }
+    if (!form.grupo.trim()) {
+      setError("Informe o grupo.");
+      setSaving(false);
+      return;
+    }
+    if (!form.cota.trim()) {
+      setError("Informe a cota.");
+      setSaving(false);
+      return;
+    }
+    if (!Number.isInteger(dataVencimento) || dataVencimento < 1 || dataVencimento > 31) {
+      setError("Informe o dia de vencimento entre 1 e 31.");
+      setSaving(false);
+      return;
+    }
 
     try {
       await updateVenda(item.id, {
         consorciadoId: form.consorciadoId,
+        equipeId: form.equipeId,
+        vendedorId: form.vendedorId,
         administradoraId: form.administradoraId,
         planoId: form.planoId.trim() ? form.planoId.trim() : null,
+        contrato: form.contrato.trim(),
+        grupo: form.grupo.trim(),
+        cota: form.cota.trim(),
+        dataVencimento,
         titulo: form.titulo.trim(),
         status: form.status,
         valorCentavos,
@@ -179,18 +260,13 @@ export default function EditarVendaForm({
             <div className="mb-1 text-xs font-medium text-zinc-600">
               Consorciado <span className="text-red-600"> *</span>
             </div>
-            <select
+            <ConsorciadoAutocomplete
+              consorciados={consorciados}
               value={form.consorciadoId}
-              onChange={(e) => setForm((p) => ({ ...p, consorciadoId: e.target.value }))}
-              className={formControlClass()}
+              onChange={(consorciadoId) => setForm((p) => ({ ...p, consorciadoId }))}
               disabled={consorciados.length === 0}
-            >
-              {consorciados.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome} ({c.documento})
-                </option>
-              ))}
-            </select>
+              required
+            />
             {consorciados.length === 0 ? (
               <div className="mt-2 text-xs text-zinc-500">
                 Nenhum consorciado cadastrado.{" "}
@@ -202,6 +278,93 @@ export default function EditarVendaForm({
                 </Link>
               </div>
             ) : null}
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">
+              Contrato <span className="text-red-600">*</span>
+            </div>
+            <input
+              value={form.contrato}
+              onChange={(e) => setForm((p) => ({ ...p, contrato: e.target.value }))}
+              className={formControlClass()}
+            />
+          </label>
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">
+              Grupo <span className="text-red-600">*</span>
+            </div>
+            <input
+              value={form.grupo}
+              onChange={(e) => setForm((p) => ({ ...p, grupo: e.target.value }))}
+              className={formControlClass()}
+            />
+          </label>
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">
+              Cota <span className="text-red-600">*</span>
+            </div>
+            <input
+              value={form.cota}
+              onChange={(e) => setForm((p) => ({ ...p, cota: e.target.value }))}
+              className={formControlClass()}
+            />
+          </label>
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">
+              Dia de vencimento <span className="text-red-600">*</span>
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={31}
+              value={form.dataVencimento}
+              onChange={(e) => setForm((p) => ({ ...p, dataVencimento: e.target.value }))}
+              className={formControlClass()}
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">
+              Equipe <span className="text-red-600">*</span>
+            </div>
+            <select
+              value={form.equipeId}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  equipeId: e.target.value,
+                  vendedorId: "",
+                }))
+              }
+              className={formControlClass()}
+              disabled={equipes.length === 0}
+            >
+              {equipes.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">
+              Vendedor responsável <span className="text-red-600">*</span>
+            </div>
+            <select
+              value={form.vendedorId}
+              onChange={(e) => setForm((p) => ({ ...p, vendedorId: e.target.value }))}
+              className={formControlClass()}
+              disabled={!form.equipeId || vendedores.length === 0}
+            >
+              <option value="">Selecione...</option>
+              {vendedores.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.nome}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="block md:col-span-2">
@@ -264,10 +427,9 @@ export default function EditarVendaForm({
               }
               className={formControlClass()}
             >
-              <option value="RASCUNHO">Rascunho</option>
-              <option value="ENVIADA">Enviada</option>
-              <option value="FECHADA">Fechada</option>
-              <option value="CANCELADA">Cancelada</option>
+              <option value="ATIVO">Ativo</option>
+              <option value="INADIMPLENTE">Inadimplente</option>
+              <option value="CANCELADO">Cancelado</option>
             </select>
           </label>
 
@@ -319,7 +481,7 @@ export default function EditarVendaForm({
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-            disabled={saving || consorciados.length === 0}
+            disabled={saving || consorciados.length === 0 || equipes.length === 0}
           >
             {saving ? "Salvando..." : "Salvar alterações"}
           </button>

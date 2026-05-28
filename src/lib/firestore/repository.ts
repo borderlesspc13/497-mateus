@@ -1,6 +1,7 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { buildDashboardStats } from "@/lib/dashboard/stats";
 import { DEFAULT_CHECKLIST_ATIVACAO } from "@/lib/vendas/pos-venda";
+import { normalizeVendaFields } from "@/lib/firestore/legacy";
 import {
   COLLECTIONS,
   newId,
@@ -10,25 +11,35 @@ import {
   type AdministradoraDoc,
   type ConsorciadoDoc,
   type DocWithId,
+  type EquipeDoc,
   type PlanoDoc,
   type VendaDoc,
+  type VendedorDoc,
 } from "@/lib/firestore/types";
 import {
   toAdministradoraRow,
   toConsorciadoMini,
   toConsorciadoRow,
+  toEquipeMini,
+  toEquipeRow,
   toPlanoMini,
   toPlanoRow,
   toVendaRow,
+  toVendedorMini,
+  toVendedorRow,
 } from "@/lib/mappers";
 import type {
   AdministradoraRow,
   ChecklistAtivacao,
   ConsorciadoMini,
   ConsorciadoRow,
+  EquipeMini,
+  EquipeRow,
   PlanoMini,
   PlanoRow,
   VendaRow,
+  VendedorMini,
+  VendedorRow,
 } from "@/lib/types/domain";
 import type { VendaStatus } from "@/lib/types/domain";
 
@@ -67,6 +78,47 @@ async function getConsorciadoDoc(id: string): Promise<DocWithId<ConsorciadoDoc> 
 async function listConsorciadoDocs(): Promise<DocWithId<ConsorciadoDoc>[]> {
   const snap = await db().collection(COLLECTIONS.consorciados).get();
   return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as ConsorciadoDoc) }));
+}
+
+async function getEquipeDoc(id: string): Promise<DocWithId<EquipeDoc> | null> {
+  const snap = await db().collection(COLLECTIONS.equipes).doc(id).get();
+  if (!snap.exists) return null;
+  return { id: snap.id, ...(snap.data() as EquipeDoc) };
+}
+
+async function listEquipeDocs(): Promise<DocWithId<EquipeDoc>[]> {
+  const snap = await db().collection(COLLECTIONS.equipes).get();
+  return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as EquipeDoc) }));
+}
+
+async function getVendedorDoc(id: string): Promise<DocWithId<VendedorDoc> | null> {
+  const snap = await db().collection(COLLECTIONS.vendedores).doc(id).get();
+  if (!snap.exists) return null;
+  return { id: snap.id, ...(snap.data() as VendedorDoc) };
+}
+
+async function listVendedorDocs(): Promise<DocWithId<VendedorDoc>[]> {
+  const snap = await db().collection(COLLECTIONS.vendedores).get();
+  return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as VendedorDoc) }));
+}
+
+function resolveVendaRelations(
+  v: DocWithId<VendaDoc>,
+  maps: {
+    admMap: Map<string, DocWithId<AdministradoraDoc>>;
+    planoMap: Map<string, DocWithId<PlanoDoc>>;
+    consorciadoMap: Map<string, DocWithId<ConsorciadoDoc>>;
+    equipeMap: Map<string, DocWithId<EquipeDoc>>;
+    vendedorMap: Map<string, DocWithId<VendedorDoc>>;
+  },
+): VendaRow | null {
+  const adm = maps.admMap.get(v.administradoraId);
+  if (!adm) return null;
+  const plano = v.planoId ? (maps.planoMap.get(v.planoId) ?? null) : null;
+  const consorciado = v.consorciadoId ? (maps.consorciadoMap.get(v.consorciadoId) ?? null) : null;
+  const equipe = v.equipeId ? (maps.equipeMap.get(v.equipeId) ?? null) : null;
+  const vendedor = v.vendedorId ? (maps.vendedorMap.get(v.vendedorId) ?? null) : null;
+  return toVendaRow(v, adm, plano, consorciado, equipe, vendedor);
 }
 
 async function listVendaDocs(): Promise<DocWithId<VendaDoc>[]> {
@@ -235,9 +287,189 @@ export async function getConsorciado(id: string): Promise<ConsorciadoRow | null>
   return doc ? toConsorciadoRow(doc) : null;
 }
 
+export async function listEquipes(): Promise<EquipeRow[]> {
+  return sortByCreatedAtDesc(await listEquipeDocs()).map(toEquipeRow);
+}
+
+export async function listEquipesMini(): Promise<EquipeMini[]> {
+  return sortByCreatedAtDesc(await listEquipeDocs()).map(toEquipeMini);
+}
+
+export async function getEquipe(id: string): Promise<EquipeRow | null> {
+  const doc = await getEquipeDoc(id);
+  return doc ? toEquipeRow(doc) : null;
+}
+
+export async function createEquipe(
+  data: Omit<EquipeDoc, "createdAt" | "updatedAt">,
+): Promise<EquipeRow> {
+  const ts = nowIso();
+  const id = newId();
+  const doc: EquipeDoc = { ...data, createdAt: ts, updatedAt: ts };
+  await db().collection(COLLECTIONS.equipes).doc(id).set(doc);
+  return toEquipeRow({ id, ...doc });
+}
+
+export async function updateEquipe(
+  id: string,
+  patch: Partial<Omit<EquipeDoc, "createdAt" | "updatedAt">>,
+): Promise<EquipeRow> {
+  const current = await getEquipeDoc(id);
+  if (!current) throw new Error("Equipe não encontrada.");
+  const { id: _id, ...currentData } = current;
+  const next: EquipeDoc = {
+    ...currentData,
+    ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
+    createdAt: current.createdAt,
+    updatedAt: nowIso(),
+  };
+  await db().collection(COLLECTIONS.equipes).doc(id).set(next);
+  return toEquipeRow({ id, ...next });
+}
+
+export async function countVendedoresByEquipe(equipeId: string): Promise<number> {
+  const snap = await db()
+    .collection(COLLECTIONS.vendedores)
+    .where("equipeId", "==", equipeId)
+    .get();
+  return snap.size;
+}
+
+export async function countVendasByEquipe(equipeId: string): Promise<number> {
+  const snap = await db().collection(COLLECTIONS.vendas).where("equipeId", "==", equipeId).get();
+  return snap.size;
+}
+
+export async function deleteEquipe(id: string): Promise<void> {
+  const nVendedores = await countVendedoresByEquipe(id);
+  if (nVendedores > 0) {
+    throw new Error("Não é possível excluir: existem vendedores vinculados a esta equipe.");
+  }
+  const nVendas = await countVendasByEquipe(id);
+  if (nVendas > 0) {
+    throw new Error("Não é possível excluir: existem vendas vinculadas a esta equipe.");
+  }
+  await db().collection(COLLECTIONS.equipes).doc(id).delete();
+}
+
+export async function listVendedores(): Promise<VendedorRow[]> {
+  const [vendedores, equipes] = await Promise.all([listVendedorDocs(), listEquipeDocs()]);
+  const equipeMap = new Map(equipes.map((e) => [e.id, e]));
+  return sortByCreatedAtDesc(vendedores)
+    .map((v) => {
+      const equipe = equipeMap.get(v.equipeId);
+      if (!equipe) return null;
+      return toVendedorRow(v, equipe);
+    })
+    .filter((x): x is VendedorRow => x !== null);
+}
+
+export async function listVendedoresMini(): Promise<VendedorMini[]> {
+  return sortByCreatedAtDesc(await listVendedorDocs()).map(toVendedorMini);
+}
+
+export async function listVendedoresMiniByEquipe(equipeId: string): Promise<VendedorMini[]> {
+  const snap = await db()
+    .collection(COLLECTIONS.vendedores)
+    .where("equipeId", "==", equipeId)
+    .get();
+  return snap.docs
+    .map((doc) => toVendedorMini({ id: doc.id, ...(doc.data() as VendedorDoc) }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+export async function getVendedor(id: string): Promise<VendedorRow | null> {
+  const vendedor = await getVendedorDoc(id);
+  if (!vendedor) return null;
+  const equipe = await getEquipeDoc(vendedor.equipeId);
+  if (!equipe) return null;
+  return toVendedorRow(vendedor, equipe);
+}
+
+export async function createVendedor(
+  data: Omit<VendedorDoc, "createdAt" | "updatedAt">,
+): Promise<VendedorRow> {
+  const equipe = await getEquipeDoc(data.equipeId);
+  if (!equipe) throw new Error("Equipe não encontrada.");
+  const ts = nowIso();
+  const id = newId();
+  const doc: VendedorDoc = { ...data, createdAt: ts, updatedAt: ts };
+  await db().collection(COLLECTIONS.vendedores).doc(id).set(doc);
+  return toVendedorRow({ id, ...doc }, equipe);
+}
+
+export async function updateVendedor(
+  id: string,
+  patch: Partial<Omit<VendedorDoc, "createdAt" | "updatedAt">>,
+): Promise<VendedorRow> {
+  const current = await getVendedorDoc(id);
+  if (!current) throw new Error("Vendedor não encontrado.");
+  const nextEquipeId = patch.equipeId ?? current.equipeId;
+  const equipe = await getEquipeDoc(nextEquipeId);
+  if (!equipe) throw new Error("Equipe não encontrada.");
+  const { id: _id, ...currentData } = current;
+  const next: VendedorDoc = {
+    ...currentData,
+    ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
+    createdAt: current.createdAt,
+    updatedAt: nowIso(),
+  };
+  await db().collection(COLLECTIONS.vendedores).doc(id).set(next);
+  return toVendedorRow({ id, ...next }, equipe);
+}
+
+export async function countVendasByVendedor(vendedorId: string): Promise<number> {
+  const snap = await db()
+    .collection(COLLECTIONS.vendas)
+    .where("vendedorId", "==", vendedorId)
+    .get();
+  return snap.size;
+}
+
+export async function deleteVendedor(id: string): Promise<void> {
+  const nVendas = await countVendasByVendedor(id);
+  if (nVendas > 0) {
+    throw new Error("Não é possível excluir: existem vendas vinculadas a este vendedor.");
+  }
+  await db().collection(COLLECTIONS.vendedores).doc(id).delete();
+}
+
+export async function listVendasByConsorciado(consorciadoId: string): Promise<VendaRow[]> {
+  const snap = await db()
+    .collection(COLLECTIONS.vendas)
+    .where("consorciadoId", "==", consorciadoId)
+    .get();
+  const vendas = snap.docs.map((item) =>
+    normalizeVendaDoc({ id: item.id, ...(item.data() as VendaDoc) }),
+  );
+  if (vendas.length === 0) return [];
+
+  const [administradoras, planos, equipes, vendedores] = await Promise.all([
+    listAdministradoraDocs(),
+    listPlanoDocs(),
+    listEquipeDocs(),
+    listVendedorDocs(),
+  ]);
+  const maps = {
+    admMap: new Map(administradoras.map((a) => [a.id, a])),
+    planoMap: new Map(planos.map((p) => [p.id, p])),
+    consorciadoMap: new Map(
+      (await listConsorciadoDocs()).map((c) => [c.id, c] as const),
+    ),
+    equipeMap: new Map(equipes.map((e) => [e.id, e])),
+    vendedorMap: new Map(vendedores.map((v) => [v.id, v])),
+  };
+
+  return sortByCreatedAtDesc(vendas)
+    .map((v) => resolveVendaRelations(v, maps))
+    .filter((x): x is VendaRow => x !== null);
+}
+
 function normalizeVendaDoc(raw: DocWithId<VendaDoc>): DocWithId<VendaDoc> {
+  const fields = normalizeVendaFields(raw);
   return {
     ...raw,
+    ...fields,
     consorciadoId: raw.consorciadoId ?? null,
     checklistAtivacao: {
       documentacaoRecebida: raw.checklistAtivacao?.documentacaoRecebida ?? false,
@@ -252,6 +484,7 @@ function normalizeVendaDoc(raw: DocWithId<VendaDoc>): DocWithId<VendaDoc> {
 function withVendaPosVendaDefaults(data: VendaCreateInput): Omit<VendaDoc, "createdAt" | "updatedAt"> {
   return {
     ...data,
+    statusInconsistencia: data.statusInconsistencia ?? "CONSISTENTE",
     checklistAtivacao: data.checklistAtivacao ?? DEFAULT_CHECKLIST_ATIVACAO,
     dataPendencia: data.dataPendencia ?? null,
     alertaAtivo: data.alertaAtivo ?? false,
@@ -259,25 +492,25 @@ function withVendaPosVendaDefaults(data: VendaCreateInput): Omit<VendaDoc, "crea
 }
 
 export async function listVendas(): Promise<VendaRow[]> {
-  const [vendas, administradoras, planos, consorciados] = await Promise.all([
-    listVendaDocs(),
-    listAdministradoraDocs(),
-    listPlanoDocs(),
-    listConsorciadoDocs(),
-  ]);
-  const admMap = new Map(administradoras.map((a) => [a.id, a]));
-  const planoMap = new Map(planos.map((p) => [p.id, p]));
-  const consorciadoMap = new Map(consorciados.map((c) => [c.id, c]));
+  const [vendas, administradoras, planos, consorciados, equipes, vendedores] =
+    await Promise.all([
+      listVendaDocs(),
+      listAdministradoraDocs(),
+      listPlanoDocs(),
+      listConsorciadoDocs(),
+      listEquipeDocs(),
+      listVendedorDocs(),
+    ]);
+  const maps = {
+    admMap: new Map(administradoras.map((a) => [a.id, a])),
+    planoMap: new Map(planos.map((p) => [p.id, p])),
+    consorciadoMap: new Map(consorciados.map((c) => [c.id, c])),
+    equipeMap: new Map(equipes.map((e) => [e.id, e])),
+    vendedorMap: new Map(vendedores.map((v) => [v.id, v])),
+  };
 
   return sortByCreatedAtDesc(vendas)
-    .map((raw) => {
-      const v = normalizeVendaDoc(raw);
-      const adm = admMap.get(v.administradoraId);
-      if (!adm) return null;
-      const plano = v.planoId ? (planoMap.get(v.planoId) ?? null) : null;
-      const consorciado = v.consorciadoId ? (consorciadoMap.get(v.consorciadoId) ?? null) : null;
-      return toVendaRow(v, adm, plano, consorciado);
-    })
+    .map((raw) => resolveVendaRelations(normalizeVendaDoc(raw), maps))
     .filter((x): x is VendaRow => x !== null);
 }
 
@@ -289,7 +522,9 @@ export async function getVenda(id: string): Promise<VendaRow | null> {
   if (!adm) return null;
   const plano = venda.planoId ? await getPlanoDoc(venda.planoId) : null;
   const consorciado = venda.consorciadoId ? await getConsorciadoDoc(venda.consorciadoId) : null;
-  return toVendaRow(venda, adm, plano, consorciado);
+  const equipe = venda.equipeId ? await getEquipeDoc(venda.equipeId) : null;
+  const vendedor = venda.vendedorId ? await getVendedorDoc(venda.vendedorId) : null;
+  return toVendaRow(venda, adm, plano, consorciado, equipe, vendedor);
 }
 
 export type VendaCreateInput = Omit<
@@ -319,6 +554,13 @@ export async function createVenda(
     consorciado = await getConsorciadoDoc(data.consorciadoId);
     if (!consorciado) throw new Error("Consorciado não encontrado.");
   }
+  const equipe = await getEquipeDoc(data.equipeId);
+  if (!equipe) throw new Error("Equipe não encontrada.");
+  const vendedor = await getVendedorDoc(data.vendedorId);
+  if (!vendedor) throw new Error("Vendedor não encontrado.");
+  if (vendedor.equipeId !== data.equipeId) {
+    throw new Error("O vendedor não pertence à equipe selecionada.");
+  }
   const ts = nowIso();
   const id = newId();
   const doc: VendaDoc = {
@@ -327,7 +569,7 @@ export async function createVenda(
     updatedAt: ts,
   };
   await db().collection(COLLECTIONS.vendas).doc(id).set(doc);
-  return toVendaRow({ id, ...doc }, adm, plano, consorciado);
+  return toVendaRow({ id, ...doc }, adm, plano, consorciado, equipe, vendedor);
 }
 
 export async function updateVenda(
@@ -341,6 +583,8 @@ export async function updateVenda(
   const nextPlanoId = patch.planoId !== undefined ? patch.planoId : current.planoId;
   const nextConsorciadoId =
     patch.consorciadoId !== undefined ? patch.consorciadoId : current.consorciadoId;
+  const nextEquipeId = patch.equipeId ?? current.equipeId;
+  const nextVendedorId = patch.vendedorId ?? current.vendedorId;
 
   const adm = await getAdministradoraDoc(nextAdmId);
   if (!adm) throw new Error("Administradora não encontrada.");
@@ -360,6 +604,14 @@ export async function updateVenda(
     if (!consorciado) throw new Error("Consorciado não encontrado.");
   }
 
+  const equipe = await getEquipeDoc(nextEquipeId);
+  if (!equipe) throw new Error("Equipe não encontrada.");
+  const vendedor = await getVendedorDoc(nextVendedorId);
+  if (!vendedor) throw new Error("Vendedor não encontrado.");
+  if (vendedor.equipeId !== nextEquipeId) {
+    throw new Error("O vendedor não pertence à equipe selecionada.");
+  }
+
   const { id: _id, ...currentData } = current;
   const next: VendaDoc = {
     ...currentData,
@@ -368,7 +620,7 @@ export async function updateVenda(
     updatedAt: nowIso(),
   };
   await db().collection(COLLECTIONS.vendas).doc(id).set(next);
-  return toVendaRow({ id, ...next }, adm, plano, consorciado);
+  return toVendaRow({ id, ...next }, adm, plano, consorciado, equipe, vendedor);
 }
 
 export async function deleteVenda(id: string): Promise<void> {
@@ -379,14 +631,14 @@ export async function getDashboardCounts(): Promise<{
   nAdministradoras: number;
   nPlanos: number;
   nVendas: number;
-  nVendasFechadas: number;
+  nVendasAtivas: number;
 }> {
   const stats = await getDashboardStats();
   return {
     nAdministradoras: stats.nAdministradoras,
     nPlanos: stats.nPlanos,
     nVendas: stats.nVendas,
-    nVendasFechadas: stats.nVendasFechadas,
+    nVendasAtivas: stats.nVendasAtivas,
   };
 }
 

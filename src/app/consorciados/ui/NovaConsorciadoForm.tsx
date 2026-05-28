@@ -10,18 +10,16 @@ import { formControlClass, panelClass } from "@/components/ui/list-panel-classes
 
 type FormState = {
   nome: string;
-  documento: string;
+  cpf_cnpj: string;
   telefone: string;
   email: string;
-  endereco: string;
 };
 
 const initialState: FormState = {
   nome: "",
-  documento: "",
+  cpf_cnpj: "",
   telefone: "",
   email: "",
-  endereco: "",
 };
 
 function Field({
@@ -58,20 +56,18 @@ function Field({
 
 function validateForm(form: FormState): string | null {
   if (!form.nome.trim()) return "Informe o nome.";
-  if (!form.documento.trim()) return "Informe o CPF ou CNPJ.";
+  if (!form.cpf_cnpj.trim()) return "Informe o CPF ou CNPJ.";
   if (!form.telefone.trim()) return "Informe o telefone.";
   if (!form.email.trim()) return "Informe o e-mail.";
-  if (!form.endereco.trim()) return "Informe o endereço.";
   return null;
 }
 
 function toInput(form: FormState): ConsorciadoInput {
   return {
     nome: form.nome.trim(),
-    documento: form.documento.trim(),
+    cpf_cnpj: form.cpf_cnpj.trim(),
     telefone: form.telefone.trim(),
     email: form.email.trim(),
-    endereco: form.endereco.trim(),
   };
 }
 
@@ -125,8 +121,8 @@ export default function NovaConsorciadoForm() {
         <Field
           label="CPF / CNPJ"
           required
-          value={form.documento}
-          onChange={(v) => setForm((p) => ({ ...p, documento: v }))}
+          value={form.cpf_cnpj}
+          onChange={(v) => setForm((p) => ({ ...p, cpf_cnpj: v }))}
           placeholder="000.000.000-00 ou 00.000.000/0000-00"
         />
         <Field
@@ -144,17 +140,6 @@ export default function NovaConsorciadoForm() {
           onChange={(v) => setForm((p) => ({ ...p, email: v }))}
           placeholder="contato@email.com"
         />
-        <label className="block md:col-span-2">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
-            Endereço <span className="text-red-600"> *</span>
-          </div>
-          <textarea
-            value={form.endereco}
-            onChange={(e) => setForm((p) => ({ ...p, endereco: e.target.value }))}
-            placeholder="Rua, número, bairro, cidade — UF"
-            className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
-          />
-        </label>
       </div>
 
       {validationError || error ? (

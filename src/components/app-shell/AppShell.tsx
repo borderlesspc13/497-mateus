@@ -5,12 +5,22 @@ import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-const nav = [
+type NavLinkItem = { href: string; label: string };
+
+const mainNav: NavLinkItem[] = [
   { href: "/", label: "Dashboard" },
   { href: "/consorciados", label: "Consorciados" },
+  { href: "/vendas", label: "Vendas" },
+  { href: "/controle/inadimplencia", label: "Inadimplência" },
+  { href: "/controle/inconsistencia", label: "Inconsistência" },
+];
+
+const configNav: NavLinkItem[] = [
+  { href: "/configuracoes", label: "Visão geral" },
   { href: "/administradoras", label: "Administradoras" },
   { href: "/planos", label: "Planos" },
-  { href: "/vendas", label: "Vendas" },
+  { href: "/configuracoes/equipes", label: "Equipes" },
+  { href: "/configuracoes/vendedores", label: "Vendedores" },
 ];
 
 function isNavActive(pathname: string, href: string) {
@@ -19,23 +29,100 @@ function isNavActive(pathname: string, href: string) {
     : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function navLinkClass(active: boolean) {
+function isConfigSectionActive(pathname: string) {
+  return (
+    pathname.startsWith("/configuracoes") ||
+    pathname.startsWith("/administradoras") ||
+    pathname.startsWith("/planos")
+  );
+}
+
+function navLinkClass(active: boolean, nested = false) {
   return [
-    "block rounded-xl px-4 py-3 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400",
+    "block rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400",
+    nested ? "px-3 py-2" : "px-4 py-3",
     active
-      ? "bg-zinc-900 text-white shadow-sm"
+      ? nested
+        ? "bg-zinc-100 text-zinc-900"
+        : "bg-zinc-900 text-white shadow-sm"
       : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-sm",
   ].join(" ");
 }
 
-function NavLink({ href, label }: { href: string; label: string }) {
+function NavLink({ href, label, nested = false }: NavLinkItem & { nested?: boolean }) {
   const pathname = usePathname();
   const active = isNavActive(pathname, href);
 
   return (
-    <Link href={href} className={navLinkClass(active)} aria-current={active ? "page" : undefined}>
+    <Link
+      href={href}
+      className={navLinkClass(active, nested)}
+      aria-current={active ? "page" : undefined}
+    >
       {label}
     </Link>
+  );
+}
+
+function ConfigNavGroup({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const sectionActive = isConfigSectionActive(pathname);
+  const [open, setOpen] = useState(sectionActive);
+
+  useEffect(() => {
+    if (sectionActive) setOpen(true);
+  }, [sectionActive]);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={[
+          "flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400",
+          sectionActive
+            ? "bg-zinc-900 text-white shadow-sm"
+            : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+        ].join(" ")}
+        aria-expanded={open}
+      >
+        Configurações
+        <span className="text-xs opacity-80" aria-hidden>
+          {open ? "▾" : "▸"}
+        </span>
+      </button>
+      {open ? (
+        <div className="mt-1.5 flex flex-col gap-0.5 border-l border-zinc-200 pl-3 ml-2">
+          {configNav.map((item) => {
+            const active = isNavActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                className={navLinkClass(active, true)}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <nav className="flex flex-col gap-1.5 px-1" aria-label="Menu principal">
+      {mainNav.map((item) => (
+        <div key={item.href} onClick={onNavigate}>
+          <NavLink href={item.href} label={item.label} />
+        </div>
+      ))}
+      <ConfigNavGroup onNavigate={onNavigate} />
+    </nav>
   );
 }
 
@@ -91,11 +178,9 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
           </div>
 
-          <nav className="mt-10 flex flex-col gap-1.5 px-1" aria-label="Menu principal">
-            {nav.map((item) => (
-              <NavLink key={item.href} href={item.href} label={item.label} />
-            ))}
-          </nav>
+          <div className="mt-10">
+            <SidebarNav />
+          </div>
 
           <div className="mt-auto rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 text-xs leading-5 text-zinc-600">
             Dados operacionais sincronizados com Firebase Firestore.
@@ -172,22 +257,9 @@ export function AppShell({ children }: PropsWithChildren) {
                     <div className="text-xs text-zinc-500">Consórcio</div>
                   </div>
                 </div>
-                <nav className="mt-8 flex flex-col gap-1.5" aria-label="Menu principal">
-                  {nav.map((item) => {
-                    const active = isNavActive(pathname, item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={navLinkClass(active)}
-                        aria-current={active ? "page" : undefined}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </nav>
+                <div className="mt-8 flex-1 overflow-y-auto">
+                  <SidebarNav onNavigate={() => setMobileOpen(false)} />
+                </div>
               </div>
             </div>
           ) : null}

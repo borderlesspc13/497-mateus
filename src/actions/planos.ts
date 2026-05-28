@@ -25,6 +25,7 @@ export type PlanoInput = {
 
 function revalidatePlanos() {
   revalidatePath("/");
+  revalidatePath("/configuracoes");
   revalidatePath("/planos");
   revalidatePath("/vendas");
 }

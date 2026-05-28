@@ -1,14 +1,22 @@
-import type { ChecklistAtivacao, VendaStatus } from "@/lib/types/domain";
+import type {
+  ChecklistAtivacao,
+  StatusInconsistencia,
+  TipoRegistroAtendimento,
+  VendaStatus,
+} from "@/lib/types/domain";
 
 export const COLLECTIONS = {
   administradoras: "administradoras",
   planos: "planos",
   vendas: "vendas",
   consorciados: "consorciados",
+  equipes: "equipes",
+  vendedores: "vendedores",
 } as const;
 
 export const VENDA_SUBCOLLECTIONS = {
   historico: "historico",
+  historico_atendimento: "historico_atendimento",
 } as const;
 
 export type AdministradoraDoc = {
@@ -43,11 +51,25 @@ export type PlanoDoc = {
 
 export type ConsorciadoDoc = {
   nome: string;
-  documento: string;
+  cpf_cnpj: string;
   telefone: string;
   email: string;
-  endereco: string;
   criadoEm: string;
+};
+
+export type EquipeDoc = {
+  nome: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VendedorDoc = {
+  nome: string;
+  email: string;
+  telefone: string;
+  equipeId: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type HistoricoAtendimentoDoc = {
@@ -56,11 +78,24 @@ export type HistoricoAtendimentoDoc = {
   descricao: string;
 };
 
+export type HistoricoAtendimentoUniversalDoc = {
+  dataRegistro: string;
+  tipoRegistro: TipoRegistroAtendimento;
+  observacao: string;
+};
+
 export type VendaDoc = {
   administradoraId: string;
   planoId: string | null;
   consorciadoId: string | null;
+  equipeId: string;
+  vendedorId: string;
   status: VendaStatus;
+  statusInconsistencia: StatusInconsistencia;
+  contrato: string;
+  grupo: string;
+  cota: string;
+  dataVencimento: number;
   titulo: string;
   descricao: string | null;
   valorCentavos: number | null;

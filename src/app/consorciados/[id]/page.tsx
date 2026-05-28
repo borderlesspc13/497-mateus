@@ -1,10 +1,10 @@
-import EditarConsorciadoForm from "../ui/EditarConsorciadoForm";
+import FichaConsorciado from "../ui/FichaConsorciado";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function EditarConsorciadoPage({ params }: PageProps) {
+export default async function FichaConsorciadoPage({ params }: PageProps) {
   const { id } = await params;
-  return <EditarConsorciadoForm id={id} />;
+  return <FichaConsorciado id={id} />;
 }
