@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireGerenteOrAdmin, requireServerSessionUser } from "@/lib/auth/server";
 import {
   countPlanosByAdministradora,
   countVendasByAdministradora,
@@ -44,6 +45,7 @@ async function assertCnpjAvailable(cnpjDigits: string, excludeId?: string): Prom
 }
 
 export async function listAdministradoras(): Promise<AdministradoraRow[]> {
+  await requireServerSessionUser();
   return listAdministradorasDocs();
 }
 
@@ -52,6 +54,7 @@ export async function getAdministradora(id: string): Promise<AdministradoraRow |
 }
 
 export async function createAdministradora(data: AdministradoraInput): Promise<AdministradoraRow> {
+  await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   if (!nome) throw new Error("Informe o nome da administradora.");
 
@@ -67,6 +70,7 @@ export async function updateAdministradora(
   id: string,
   patch: Partial<AdministradoraInput>,
 ): Promise<AdministradoraRow> {
+  await requireGerenteOrAdmin();
   const current = await getAdministradoraDoc(id);
   if (!current) throw new Error("Administradora não encontrada.");
 
@@ -88,6 +92,7 @@ export async function updateAdministradora(
 }
 
 export async function deleteAdministradora(id: string): Promise<void> {
+  await requireGerenteOrAdmin();
   const [planos, vendas] = await Promise.all([
     countPlanosByAdministradora(id),
     countVendasByAdministradora(id),

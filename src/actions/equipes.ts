@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireGerenteOrAdmin, requireServerSessionUser } from "@/lib/auth/server";
 import {
   createEquipe as createEquipeDoc,
   deleteEquipe as deleteEquipeDoc,
@@ -22,6 +23,7 @@ function revalidateEquipes() {
 }
 
 export async function listEquipes(): Promise<EquipeRow[]> {
+  await requireServerSessionUser();
   return listEquipesDocs();
 }
 
@@ -34,6 +36,7 @@ export async function getEquipe(id: string): Promise<EquipeRow | null> {
 }
 
 export async function createEquipe(data: EquipeInput): Promise<EquipeRow> {
+  await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   if (!nome) throw new Error("Informe o nome da equipe.");
   const row = await createEquipeDoc({ nome });
@@ -42,6 +45,7 @@ export async function createEquipe(data: EquipeInput): Promise<EquipeRow> {
 }
 
 export async function updateEquipe(id: string, data: EquipeInput): Promise<EquipeRow> {
+  await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   if (!nome) throw new Error("Informe o nome da equipe.");
   const row = await updateEquipeDoc(id, { nome });
@@ -50,6 +54,7 @@ export async function updateEquipe(id: string, data: EquipeInput): Promise<Equip
 }
 
 export async function deleteEquipe(id: string): Promise<void> {
+  await requireGerenteOrAdmin();
   await deleteEquipeDoc(id);
   revalidateEquipes();
 }

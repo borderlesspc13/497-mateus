@@ -78,7 +78,28 @@ export async function signUpWithEmail(
   }
 }
 
+export async function establishServerSession(): Promise<void> {
+  const auth = getClientAuth();
+  if (!auth?.currentUser) return;
+
+  const idToken = await auth.currentUser.getIdToken(true);
+  const response = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Não foi possível iniciar a sessão no servidor.");
+  }
+}
+
+export async function clearServerSession(): Promise<void> {
+  await fetch("/api/auth/session", { method: "DELETE" });
+}
+
 export async function signOutUser(): Promise<void> {
+  await clearServerSession().catch(() => undefined);
   const auth = getClientAuth();
   if (!auth) return;
   await signOut(auth);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signUpWithEmail } from "@/lib/firebase/auth-client";
+import { establishServerSession, signUpWithEmail } from "@/lib/firebase/auth-client";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 
 export default function CadastroForm() {
@@ -39,6 +39,7 @@ export default function CadastroForm() {
     setLoading(true);
     try {
       await signUpWithEmail(nome, email, password);
+      await establishServerSession();
       router.replace("/");
       router.refresh();
     } catch (e) {

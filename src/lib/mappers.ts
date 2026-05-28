@@ -1,4 +1,5 @@
 import { readConsorciadoCpfCnpj, normalizeVendaFields } from "@/lib/firestore/legacy";
+import { resolvePlanoRegrasFinanceiras } from "@/lib/planos/regras-financeiras";
 import { DEFAULT_CHECKLIST_ATIVACAO } from "@/lib/vendas/pos-venda";
 import { formatCnpj } from "@/lib/validators/cnpj";
 import type {
@@ -57,6 +58,7 @@ export function toPlanoRow(
   plano: DocWithId<PlanoDoc>,
   administradora: DocWithId<AdministradoraDoc>,
 ): PlanoRow {
+  const regras = resolvePlanoRegrasFinanceiras(plano);
   return {
     id: plano.id,
     administradoraId: plano.administradoraId,
@@ -64,9 +66,9 @@ export function toPlanoRow(
     nome: plano.nome,
     tipoBem: plano.tipoBem,
     valorCreditoCentavos: plano.valorCreditoCentavos,
-    regrasComissaoJson: plano.regrasComissaoJson,
-    regrasRecebimentoJson: plano.regrasRecebimentoJson,
-    regrasEstornoJson: plano.regrasEstornoJson,
+    percentualComissao: plano.percentualComissao ?? regras?.percentualComissao ?? null,
+    parcelasRecebimento: plano.parcelasRecebimento ?? regras?.parcelasRecebimento ?? null,
+    diasParaEstorno: plano.diasParaEstorno ?? regras?.diasParaEstorno ?? null,
     createdAt: plano.createdAt,
     updatedAt: plano.updatedAt,
   };

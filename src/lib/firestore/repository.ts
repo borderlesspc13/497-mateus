@@ -2,6 +2,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { buildDashboardStats } from "@/lib/dashboard/stats";
 import { DEFAULT_CHECKLIST_ATIVACAO } from "@/lib/vendas/pos-venda";
 import { normalizeVendaFields } from "@/lib/firestore/legacy";
+import { resolvePlanoRegrasFinanceiras } from "@/lib/planos/regras-financeiras";
 import {
   COLLECTIONS,
   newId,
@@ -12,10 +13,17 @@ import {
   type ConsorciadoDoc,
   type DocWithId,
   type EquipeDoc,
+  type ExtratoDoc,
+  type ExtratoStatus,
   type PlanoDoc,
   type VendaDoc,
   type VendedorDoc,
 } from "@/lib/firestore/types";
+import {
+  calcularParcelasComissao,
+  extratoDocId,
+  resolverCreditoCentavos,
+} from "@/utils/financeiro";
 import {
   toAdministradoraRow,
   toConsorciadoMini,
@@ -35,6 +43,7 @@ import type {
   ConsorciadoRow,
   EquipeMini,
   EquipeRow,
+  ExtratoRow,
   PlanoMini,
   PlanoRow,
   VendaRow,
@@ -643,16 +652,168 @@ export async function getDashboardCounts(): Promise<{
 }
 
 export async function getDashboardStats(): Promise<import("@/lib/types/domain").DashboardStats> {
-  const [vendas, administradoras, planos, consorciados] = await Promise.all([
+  const [vendas, administradoras, planos, consorciados, extratos] = await Promise.all([
     listVendas(),
     listAdministradoraDocs(),
     listPlanoDocs(),
     listConsorciadoDocs(),
+    listExtratoDocs(),
   ]);
   return buildDashboardStats(
     vendas,
     consorciados.length,
     administradoras.length,
     planos.length,
+    extratos,
   );
+}
+
+async function listExtratoDocs(): Promise<DocWithId<ExtratoDoc>[]> {
+  const snap = await db().collection(COLLECTIONS.extratos).get();
+  return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as ExtratoDoc) }));
+}
+
+export async function syncExtratosComissao(): Promise<number> {
+  const [vendas, planos] = await Promise.all([listVendaDocs(), listPlanoDocs()]);
+  const planoMap = new Map(planos.map((p) => [p.id, p]));
+  const existing = await listExtratoDocs();
+  const existingMap = new Map(existing.map((e) => [e.id, e]));
+  const ts = nowIso();
+  let upserted = 0;
+
+  for (const raw of vendas) {
+    const venda = normalizeVendaDoc(raw);
+    if (venda.status !== "ATIVO" || !venda.planoId) continue;
+
+    const plano = planoMap.get(venda.planoId);
+    if (!plano) continue;
+
+    const regras = resolvePlanoRegrasFinanceiras(plano);
+    if (!regras) continue;
+
+    const creditoCentavos = resolverCreditoCentavos(
+      venda.valorCentavos,
+      plano.valorCreditoCentavos,
+    );
+    if (creditoCentavos === null) continue;
+
+    const parcelas = calcularParcelasComissao(creditoCentavos, regras);
+
+    for (const parcela of parcelas) {
+      const id = extratoDocId(venda.id, parcela.numero);
+      const prev = existingMap.get(id);
+
+      if (prev && prev.status !== "PENDENTE") continue;
+
+      const doc: ExtratoDoc = {
+        vendaId: venda.id,
+        planoId: plano.id,
+        parcelaNumero: parcela.numero,
+        parcelaTotal: regras.parcelasRecebimento,
+        parcelaLabel: parcela.label,
+        valorCentavos: parcela.valorCentavos,
+        status: prev?.status ?? "PENDENTE",
+        vendedorId: venda.vendedorId,
+        equipeId: venda.equipeId,
+        createdAt: prev?.createdAt ?? ts,
+        updatedAt: ts,
+      };
+
+      const changed =
+        !prev ||
+        prev.valorCentavos !== doc.valorCentavos ||
+        prev.parcelaTotal !== doc.parcelaTotal;
+
+      if (changed) {
+        await db().collection(COLLECTIONS.extratos).doc(id).set(doc);
+        upserted += 1;
+      }
+    }
+  }
+
+  return upserted;
+}
+
+export async function listExtratosComissao(): Promise<ExtratoRow[]> {
+  await syncExtratosComissao();
+
+  const [extratos, vendas, planos] = await Promise.all([
+    listExtratoDocs(),
+    listVendas(),
+    listPlanoDocs(),
+  ]);
+
+  const vendaMap = new Map(vendas.map((v) => [v.id, v]));
+  const planoMap = new Map(planos.map((p) => [p.id, p]));
+
+  const rows: ExtratoRow[] = [];
+
+  for (const extrato of sortByCreatedAtDesc(extratos)) {
+    const venda = vendaMap.get(extrato.vendaId);
+    const plano = planoMap.get(extrato.planoId);
+    if (!venda || !plano) continue;
+
+    const regras = resolvePlanoRegrasFinanceiras(plano);
+    if (!regras) continue;
+
+    const creditoCentavos = resolverCreditoCentavos(
+      venda.valorCentavos,
+      plano.valorCreditoCentavos,
+    );
+    if (creditoCentavos === null) continue;
+
+    rows.push({
+      id: extrato.id,
+      vendaId: extrato.vendaId,
+      planoId: extrato.planoId,
+      parcelaNumero: extrato.parcelaNumero,
+      parcelaTotal: extrato.parcelaTotal,
+      parcelaLabel: extrato.parcelaLabel,
+      valorCentavos: extrato.valorCentavos,
+      status: extrato.status,
+      vendedorId: extrato.vendedorId,
+      equipeId: extrato.equipeId,
+      vendaTitulo: venda.titulo,
+      vendaContrato: venda.contrato,
+      consorciadoNome: venda.consorciado?.nome ?? null,
+      planoNome: plano.nome,
+      vendedorNome: venda.vendedor?.nome ?? null,
+      equipeNome: venda.equipe?.nome ?? null,
+      percentualComissao: regras.percentualComissao,
+      creditoCentavos,
+      createdAt: extrato.createdAt,
+      updatedAt: extrato.updatedAt,
+    });
+  }
+
+  return rows.sort(
+    (a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt) ||
+      a.vendaContrato.localeCompare(b.vendaContrato) ||
+      a.parcelaNumero - b.parcelaNumero,
+  );
+}
+
+export async function updateExtratoStatus(
+  id: string,
+  status: ExtratoStatus,
+): Promise<void> {
+  const ref = db().collection(COLLECTIONS.extratos).doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error("Extrato não encontrado.");
+
+  const current = snap.data() as ExtratoDoc;
+  const allowed: Record<ExtratoStatus, ExtratoStatus[]> = {
+    PENDENTE: ["LIBERADO"],
+    LIBERADO: ["PAGO"],
+    PAGO: [],
+  };
+
+  if (!allowed[current.status].includes(status)) {
+    throw new Error(
+      `Não é possível alterar de ${current.status} para ${status}.`,
+    );
+  }
+
+  await ref.update({ status, updatedAt: nowIso() });
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireGerenteOrAdmin, requireServerSessionUser } from "@/lib/auth/server";
 import {
   countVendasByPlano,
   createPlano as createPlanoDoc,
@@ -18,16 +19,38 @@ export type PlanoInput = {
   nome: string;
   tipoBem: string;
   valorCreditoCentavos: number | null;
-  regrasComissaoJson: string | null;
-  regrasRecebimentoJson: string | null;
-  regrasEstornoJson: string | null;
+  percentualComissao: number | null;
+  parcelasRecebimento: number | null;
+  diasParaEstorno: number | null;
 };
+
+function assertRegrasFinanceiras(data: PlanoInput): void {
+  if (data.percentualComissao === null) {
+    throw new Error("Informe o percentual de comissão.");
+  }
+  if (data.percentualComissao <= 0 || data.percentualComissao > 100) {
+    throw new Error("Percentual de comissão deve estar entre 0 e 100.");
+  }
+  if (data.parcelasRecebimento === null) {
+    throw new Error("Informe o número de parcelas de recebimento.");
+  }
+  if (data.parcelasRecebimento < 1 || data.parcelasRecebimento > 24) {
+    throw new Error("Parcelas de recebimento deve ser entre 1 e 24.");
+  }
+  if (data.diasParaEstorno === null) {
+    throw new Error("Informe os dias para estorno.");
+  }
+  if (data.diasParaEstorno < 1) {
+    throw new Error("Dias para estorno deve ser maior que zero.");
+  }
+}
 
 function revalidatePlanos() {
   revalidatePath("/");
   revalidatePath("/configuracoes");
   revalidatePath("/planos");
   revalidatePath("/vendas");
+  revalidatePath("/comissoes");
 }
 
 async function assertAdministradoraExists(administradoraId: string): Promise<void> {
@@ -36,6 +59,7 @@ async function assertAdministradoraExists(administradoraId: string): Promise<voi
 }
 
 export async function listPlanos(): Promise<PlanoRow[]> {
+  await requireServerSessionUser();
   return listPlanosDocs();
 }
 
@@ -50,11 +74,13 @@ export async function getPlano(id: string): Promise<PlanoRow | null> {
 }
 
 export async function createPlano(data: PlanoInput): Promise<PlanoRow> {
+  await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   const tipoBem = data.tipoBem.trim();
   if (!nome) throw new Error("Informe o nome do plano.");
   if (!tipoBem) throw new Error("Informe o tipo de bem.");
   await assertAdministradoraExists(data.administradoraId);
+  assertRegrasFinanceiras(data);
 
   const row = await createPlanoDoc({ ...data, nome, tipoBem });
   revalidatePlanos();
@@ -62,6 +88,7 @@ export async function createPlano(data: PlanoInput): Promise<PlanoRow> {
 }
 
 export async function updatePlano(id: string, patch: Partial<PlanoInput>): Promise<PlanoRow> {
+  await requireGerenteOrAdmin();
   const current = await getPlanoDoc(id);
   if (!current) throw new Error("Plano não encontrado.");
 
@@ -80,12 +107,34 @@ export async function updatePlano(id: string, patch: Partial<PlanoInput>): Promi
     await assertAdministradoraExists(patch.administradoraId);
   }
 
+  const merged: PlanoInput = {
+    administradoraId: data.administradoraId ?? current.administradoraId,
+    nome: data.nome ?? current.nome,
+    tipoBem: data.tipoBem ?? current.tipoBem,
+    valorCreditoCentavos:
+      data.valorCreditoCentavos !== undefined
+        ? data.valorCreditoCentavos
+        : current.valorCreditoCentavos,
+    percentualComissao:
+      data.percentualComissao !== undefined
+        ? data.percentualComissao
+        : current.percentualComissao,
+    parcelasRecebimento:
+      data.parcelasRecebimento !== undefined
+        ? data.parcelasRecebimento
+        : current.parcelasRecebimento,
+    diasParaEstorno:
+      data.diasParaEstorno !== undefined ? data.diasParaEstorno : current.diasParaEstorno,
+  };
+  assertRegrasFinanceiras(merged);
+
   const row = await updatePlanoDoc(id, data);
   revalidatePlanos();
   return row;
 }
 
 export async function deletePlano(id: string): Promise<void> {
+  await requireGerenteOrAdmin();
   const vendas = await countVendasByPlano(id);
   if (vendas > 0) throw new Error("Existem vendas vinculadas a este plano.");
 

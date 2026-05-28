@@ -12,6 +12,9 @@ export const COLLECTIONS = {
   consorciados: "consorciados",
   equipes: "equipes",
   vendedores: "vendedores",
+  extratos: "extratos",
+  usuarios: "usuarios",
+  logs_auditoria: "logs_auditoria",
 } as const;
 
 export const VENDA_SUBCOLLECTIONS = {
@@ -42,9 +45,48 @@ export type PlanoDoc = {
   nome: string;
   tipoBem: string;
   valorCreditoCentavos: number | null;
-  regrasComissaoJson: string | null;
-  regrasRecebimentoJson: string | null;
-  regrasEstornoJson: string | null;
+  percentualComissao: number | null;
+  parcelasRecebimento: number | null;
+  diasParaEstorno: number | null;
+  /** @deprecated Use percentualComissao. Mantido para documentos legados. */
+  regrasComissaoJson?: string | null;
+  /** @deprecated Use parcelasRecebimento. */
+  regrasRecebimentoJson?: string | null;
+  /** @deprecated Use diasParaEstorno. */
+  regrasEstornoJson?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UserRole = "admin" | "gerente" | "vendedor";
+
+export type UsuarioDoc = {
+  email: string;
+  displayName: string | null;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LogAuditoriaDoc = {
+  userId: string;
+  acao: string;
+  documentoId: string;
+  dataTimestamp: string;
+};
+
+export type ExtratoStatus = "PENDENTE" | "LIBERADO" | "PAGO";
+
+export type ExtratoDoc = {
+  vendaId: string;
+  planoId: string;
+  parcelaNumero: number;
+  parcelaTotal: number;
+  parcelaLabel: string;
+  valorCentavos: number;
+  status: ExtratoStatus;
+  vendedorId: string;
+  equipeId: string;
   createdAt: string;
   updatedAt: string;
 };

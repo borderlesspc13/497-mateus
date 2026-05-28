@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireGerenteOrAdmin, requireServerSessionUser } from "@/lib/auth/server";
 import {
   createVendedor as createVendedorDoc,
   deleteVendedor as deleteVendedorDoc,
@@ -32,6 +33,7 @@ async function assertEquipeExists(equipeId: string): Promise<void> {
 }
 
 export async function listVendedores(): Promise<VendedorRow[]> {
+  await requireServerSessionUser();
   return listVendedoresDocs();
 }
 
@@ -48,6 +50,7 @@ export async function getVendedor(id: string): Promise<VendedorRow | null> {
 }
 
 export async function createVendedor(data: VendedorInput): Promise<VendedorRow> {
+  await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   const email = data.email.trim();
   const telefone = data.telefone.trim();
@@ -63,6 +66,7 @@ export async function createVendedor(data: VendedorInput): Promise<VendedorRow> 
 }
 
 export async function updateVendedor(id: string, data: VendedorInput): Promise<VendedorRow> {
+  await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   const email = data.email.trim();
   const telefone = data.telefone.trim();
@@ -78,6 +82,7 @@ export async function updateVendedor(id: string, data: VendedorInput): Promise<V
 }
 
 export async function deleteVendedor(id: string): Promise<void> {
+  await requireGerenteOrAdmin();
   await deleteVendedorDoc(id);
   revalidateVendedores();
 }

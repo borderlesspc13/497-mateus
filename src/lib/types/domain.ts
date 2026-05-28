@@ -1,3 +1,14 @@
+export type UserRole = "admin" | "gerente" | "vendedor";
+
+export type UsuarioRow = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type VendaStatus = "ATIVO" | "INADIMPLENTE" | "CANCELADO";
 
 export type StatusInconsistencia = "CONSISTENTE" | "INCONSISTENTE";
@@ -54,9 +65,34 @@ export type PlanoRow = {
   nome: string;
   tipoBem: string;
   valorCreditoCentavos: number | null;
-  regrasComissaoJson: string | null;
-  regrasRecebimentoJson: string | null;
-  regrasEstornoJson: string | null;
+  percentualComissao: number | null;
+  parcelasRecebimento: number | null;
+  diasParaEstorno: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ExtratoStatus = "PENDENTE" | "LIBERADO" | "PAGO";
+
+export type ExtratoRow = {
+  id: string;
+  vendaId: string;
+  planoId: string;
+  parcelaNumero: number;
+  parcelaTotal: number;
+  parcelaLabel: string;
+  valorCentavos: number;
+  status: ExtratoStatus;
+  vendedorId: string;
+  equipeId: string;
+  vendaTitulo: string;
+  vendaContrato: string;
+  consorciadoNome: string | null;
+  planoNome: string;
+  vendedorNome: string | null;
+  equipeNome: string | null;
+  percentualComissao: number;
+  creditoCentavos: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -167,6 +203,8 @@ export type DashboardStats = {
   nVendasCanceladas: number;
   valorTotalCentavos: number;
   valorAtivasCentavos: number;
+  valorCreditoComercializadoCentavos: number;
+  comissoesPagasMesCentavos: number;
   ticketMedioCentavos: number | null;
   vendasPorMes: DashboardMesResumo[];
   vendasRecentes: DashboardVendaResumo[];

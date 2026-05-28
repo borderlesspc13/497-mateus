@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, type PropsWithChildren } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -45,13 +44,7 @@ export function AuthShell({ children }: PropsWithChildren) {
       </main>
 
       <footer className="border-t border-zinc-200 bg-white py-4 text-center text-xs text-zinc-500">
-        <Link href="/login" className="hover:text-zinc-800 hover:underline">
-          Login
-        </Link>
-        <span className="mx-2">·</span>
-        <Link href="/cadastro" className="hover:text-zinc-800 hover:underline">
-          Cadastro
-        </Link>
+        Gestão Operacional · Consórcio
       </footer>
     </div>
   );

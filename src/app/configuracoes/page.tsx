@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { panelClass } from "@/components/ui/list-panel-classes";
+import { canManageUsuarios } from "@/lib/auth/roles";
+import { getServerSessionUser } from "@/lib/auth/server";
 
-const cards = [
+const baseCards = [
   {
     href: "/administradoras",
     title: "Administradoras",
@@ -25,13 +27,24 @@ const cards = [
   },
 ];
 
-export default function ConfiguracoesPage() {
+export default async function ConfiguracoesPage() {
+  const session = await getServerSessionUser();
+  const cards = [...baseCards];
+
+  if (session && canManageUsuarios(session.role)) {
+    cards.push({
+      href: "/configuracoes/usuarios",
+      title: "Usuários",
+      description: "Contas de acesso ao sistema, e-mails, senhas e perfis (RBAC).",
+    });
+  }
+
   return (
     <>
       <PageFlowHeader
         crumbs={[{ label: "Dashboard", href: "/" }, { label: "Configurações" }]}
         title="Configurações"
-        description="Cadastros de apoio à operação: parceiros, planos, equipes e vendedores."
+        description="Cadastros de apoio à operação: parceiros, planos, equipes, vendedores e usuários."
       />
 
       <div className="grid gap-4 sm:grid-cols-2">

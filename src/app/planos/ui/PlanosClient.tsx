@@ -132,6 +132,8 @@ export default function PlanosClient({
               <th className={tableHeadCellClass()}>Administradora</th>
               <th className={tableHeadCellClass()}>Tipo de bem</th>
               <th className={tableHeadCellClass()}>Crédito</th>
+              <th className={tableHeadCellClass()}>Comissão</th>
+              <th className={tableHeadCellClass()}>Parcelas</th>
               <th className={tableHeadCellClass()}>Criado em</th>
               <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
             </tr>
@@ -154,6 +156,14 @@ export default function PlanosClient({
                   <td className={tableCellClass()}>{p.tipoBem}</td>
                   <td className={`${tableCellClass()} whitespace-nowrap tabular-nums`}>
                     {formatMoneyPtBrFromCentavos(p.valorCreditoCentavos)}
+                  </td>
+                  <td className={`${tableCellClass()} tabular-nums`}>
+                    {p.percentualComissao != null
+                      ? `${p.percentualComissao.toLocaleString("pt-BR")}%`
+                      : "—"}
+                  </td>
+                  <td className={tableCellClass()}>
+                    {p.parcelasRecebimento ?? "—"}
                   </td>
                   <td className={`${tableCellClass()} whitespace-nowrap`}>
                     {new Date(p.createdAt).toLocaleDateString("pt-BR")}

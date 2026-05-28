@@ -4,10 +4,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import {
+  canAccessConfiguracoes,
+  canManageUsuarios,
+  canViewComissoes,
+  roleLabel,
+  type UserRole,
+} from "@/lib/auth/roles";
 
 type NavLinkItem = { href: string; label: string };
 
-const mainNav: NavLinkItem[] = [
+const BASE_MAIN_NAV: NavLinkItem[] = [
   { href: "/", label: "Dashboard" },
   { href: "/consorciados", label: "Consorciados" },
   { href: "/vendas", label: "Vendas" },
@@ -15,13 +22,29 @@ const mainNav: NavLinkItem[] = [
   { href: "/controle/inconsistencia", label: "Inconsistência" },
 ];
 
-const configNav: NavLinkItem[] = [
+function buildMainNav(role: UserRole | null): NavLinkItem[] {
+  const items = [...BASE_MAIN_NAV];
+  if (role && canViewComissoes(role)) {
+    items.splice(3, 0, { href: "/comissoes", label: "Comissões" });
+  }
+  return items;
+}
+
+const BASE_CONFIG_NAV: NavLinkItem[] = [
   { href: "/configuracoes", label: "Visão geral" },
   { href: "/administradoras", label: "Administradoras" },
   { href: "/planos", label: "Planos" },
   { href: "/configuracoes/equipes", label: "Equipes" },
   { href: "/configuracoes/vendedores", label: "Vendedores" },
 ];
+
+function buildConfigNav(role: UserRole | null): NavLinkItem[] {
+  const items = [...BASE_CONFIG_NAV];
+  if (role && canManageUsuarios(role)) {
+    items.push({ href: "/configuracoes/usuarios", label: "Usuários" });
+  }
+  return items;
+}
 
 function isNavActive(pathname: string, href: string) {
   return href === "/"
@@ -64,10 +87,17 @@ function NavLink({ href, label, nested = false }: NavLinkItem & { nested?: boole
   );
 }
 
-function ConfigNavGroup({ onNavigate }: { onNavigate?: () => void }) {
+function ConfigNavGroup({
+  onNavigate,
+  role,
+}: {
+  onNavigate?: () => void;
+  role: UserRole | null;
+}) {
   const pathname = usePathname();
   const sectionActive = isConfigSectionActive(pathname);
   const [open, setOpen] = useState(sectionActive);
+  const configNav = buildConfigNav(role);
 
   useEffect(() => {
     if (sectionActive) setOpen(true);
@@ -113,7 +143,16 @@ function ConfigNavGroup({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarNav({
+  onNavigate,
+  role,
+}: {
+  onNavigate?: () => void;
+  role: UserRole | null;
+}) {
+  const mainNav = buildMainNav(role);
+  const showConfig = role ? canAccessConfiguracoes(role) : false;
+
   return (
     <nav className="flex flex-col gap-1.5 px-1" aria-label="Menu principal">
       {mainNav.map((item) => (
@@ -121,7 +160,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           <NavLink href={item.href} label={item.label} />
         </div>
       ))}
-      <ConfigNavGroup onNavigate={onNavigate} />
+      {showConfig ? <ConfigNavGroup onNavigate={onNavigate} role={role} /> : null}
     </nav>
   );
 }
@@ -145,6 +184,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }
 
   const userLabel = user?.displayName?.trim() || user?.email || "Usuário";
+  const userRoleLabel = user?.role ? roleLabel(user.role) : null;
 
   useEffect(() => {
     setMobileOpen(false);
@@ -179,7 +219,7 @@ export function AppShell({ children }: PropsWithChildren) {
           </div>
 
           <div className="mt-10">
-            <SidebarNav />
+            <SidebarNav role={user?.role ?? null} />
           </div>
 
           <div className="mt-auto rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 text-xs leading-5 text-zinc-600">
@@ -222,10 +262,15 @@ export function AppShell({ children }: PropsWithChildren) {
               </div>
               <div className="flex shrink-0 items-center gap-2.5">
                 <div
-                  className="hidden max-w-[14rem] truncate rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2 text-xs font-medium text-zinc-700 sm:block"
+                  className="hidden max-w-[14rem] truncate rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2 text-xs sm:block"
                   title={user?.email ?? undefined}
                 >
-                  {userLabel}
+                  <div className="truncate font-medium text-zinc-800">{userLabel}</div>
+                  {userRoleLabel ? (
+                    <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                      {userRoleLabel}
+                    </div>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -258,7 +303,10 @@ export function AppShell({ children }: PropsWithChildren) {
                   </div>
                 </div>
                 <div className="mt-8 flex-1 overflow-y-auto">
-                  <SidebarNav onNavigate={() => setMobileOpen(false)} />
+                  <SidebarNav
+                    role={user?.role ?? null}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
                 </div>
               </div>
             </div>

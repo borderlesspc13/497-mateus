@@ -13,6 +13,10 @@ import {
   formatCentavosToCurrencyInput,
   parseCurrencyToCentavos,
 } from "@/lib/validators/currency";
+import {
+  parseRegrasFinanceirasForm,
+  RegrasFinanceirasFields,
+} from "./RegrasFinanceirasFields";
 
 type EditarPlanoFormProps = {
   item: PlanoRow;
@@ -30,9 +34,9 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
     nome: item.nome,
     tipoBem: item.tipoBem,
     valorCredito: formatCentavosToCurrencyInput(item.valorCreditoCentavos),
-    regrasComissaoJson: item.regrasComissaoJson ?? "",
-    regrasRecebimentoJson: item.regrasRecebimentoJson ?? "",
-    regrasEstornoJson: item.regrasEstornoJson ?? "",
+    percentualComissao: item.percentualComissao?.toString() ?? "",
+    parcelasRecebimento: item.parcelasRecebimento?.toString() ?? "3",
+    diasParaEstorno: item.diasParaEstorno?.toString() ?? "90",
   });
 
   const valorError = useMemo(() => {
@@ -69,10 +73,12 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
       return;
     }
 
-    const trimOrNull = (s: string) => {
-      const t = s.trim();
-      return t ? t : null;
-    };
+    const regras = parseRegrasFinanceirasForm(form);
+    if ("error" in regras) {
+      setError(regras.error);
+      setSaving(false);
+      return;
+    }
 
     try {
       await updatePlano(item.id, {
@@ -80,9 +86,9 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
         nome: form.nome.trim(),
         tipoBem: form.tipoBem.trim(),
         valorCreditoCentavos,
-        regrasComissaoJson: trimOrNull(form.regrasComissaoJson),
-        regrasRecebimentoJson: trimOrNull(form.regrasRecebimentoJson),
-        regrasEstornoJson: trimOrNull(form.regrasEstornoJson),
+        percentualComissao: regras.percentualComissao,
+        parcelasRecebimento: regras.parcelasRecebimento,
+        diasParaEstorno: regras.diasParaEstorno,
       });
       router.push("/planos");
       router.refresh();
@@ -102,7 +108,7 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
           { label: "Editar" },
         ]}
         title={item.nome}
-        description="Ajuste administradora, dados do plano e regras em JSON."
+        description="Ajuste dados do plano e regras financeiras de comissão."
         actions={
           <Link href="/planos" className={backLinkClass()}>
             Voltar à lista
@@ -159,25 +165,10 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
           </div>
         </div>
 
-        <div className="mt-8 text-sm font-medium">Regras (JSON)</div>
-        <div className="mt-4 grid gap-4">
-          {(
-            [
-              ["Comissão", "regrasComissaoJson"],
-              ["Recebimento", "regrasRecebimentoJson"],
-              ["Estorno", "regrasEstornoJson"],
-            ] as const
-          ).map(([label, key]) => (
-            <label className="block" key={key}>
-              <div className="mb-1 text-xs font-medium text-zinc-600">{label}</div>
-              <textarea
-                value={form[key]}
-                onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
-                className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
-              />
-            </label>
-          ))}
-        </div>
+        <RegrasFinanceirasFields
+          form={form}
+          onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+        />
 
         {error ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

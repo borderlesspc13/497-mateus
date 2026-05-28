@@ -8,16 +8,18 @@ import { CurrencyInput } from "@/components/form/MaskedInputs";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 import type { AdministradoraMini } from "@/lib/types/domain";
 import { parseCurrencyToCentavos } from "@/lib/validators/currency";
+import {
+  parseRegrasFinanceirasForm,
+  RegrasFinanceirasFields,
+  type RegrasFinanceirasFormState,
+} from "./RegrasFinanceirasFields";
 
 type FormState = {
   administradoraId: string;
   nome: string;
   tipoBem: string;
   valorCredito: string;
-  regrasComissaoJson: string;
-  regrasRecebimentoJson: string;
-  regrasEstornoJson: string;
-};
+} & RegrasFinanceirasFormState;
 
 type NovoPlanoFormProps = {
   administradoras: AdministradoraMini[];
@@ -60,9 +62,9 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
     nome: "",
     tipoBem: "",
     valorCredito: "",
-    regrasComissaoJson: "",
-    regrasRecebimentoJson: "",
-    regrasEstornoJson: "",
+    percentualComissao: "",
+    parcelasRecebimento: "3",
+    diasParaEstorno: "90",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,10 +107,11 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
       return;
     }
 
-    const trimOrNull = (s: string) => {
-      const t = s.trim();
-      return t ? t : null;
-    };
+    const regras = parseRegrasFinanceirasForm(form);
+    if ("error" in regras) {
+      setError(regras.error);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -117,9 +120,9 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
         nome: form.nome.trim(),
         tipoBem: form.tipoBem.trim(),
         valorCreditoCentavos,
-        regrasComissaoJson: trimOrNull(form.regrasComissaoJson),
-        regrasRecebimentoJson: trimOrNull(form.regrasRecebimentoJson),
-        regrasEstornoJson: trimOrNull(form.regrasEstornoJson),
+        percentualComissao: regras.percentualComissao,
+        parcelasRecebimento: regras.parcelasRecebimento,
+        diasParaEstorno: regras.diasParaEstorno,
       });
       router.push("/planos");
       router.refresh();
@@ -188,29 +191,10 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
         </div>
       </div>
 
-      <div className="mt-8 text-sm font-medium">Regras (JSON)</div>
-      <p className="mt-2 text-xs text-zinc-500">
-        Por enquanto use JSON livre; depois viramos em campos e validações específicas.
-      </p>
-      <div className="mt-4 grid gap-4 md:grid-cols-1">
-        {(
-          [
-            ["Comissão", "regrasComissaoJson", '{"percentual": 0.02}'],
-            ["Recebimento", "regrasRecebimentoJson", '{"parcelas": 12}'],
-            ["Estorno", "regrasEstornoJson", '{"prazoDias": 7}'],
-          ] as const
-        ).map(([label, key, placeholder]) => (
-          <label className="block" key={key}>
-            <div className="mb-1 text-xs font-medium text-zinc-600">{label}</div>
-            <textarea
-              value={form[key]}
-              onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
-              placeholder={placeholder}
-              className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
-            />
-          </label>
-        ))}
-      </div>
+      <RegrasFinanceirasFields
+        form={form}
+        onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+      />
 
       {error ? (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

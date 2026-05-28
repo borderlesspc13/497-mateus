@@ -1,5 +1,6 @@
 "use server";
 
+import { requireServerSessionUser } from "@/lib/auth/server";
 import {
   getDashboardCounts as getDashboardCountsFromFirestore,
   getDashboardStats as getDashboardStatsFromFirestore,
@@ -11,5 +12,6 @@ export async function getDashboardCounts(): Promise<DashboardCounts> {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
+  await requireServerSessionUser();
   return getDashboardStatsFromFirestore();
 }

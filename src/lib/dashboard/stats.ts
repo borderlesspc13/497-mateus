@@ -1,3 +1,5 @@
+import type { ExtratoDoc } from "@/lib/firestore/types";
+import type { DocWithId } from "@/lib/firestore/types";
 import type {
   DashboardAdmResumo,
   DashboardMesResumo,
@@ -45,19 +47,34 @@ function sumValores(vendas: VendaRow[]): number {
   return vendas.reduce((acc, v) => acc + (v.valorCentavos ?? 0), 0);
 }
 
+function isCurrentMonthIso(iso: string): boolean {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()
+  );
+}
+
 export function buildDashboardStats(
   vendas: VendaRow[],
   nConsorciados: number,
   nAdministradoras: number,
   nPlanos: number,
+  extratos: DocWithId<ExtratoDoc>[],
 ): DashboardStats {
-  const nVendasAtivas = vendas.filter((v) => v.status === "ATIVO").length;
+  const vendasAtivas = vendas.filter((v) => v.status === "ATIVO");
+  const nVendasAtivas = vendasAtivas.length;
   const nVendasInadimplentes = vendas.filter((v) => v.status === "INADIMPLENTE").length;
   const nVendasCanceladas = vendas.filter((v) => v.status === "CANCELADO").length;
 
   const vendasComValor = vendas.filter((v) => v.valorCentavos !== null);
   const valorTotalCentavos = sumValores(vendas);
-  const valorAtivasCentavos = sumValores(vendas.filter((v) => v.status === "ATIVO"));
+  const valorAtivasCentavos = sumValores(vendasAtivas);
+  const valorCreditoComercializadoCentavos = valorAtivasCentavos;
+  const comissoesPagasMesCentavos = extratos
+    .filter((e) => e.status === "PAGO" && isCurrentMonthIso(e.updatedAt))
+    .reduce((acc, e) => acc + e.valorCentavos, 0);
   const ticketMedioCentavos =
     vendasComValor.length > 0 ? Math.round(valorTotalCentavos / vendasComValor.length) : null;
 
@@ -116,6 +133,8 @@ export function buildDashboardStats(
     nVendasCanceladas,
     valorTotalCentavos,
     valorAtivasCentavos,
+    valorCreditoComercializadoCentavos,
+    comissoesPagasMesCentavos,
     ticketMedioCentavos,
     vendasPorMes,
     vendasRecentes,

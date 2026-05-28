@@ -11,11 +11,13 @@ import {
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
+import { canViewComissoes, type UserRole } from "@/lib/auth/roles";
 import type { DashboardStats } from "@/lib/types/domain";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 
 type DashboardHomeProps = {
   stats: DashboardStats;
+  userRole: UserRole | null;
 };
 
 type KpiCardProps = {
@@ -153,9 +155,11 @@ function SectionTitle({ title, description }: { title: string; description: stri
   );
 }
 
-export function DashboardHome({ stats }: DashboardHomeProps) {
+export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
   const maxMesValor = Math.max(...stats.vendasPorMes.map((m) => m.valorCentavos), 1);
   const maxMesQtd = Math.max(...stats.vendasPorMes.map((m) => m.quantidade), 1);
+  const showComissoes = userRole ? canViewComissoes(userRole) : false;
+  const mesAtual = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
   const statusRows = [
     { label: "Ativas", count: stats.nVendasAtivas, tone: "bg-emerald-500" },
@@ -171,10 +175,43 @@ export function DashboardHome({ stats }: DashboardHomeProps) {
       <PageFlowHeader
         crumbs={[{ label: "Dashboard" }]}
         title="Dashboard"
-        description="Visão geral do sistema: cadastros, volume de vendas, valores e tendência dos últimos meses."
+        description="Indicadores operacionais em tempo real a partir do Firestore."
       />
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          label="Vendas ativas"
+          value={String(stats.nVendasAtivas)}
+          hint="Cotas com status operacional Ativo."
+          icon={<IconCart />}
+          href="/vendas"
+          linkLabel="Ver vendas"
+        />
+        <KpiCard
+          label="Crédito comercializado"
+          value={formatMoneyPtBrFromCentavos(stats.valorCreditoComercializadoCentavos)}
+          hint="Soma dos valores das vendas ativas."
+          icon={<IconCurrency />}
+        />
+        <KpiCard
+          label="Comissões pagas"
+          value={formatMoneyPtBrFromCentavos(stats.comissoesPagasMesCentavos)}
+          hint={`Extratos com status Pago em ${mesAtual}.`}
+          icon={<IconSpark />}
+          href={showComissoes ? "/comissoes" : undefined}
+          linkLabel={showComissoes ? "Ver extratos" : undefined}
+        />
+        <KpiCard
+          label="Cotas inadimplentes"
+          value={String(stats.nVendasInadimplentes)}
+          hint="Vendas com status Inadimplente."
+          icon={<IconChart />}
+          href="/controle/inadimplencia"
+          linkLabel="Ver inadimplência"
+        />
+      </div>
+
+      <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Consorciados"
           value={String(stats.nConsorciados)}
@@ -211,7 +248,7 @@ export function DashboardHome({ stats }: DashboardHomeProps) {
 
       <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         <KpiCard
-          label="Valor total"
+          label="Valor total (carteira)"
           value={formatMoneyPtBrFromCentavos(stats.valorTotalCentavos)}
           hint={`Ativas: ${formatMoneyPtBrFromCentavos(stats.valorAtivasCentavos)}`}
           icon={<IconCurrency />}
@@ -223,11 +260,10 @@ export function DashboardHome({ stats }: DashboardHomeProps) {
           icon={<IconChart />}
         />
         <KpiCard
-          label="Comissões"
-          value="Em breve"
-          hint="Próxima etapa: extratos e relatórios a partir dos planos cadastrados."
-          icon={<IconSpark />}
-          accent="muted"
+          label="Canceladas"
+          value={String(stats.nVendasCanceladas)}
+          hint={`${stats.nVendas} vendas no total`}
+          icon={<IconLayers />}
         />
       </div>
 

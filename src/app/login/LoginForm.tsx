@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { signInWithEmail } from "@/lib/firebase/auth-client";
+import { establishServerSession, signInWithEmail } from "@/lib/firebase/auth-client";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 
 export default function LoginForm() {
@@ -32,6 +32,7 @@ export default function LoginForm() {
     setLoading(true);
     try {
       await signInWithEmail(email, password);
+      await establishServerSession();
       router.replace(redirectTo.startsWith("/") ? redirectTo : "/");
       router.refresh();
     } catch (e) {
@@ -42,13 +43,22 @@ export default function LoginForm() {
   }
 
   return (
-    <div className={`${panelClass()} p-6 sm:p-8`}>
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Entrar</h1>
-        <p className="text-sm text-zinc-600">Acesse o sistema com seu e-mail e senha.</p>
+    <div className={`${panelClass()} overflow-hidden p-0`}>
+      <div className="border-b border-zinc-100 bg-zinc-50/80 px-6 py-5 sm:px-8">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-900 text-sm font-bold text-white">
+            GO
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
+              Gestão Operacional
+            </h1>
+            <p className="text-sm text-zinc-600">Acesse com seu e-mail corporativo</p>
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={(e) => void onSubmit(e)} className="mt-6 space-y-4">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4 px-6 py-6 sm:px-8">
         <label className="block">
           <div className="mb-1 text-xs font-medium text-zinc-600">
             E-mail <span className="text-red-600">*</span>
@@ -86,20 +96,15 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
         >
-          {loading ? "Entrando..." : "Entrar"}
+          {loading ? "Entrando..." : "Entrar no sistema"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-zinc-600">
-        Ainda não tem conta?{" "}
-        <Link
-          href="/cadastro"
-          className="font-medium text-zinc-900 underline-offset-2 hover:underline"
-        >
-          Criar cadastro
-        </Link>
+      <p className="border-t border-zinc-100 px-6 py-4 text-center text-xs leading-5 text-zinc-500 sm:px-8">
+        O acesso é provisionado pelo administrador do sistema. Em caso de dúvida, contate o suporte
+        interno.
       </p>
     </div>
   );

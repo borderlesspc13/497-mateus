@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { requireServerSessionUser } from "@/lib/auth/server";
 import {
   createVenda as createVendaDoc,
   deleteVenda as deleteVendaDoc,
@@ -90,6 +92,7 @@ async function assertEquipeAndVendedor(equipeId: string, vendedorId: string): Pr
 }
 
 export async function listVendas(): Promise<VendaRow[]> {
+  await requireServerSessionUser();
   return listVendasDocs();
 }
 
@@ -98,6 +101,7 @@ export async function getVenda(id: string): Promise<VendaRow | null> {
 }
 
 export async function createVenda(data: VendaInput): Promise<VendaRow> {
+  await requireServerSessionUser();
   const titulo = data.titulo.trim();
   if (!titulo) throw new Error("Informe o título da venda.");
   if (!data.consorciadoId.trim()) throw new Error("Selecione um consorciado.");
@@ -187,6 +191,10 @@ export async function updateVenda(id: string, patch: Partial<VendaInput>): Promi
     });
   }
 
+  const sessionUser = await requireServerSessionUser();
+  const statusAnterior = current.status;
+  const statusNovo = data.status ?? current.status;
+
   const row = await updateVendaDoc(id, {
     administradoraId: data.administradoraId,
     planoId: data.planoId,
@@ -210,6 +218,14 @@ export async function updateVenda(id: string, patch: Partial<VendaInput>): Promi
     observacoes: data.observacoes,
     statusInconsistencia: data.statusInconsistencia,
   });
+
+  if (patch.status !== undefined && statusNovo !== statusAnterior) {
+    await writeAuditLog({
+      userId: sessionUser.uid,
+      acao: `venda.status.${statusAnterior.toLowerCase()}_para_${statusNovo.toLowerCase()}`,
+      documentoId: id,
+    });
+  }
 
   revalidateVendas();
   return row;
