@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { NavigationProgress } from "@/components/navigation/NavigationProgress";
 import {
   canAccessConfiguracoes,
   canManageUsuarios,
@@ -206,6 +207,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   return (
     <div className="min-h-screen bg-zinc-50">
+      <NavigationProgress />
       <div className="flex min-h-screen w-full">
         <aside className="hidden w-[17rem] shrink-0 border-r border-zinc-200 bg-white md:sticky md:top-0 md:flex md:h-svh md:flex-col md:px-6 md:py-7">
           <div className="flex items-center gap-3.5 px-1">

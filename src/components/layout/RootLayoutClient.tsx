@@ -6,6 +6,7 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AppShell } from "@/components/app-shell/AppShell";
+import { FirebaseAnalytics } from "@/components/firebase/FirebaseAnalytics";
 
 const AUTH_ROUTES = new Set(["/login", "/cadastro"]);
 
@@ -15,6 +16,7 @@ export function RootLayoutClient({ children }: PropsWithChildren) {
 
   return (
     <AuthProvider>
+      <FirebaseAnalytics />
       {isAuthRoute ? (
         <AuthShell>{children}</AuthShell>
       ) : (

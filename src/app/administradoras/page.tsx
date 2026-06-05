@@ -1,10 +1,15 @@
+import { Suspense } from "react";
 import { listAdministradoras } from "@/actions/administradoras";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
+import { PageLoading } from "@/components/ui/PageLoading";
 import AdministradorasClient from "./ui/AdministradorasClient";
 
-export default async function AdministradorasPage() {
+async function AdministradorasData() {
   const items = await listAdministradoras();
+  return <AdministradorasClient initialItems={items} />;
+}
 
+export default function AdministradorasPage() {
   return (
     <>
       <PageFlowHeader
@@ -16,7 +21,9 @@ export default async function AdministradorasPage() {
         description="Cadastre administradoras parceiras com dados cadastrais e regras específicas por parceiro."
       />
 
-      <AdministradorasClient initialItems={items} />
+      <Suspense fallback={<PageLoading rows={8} columns={4} withHeader={false} />}>
+        <AdministradorasData />
+      </Suspense>
     </>
   );
 }

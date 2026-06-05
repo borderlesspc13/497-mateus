@@ -23,7 +23,15 @@ export function AuthShell({ children }: PropsWithChildren) {
     );
   }
 
-  if (user) return null;
+  if (user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 text-sm text-zinc-600 shadow-sm">
+          Redirecionando...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">

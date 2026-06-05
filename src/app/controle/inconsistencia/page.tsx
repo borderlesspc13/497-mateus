@@ -1,10 +1,15 @@
+import { Suspense } from "react";
 import { listVendas } from "@/actions/vendas";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
+import { PageLoading } from "@/components/ui/PageLoading";
 import ControleCotasClient from "../ui/ControleCotasClient";
 
-export default async function ControleInconsistenciaPage() {
+async function InconsistenciaData() {
   const items = await listVendas();
+  return <ControleCotasClient modo="inconsistencia" initialItems={items} />;
+}
 
+export default function ControleInconsistenciaPage() {
   return (
     <>
       <PageFlowHeader
@@ -15,7 +20,9 @@ export default async function ControleInconsistenciaPage() {
         title="Controle de inconsistência"
         description="Priorize cotas marcadas como inconsistentes. Registre tratativas na timeline e altere o status quando resolvido."
       />
-      <ControleCotasClient modo="inconsistencia" initialItems={items} />
+      <Suspense fallback={<PageLoading rows={8} columns={5} withHeader={false} />}>
+        <InconsistenciaData />
+      </Suspense>
     </>
   );
 }

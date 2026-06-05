@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { getAdminAuth } from "@/lib/firebase/admin";
 import { getAdminFirestore } from "@/lib/firebase/admin";
@@ -18,7 +19,7 @@ async function getUsuarioRole(uid: string): Promise<UserRole | null> {
   return data.role;
 }
 
-export async function getServerSessionUser(): Promise<SessionUser | null> {
+export const getServerSessionUser = cache(async (): Promise<SessionUser | null> => {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!session) return null;
@@ -36,7 +37,7 @@ export async function getServerSessionUser(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireServerSessionUser(): Promise<SessionUser> {
   const user = await getServerSessionUser();

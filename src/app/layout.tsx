@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { FirebaseAnalytics } from "@/components/firebase/FirebaseAnalytics";
 import { RootLayoutClient } from "@/components/layout/RootLayoutClient";
 
 const geistSans = Geist({
@@ -19,9 +18,6 @@ export const metadata: Metadata = {
   description: "Sistema de gestão operacional para consórcios.",
 };
 
-/** Firestore via Admin SDK — renderização sempre no servidor em runtime. */
-export const dynamic = "force-dynamic";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,7 +29,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-zinc-50 font-sans text-zinc-900">
-        <FirebaseAnalytics />
         <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>

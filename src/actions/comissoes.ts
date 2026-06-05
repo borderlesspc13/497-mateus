@@ -8,7 +8,7 @@ import {
   syncExtratosComissao,
   updateExtratoStatus,
 } from "@/lib/firestore/repository";
-import type { ExtratoRow, ExtratoStatus } from "@/lib/types/domain";
+import type { ExtratoRow } from "@/lib/types/domain";
 
 function revalidateComissoes() {
   revalidatePath("/comissoes");
@@ -43,5 +43,3 @@ export async function marcarExtratoPago(id: string): Promise<void> {
   });
   revalidateComissoes();
 }
-
-export type { ExtratoStatus };

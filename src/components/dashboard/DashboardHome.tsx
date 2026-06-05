@@ -20,6 +20,8 @@ type DashboardHomeProps = {
   userRole: UserRole | null;
 };
 
+type KpiTone = "emerald" | "sky" | "violet" | "amber" | "rose" | "zinc";
+
 type KpiCardProps = {
   label: string;
   value: string;
@@ -27,65 +29,146 @@ type KpiCardProps = {
   icon: ReactNode;
   href?: string;
   linkLabel?: string;
-  accent?: "default" | "muted";
+  tone?: KpiTone;
+  muted?: boolean;
 };
 
-function KpiCard({ label, value, hint, icon, href, linkLabel, accent = "default" }: KpiCardProps) {
-  const isMuted = accent === "muted";
+const KPI_TONE_STYLES: Record<
+  KpiTone,
+  { border: string; icon: string; link: string }
+> = {
+  emerald: {
+    border: "border-t-emerald-500",
+    icon: "border-emerald-100 bg-emerald-50 text-emerald-600",
+    link: "text-emerald-700 group-hover:text-emerald-800",
+  },
+  sky: {
+    border: "border-t-sky-500",
+    icon: "border-sky-100 bg-sky-50 text-sky-600",
+    link: "text-sky-700 group-hover:text-sky-800",
+  },
+  violet: {
+    border: "border-t-violet-500",
+    icon: "border-violet-100 bg-violet-50 text-violet-600",
+    link: "text-violet-700 group-hover:text-violet-800",
+  },
+  amber: {
+    border: "border-t-amber-500",
+    icon: "border-amber-100 bg-amber-50 text-amber-600",
+    link: "text-amber-700 group-hover:text-amber-800",
+  },
+  rose: {
+    border: "border-t-rose-500",
+    icon: "border-rose-100 bg-rose-50 text-rose-600",
+    link: "text-rose-700 group-hover:text-rose-800",
+  },
+  zinc: {
+    border: "border-t-zinc-400",
+    icon: "border-zinc-200 bg-zinc-50 text-zinc-600",
+    link: "text-zinc-700 group-hover:text-zinc-900",
+  },
+};
+
+function getValueTextClass(value: string, muted: boolean): string {
+  const length = value.length;
+
+  if (muted) {
+    if (length > 12) return "text-lg font-semibold";
+    if (length > 8) return "text-xl font-semibold";
+    return "text-2xl font-semibold";
+  }
+
+  if (length > 14) return "text-lg font-bold";
+  if (length > 10) return "text-xl font-bold";
+  if (length > 6) return "text-2xl font-bold";
+  return "text-3xl font-bold";
+}
+
+function KpiCard({
+  label,
+  value,
+  hint,
+  icon,
+  href,
+  linkLabel,
+  tone = "zinc",
+  muted = false,
+}: KpiCardProps) {
+  const styles = KPI_TONE_STYLES[tone];
+  const valueClass = getValueTextClass(value, muted);
+  const isCurrency = value.startsWith("R$");
 
   const content = (
-    <div className="flex flex-col items-center px-2 py-2 text-center">
-      <div
-        className={[
-          "grid h-14 w-14 place-items-center rounded-2xl border shadow-sm",
-          isMuted
-            ? "border-dashed border-zinc-300 bg-zinc-50 text-zinc-400"
-            : "border-zinc-200 bg-zinc-50 text-zinc-700",
-        ].join(" ")}
-      >
-        {icon}
+    <div className="flex h-full min-w-0 flex-col">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            {label}
+          </p>
+          <p
+            className={[
+              "mt-2.5 max-w-full tabular-nums tracking-tight",
+              isCurrency ? "break-words leading-tight" : "overflow-hidden text-ellipsis whitespace-nowrap leading-none",
+              valueClass,
+              muted ? "text-zinc-400" : "text-zinc-900",
+            ].join(" ")}
+            title={value}
+          >
+            {value}
+          </p>
+        </div>
+        <div
+          className={[
+            "grid h-11 w-11 shrink-0 place-items-center rounded-xl border",
+            muted ? "border-dashed border-zinc-300 bg-zinc-50 text-zinc-400" : styles.icon,
+          ].join(" ")}
+        >
+          {icon}
+        </div>
       </div>
-      <div className="mt-5 text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
-      <div
-        className={[
-          "mt-2 tabular-nums tracking-tight",
-          isMuted
-            ? "text-3xl font-bold text-zinc-400"
-            : "text-4xl font-bold text-zinc-900 sm:text-5xl",
-        ].join(" ")}
-      >
-        {value}
-      </div>
-      <p className="mt-3 max-w-[16rem] text-sm leading-6 text-zinc-600">{hint}</p>
+
+      <p className="mt-3 line-clamp-2 text-sm leading-5 text-zinc-500">{hint}</p>
+
       {href && linkLabel ? (
-        <span className="mt-4 text-xs font-semibold text-zinc-900 underline-offset-4 group-hover:underline">
-          {linkLabel} →
+        <span
+          className={[
+            "mt-auto inline-flex items-center gap-1 pt-4 text-xs font-semibold transition-colors",
+            styles.link,
+          ].join(" ")}
+        >
+          {linkLabel}
+          <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
+            →
+          </span>
         </span>
-      ) : null}
+      ) : (
+        <span className="mt-auto block pt-4" aria-hidden />
+      )}
     </div>
   );
 
   const cardClass = [
-    "rounded-2xl border bg-white p-6 shadow-sm transition-all duration-200",
-    isMuted
-      ? "border-dashed border-zinc-300 hover:border-zinc-400 hover:shadow-md"
-      : "border-zinc-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md",
+    "group relative flex min-h-[11.5rem] min-w-0 overflow-hidden rounded-2xl border border-zinc-200/90 border-t-[3px] bg-white p-5 shadow-sm transition-all duration-200",
+    muted ? "border-dashed hover:border-zinc-300" : styles.border,
+    href
+      ? "hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300"
+      : "hover:shadow-md",
   ].join(" ");
 
   if (href) {
     return (
-      <Link href={href} className={`group ${cardClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400`}>
+      <Link href={href} className={cardClass}>
         {content}
       </Link>
     );
   }
 
-  return <div className={cardClass}>{content}</div>;
+  return <article className={cardClass}>{content}</article>;
 }
 
 function IconUsers() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   );
@@ -93,7 +176,7 @@ function IconUsers() {
 
 function IconBuilding() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01" />
     </svg>
   );
@@ -101,7 +184,7 @@ function IconBuilding() {
 
 function IconLayers() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
     </svg>
   );
@@ -109,7 +192,7 @@ function IconLayers() {
 
 function IconCart() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h15l-1.5 9h-12L6 6zM6 6l-2-2H2M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
     </svg>
   );
@@ -117,7 +200,7 @@ function IconCart() {
 
 function IconCurrency() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H7" />
     </svg>
   );
@@ -125,7 +208,7 @@ function IconCurrency() {
 
 function IconChart() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 19V5M4 19h16M8 17V9M12 17V7M16 17v-4" />
     </svg>
   );
@@ -133,7 +216,7 @@ function IconChart() {
 
 function IconSpark() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z" />
     </svg>
   );
@@ -178,7 +261,7 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
         description="Indicadores operacionais em tempo real a partir do Firestore."
       />
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4">
         <KpiCard
           label="Vendas ativas"
           value={String(stats.nVendasAtivas)}
@@ -186,12 +269,14 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           icon={<IconCart />}
           href="/vendas"
           linkLabel="Ver vendas"
+          tone="emerald"
         />
         <KpiCard
           label="Crédito comercializado"
           value={formatMoneyPtBrFromCentavos(stats.valorCreditoComercializadoCentavos)}
           hint="Soma dos valores das vendas ativas."
           icon={<IconCurrency />}
+          tone="sky"
         />
         <KpiCard
           label="Comissões pagas"
@@ -200,6 +285,7 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           icon={<IconSpark />}
           href={showComissoes ? "/comissoes" : undefined}
           linkLabel={showComissoes ? "Ver extratos" : undefined}
+          tone="violet"
         />
         <KpiCard
           label="Cotas inadimplentes"
@@ -208,10 +294,11 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           icon={<IconChart />}
           href="/controle/inadimplencia"
           linkLabel="Ver inadimplência"
+          tone="amber"
         />
       </div>
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4">
         <KpiCard
           label="Consorciados"
           value={String(stats.nConsorciados)}
@@ -219,6 +306,7 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           icon={<IconUsers />}
           href="/consorciados"
           linkLabel="Ver cadastro"
+          tone="zinc"
         />
         <KpiCard
           label="Administradoras"
@@ -227,6 +315,7 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           icon={<IconBuilding />}
           href="/administradoras"
           linkLabel="Ver cadastro"
+          tone="zinc"
         />
         <KpiCard
           label="Planos"
@@ -235,6 +324,7 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           icon={<IconLayers />}
           href="/planos"
           linkLabel="Ver cadastro"
+          tone="zinc"
         />
         <KpiCard
           label="Vendas"
@@ -243,27 +333,32 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           icon={<IconCart />}
           href="/vendas"
           linkLabel="Ver todas"
+          tone="emerald"
         />
       </div>
 
-      <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard
           label="Valor total (carteira)"
           value={formatMoneyPtBrFromCentavos(stats.valorTotalCentavos)}
           hint={`Ativas: ${formatMoneyPtBrFromCentavos(stats.valorAtivasCentavos)}`}
           icon={<IconCurrency />}
+          tone="sky"
         />
         <KpiCard
           label="Ticket médio"
           value={formatMoneyPtBrFromCentavos(stats.ticketMedioCentavos)}
           hint="Média das vendas com valor informado."
           icon={<IconChart />}
+          tone="violet"
         />
         <KpiCard
           label="Canceladas"
           value={String(stats.nVendasCanceladas)}
           hint={`${stats.nVendas} vendas no total`}
           icon={<IconLayers />}
+          tone="rose"
+          muted={stats.nVendasCanceladas === 0}
         />
       </div>
 
