@@ -73,3 +73,55 @@ export function resolverCreditoCentavos(
 export function extratoDocId(vendaId: string, parcelaNumero: number): string {
   return `${vendaId}_p${parcelaNumero}`;
 }
+
+const MS_POR_DIA = 86_400_000;
+
+/** Verifica se a data de referência ainda está dentro da janela de estorno. */
+export function isDentroPrazoEstorno(
+  dataReferenciaIso: string | null,
+  diasParaEstorno: number,
+  referencia: Date = new Date(),
+): boolean {
+  if (!dataReferenciaIso || diasParaEstorno < 1) return false;
+
+  const inicio = new Date(dataReferenciaIso);
+  if (Number.isNaN(inicio.getTime())) return false;
+
+  const limite = inicio.getTime() + diasParaEstorno * MS_POR_DIA;
+  return referencia.getTime() <= limite;
+}
+
+/** Data limite formatável para exibição na UI de planos. */
+export function calcularDataLimiteEstorno(
+  dataReferenciaIso: string,
+  diasParaEstorno: number,
+): Date | null {
+  const inicio = new Date(dataReferenciaIso);
+  if (Number.isNaN(inicio.getTime()) || diasParaEstorno < 1) return null;
+  return new Date(inicio.getTime() + diasParaEstorno * MS_POR_DIA);
+}
+
+export type VendaStatusMotor = "ATIVO" | "INADIMPLENTE" | "CANCELADO";
+
+/** Vendas ativas geram ou mantêm extratos de comissão. */
+export function vendaGeraExtratosComissao(status: VendaStatusMotor): boolean {
+  return status === "ATIVO";
+}
+
+/**
+ * Extratos pendentes/liberados devem ser removidos quando a venda deixa de ser ativa
+ * e ainda está dentro do prazo de estorno configurado no plano.
+ */
+export function extratoDeveSerEstornado(
+  vendaStatus: VendaStatusMotor,
+  dataReferenciaIso: string | null,
+  diasParaEstorno: number,
+  extratoStatus: "PENDENTE" | "LIBERADO" | "PAGO",
+): boolean {
+  if (vendaStatus === "ATIVO" || extratoStatus === "PAGO") return false;
+  if (extratoStatus === "PENDENTE") return true;
+  if (extratoStatus === "LIBERADO") {
+    return vendaStatus === "CANCELADO" && isDentroPrazoEstorno(dataReferenciaIso, diasParaEstorno);
+  }
+  return false;
+}

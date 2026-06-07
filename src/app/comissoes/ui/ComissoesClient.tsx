@@ -11,6 +11,7 @@ import {
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ExtratoStatusBadge } from "@/components/ui/ExtratoStatusBadge";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import {
   dataTableClass,
   formControlClass,
@@ -166,7 +167,11 @@ export default function ComissoesClient({ initialItems }: ComissoesClientProps) 
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {syncing ? (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <TableSkeleton rows={6} columns={8} />
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyState
           title={items.length === 0 ? "Nenhum extrato gerado" : "Nenhum resultado encontrado"}
           description={

@@ -13,6 +13,7 @@ import {
   RegrasFinanceirasFields,
   type RegrasFinanceirasFormState,
 } from "./RegrasFinanceirasFields";
+import { RegrasFinanceirasPreview } from "./RegrasFinanceirasPreview";
 
 type FormState = {
   administradoraId: string;
@@ -194,6 +195,21 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
       <RegrasFinanceirasFields
         form={form}
         onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+      />
+
+      <RegrasFinanceirasPreview
+        form={form}
+        valorCreditoCentavos={
+          form.valorCredito.trim()
+            ? (() => {
+                try {
+                  return parseCurrencyToCentavos(form.valorCredito);
+                } catch {
+                  return null;
+                }
+              })()
+            : null
+        }
       />
 
       {error ? (

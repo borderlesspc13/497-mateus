@@ -17,6 +17,7 @@ import {
   parseRegrasFinanceirasForm,
   RegrasFinanceirasFields,
 } from "./RegrasFinanceirasFields";
+import { RegrasFinanceirasPreview } from "./RegrasFinanceirasPreview";
 
 type EditarPlanoFormProps = {
   item: PlanoRow;
@@ -168,6 +169,21 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
         <RegrasFinanceirasFields
           form={form}
           onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+        />
+
+        <RegrasFinanceirasPreview
+          form={form}
+          valorCreditoCentavos={
+            form.valorCredito.trim()
+              ? (() => {
+                  try {
+                    return parseCurrencyToCentavos(form.valorCredito);
+                  } catch {
+                    return null;
+                  }
+                })()
+              : item.valorCreditoCentavos
+          }
         />
 
         {error ? (

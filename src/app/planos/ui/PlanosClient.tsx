@@ -134,6 +134,7 @@ export default function PlanosClient({
               <th className={tableHeadCellClass()}>Crédito</th>
               <th className={tableHeadCellClass()}>Comissão</th>
               <th className={tableHeadCellClass()}>Parcelas</th>
+              <th className={tableHeadCellClass()}>Estorno</th>
               <th className={tableHeadCellClass()}>Criado em</th>
               <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
             </tr>
@@ -164,6 +165,9 @@ export default function PlanosClient({
                   </td>
                   <td className={tableCellClass()}>
                     {p.parcelasRecebimento ?? "—"}
+                  </td>
+                  <td className={`${tableCellClass()} tabular-nums`}>
+                    {p.diasParaEstorno != null ? `${p.diasParaEstorno} dias` : "—"}
                   </td>
                   <td className={`${tableCellClass()} whitespace-nowrap`}>
                     {new Date(p.createdAt).toLocaleDateString("pt-BR")}

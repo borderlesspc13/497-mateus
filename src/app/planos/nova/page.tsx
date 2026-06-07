@@ -26,7 +26,7 @@ export default async function NovoPlanoPage() {
           { label: "Novo" },
         ]}
         title="Novo plano"
-        description="Vincule o plano a uma administradora e defina tipo de bem, crédito e regras em JSON (evoluímos para formulários estruturados depois)."
+        description="Vincule o plano a uma administradora e configure crédito, comissão, parcelas e prazo de estorno."
         actions={
           <Link href="/planos" className={backLinkClass()}>
             Voltar à lista

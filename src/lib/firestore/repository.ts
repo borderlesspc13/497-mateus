@@ -21,8 +21,10 @@ import {
 } from "@/lib/firestore/types";
 import {
   calcularParcelasComissao,
+  extratoDeveSerEstornado,
   extratoDocId,
   resolverCreditoCentavos,
+  vendaGeraExtratosComissao,
 } from "@/utils/financeiro";
 import {
   toAdministradoraRow,
@@ -252,7 +254,14 @@ export async function createPlano(
   if (!adm) throw new Error("Administradora não encontrada.");
   const ts = nowIso();
   const id = newId();
-  const doc: PlanoDoc = { ...data, createdAt: ts, updatedAt: ts };
+  const doc: PlanoDoc = {
+    ...data,
+    regrasComissaoJson: null,
+    regrasRecebimentoJson: null,
+    regrasEstornoJson: null,
+    createdAt: ts,
+    updatedAt: ts,
+  };
   await db().collection(COLLECTIONS.planos).doc(id).set(doc);
   return toPlanoRow({ id, ...doc }, adm);
 }
@@ -270,6 +279,9 @@ export async function updatePlano(
   const next: PlanoDoc = {
     ...currentData,
     ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
+    regrasComissaoJson: null,
+    regrasRecebimentoJson: null,
+    regrasEstornoJson: null,
     createdAt: current.createdAt,
     updatedAt: nowIso(),
   };
@@ -676,14 +688,15 @@ async function listExtratoDocs(): Promise<DocWithId<ExtratoDoc>[]> {
 export async function syncExtratosComissao(): Promise<number> {
   const [vendas, planos] = await Promise.all([listVendaDocs(), listPlanoDocs()]);
   const planoMap = new Map(planos.map((p) => [p.id, p]));
+  const vendaMap = new Map(vendas.map((v) => [v.id, normalizeVendaDoc(v)]));
   const existing = await listExtratoDocs();
   const existingMap = new Map(existing.map((e) => [e.id, e]));
   const ts = nowIso();
-  let upserted = 0;
+  let changed = 0;
 
   for (const raw of vendas) {
     const venda = normalizeVendaDoc(raw);
-    if (venda.status !== "ATIVO" || !venda.planoId) continue;
+    if (!vendaGeraExtratosComissao(venda.status) || !venda.planoId) continue;
 
     const plano = planoMap.get(venda.planoId);
     if (!plano) continue;
@@ -719,24 +732,50 @@ export async function syncExtratosComissao(): Promise<number> {
         updatedAt: ts,
       };
 
-      const changed =
+      const docChanged =
         !prev ||
         prev.valorCentavos !== doc.valorCentavos ||
         prev.parcelaTotal !== doc.parcelaTotal;
 
-      if (changed) {
+      if (docChanged) {
         await db().collection(COLLECTIONS.extratos).doc(id).set(doc);
-        upserted += 1;
+        changed += 1;
       }
     }
   }
 
-  return upserted;
+  for (const extrato of existing) {
+    const venda = vendaMap.get(extrato.vendaId);
+    if (!venda) {
+      await db().collection(COLLECTIONS.extratos).doc(extrato.id).delete();
+      changed += 1;
+      continue;
+    }
+
+    const plano = planoMap.get(extrato.planoId);
+    const regras = plano ? resolvePlanoRegrasFinanceiras(plano) : null;
+    const dataReferencia = venda.dataVenda ?? venda.updatedAt;
+
+    const deveEstornar =
+      !vendaGeraExtratosComissao(venda.status) &&
+      regras &&
+      extratoDeveSerEstornado(
+        venda.status,
+        dataReferencia,
+        regras.diasParaEstorno,
+        extrato.status,
+      );
+
+    if (deveEstornar) {
+      await db().collection(COLLECTIONS.extratos).doc(extrato.id).delete();
+      changed += 1;
+    }
+  }
+
+  return changed;
 }
 
 export async function listExtratosComissao(): Promise<ExtratoRow[]> {
-  await syncExtratosComissao();
-
   const [extratos, vendas, planos] = await Promise.all([
     listExtratoDocs(),
     listVendas(),

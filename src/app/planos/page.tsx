@@ -29,7 +29,7 @@ export default function PlanosPage() {
           { label: "Planos" },
         ]}
         title="Planos"
-        description="Cadastre planos por administradora, com valor de crédito e regras de comissão, recebimento e estorno (JSON por enquanto). Você pode abrir esta página com ?administradoraId=… vindo da lista de administradoras."
+        description="Cadastre planos por administradora com crédito, percentual de comissão, parcelas de recebimento e prazo de estorno."
       />
 
       <Suspense fallback={<PageLoading rows={8} columns={5} withHeader={false} />}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { formControlClass } from "@/components/ui/list-panel-classes";
+import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 
 export type RegrasFinanceirasFormState = {
   percentualComissao: string;
@@ -41,12 +41,13 @@ type RegrasFinanceirasFieldsProps = {
 
 export function RegrasFinanceirasFields({ form, onChange }: RegrasFinanceirasFieldsProps) {
   return (
-    <div className="mt-8">
-      <div className="text-sm font-medium">Regras financeiras</div>
-      <p className="mt-2 text-xs text-zinc-500">
-        Parâmetros usados pelo motor de comissões para gerar extratos e parcelas (P1, P2, P3…).
+    <div className={`${panelClass()} mt-8 border-zinc-200/80 p-5`}>
+      <div className="text-sm font-semibold text-zinc-900">Regras financeiras</div>
+      <p className="mt-1.5 text-xs leading-5 text-zinc-500">
+        Parâmetros do motor de comissões: percentual, parcelas de recebimento (P1, P2, P3…) e
+        janela de estorno em dias.
       </p>
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
         <label className="block">
           <div className="mb-1 text-xs font-medium text-zinc-600">
             Percentual de comissão (%) <span className="text-red-600">*</span>
