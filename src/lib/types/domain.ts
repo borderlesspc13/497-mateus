@@ -11,6 +11,8 @@ export type UsuarioRow = {
 
 export type VendaStatus = "ATIVO" | "INADIMPLENTE" | "CANCELADO";
 
+export type StatusPosVenda = "PENDENTE" | "FEITO";
+
 export type StatusInconsistencia = "CONSISTENTE" | "INCONSISTENTE";
 
 export type TipoRegistroAtendimento = "COBRANCA" | "POS_VENDA" | "INCONSISTENCIA";
@@ -74,6 +76,8 @@ export type PlanoRow = {
 
 export type ExtratoStatus = "PENDENTE" | "LIBERADO" | "PAGO";
 
+export type ExtratoTipo = "COMISSAO" | "ESTORNO";
+
 export type ExtratoRow = {
   id: string;
   vendaId: string;
@@ -83,6 +87,7 @@ export type ExtratoRow = {
   parcelaLabel: string;
   valorCentavos: number;
   status: ExtratoStatus;
+  tipo: ExtratoTipo;
   vendedorId: string;
   equipeId: string;
   vendaTitulo: string;
@@ -146,6 +151,8 @@ export type VendaRow = {
   vendedor: VendedorMini | null;
   status: VendaStatus;
   statusInconsistencia: StatusInconsistencia;
+  statusPosVenda: StatusPosVenda;
+  parcelasPagasCancelamento: number | null;
   contrato: string;
   grupo: string;
   cota: string;

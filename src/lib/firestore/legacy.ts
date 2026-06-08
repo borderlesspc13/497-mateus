@@ -1,5 +1,6 @@
 import type { ConsorciadoDoc, VendaDoc } from "@/lib/firestore/types";
-import type { StatusInconsistencia, VendaStatus } from "@/lib/types/domain";
+import type { StatusInconsistencia, StatusPosVenda, VendaStatus } from "@/lib/types/domain";
+import { DEFAULT_STATUS_POS_VENDA } from "@/lib/vendas/pos-venda";
 
 type LegacyConsorciadoDoc = ConsorciadoDoc & { documento?: string; endereco?: string };
 
@@ -30,6 +31,8 @@ type LegacyVendaDoc = VendaDoc & {
   equipeId?: string;
   vendedorId?: string;
   statusInconsistencia?: string;
+  statusPosVenda?: string;
+  parcelasPagasCancelamento?: number | null;
 };
 
 function normalizeStatusInconsistencia(value: string | undefined): StatusInconsistencia {
@@ -37,10 +40,24 @@ function normalizeStatusInconsistencia(value: string | undefined): StatusInconsi
   return "CONSISTENTE";
 }
 
+function normalizeParcelasPagasCancelamento(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value), 10);
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+function normalizeStatusPosVenda(value: string | undefined): StatusPosVenda {
+  if (value === "FEITO") return "FEITO";
+  return DEFAULT_STATUS_POS_VENDA;
+}
+
 export function normalizeVendaFields(raw: LegacyVendaDoc): Pick<
   VendaDoc,
   | "status"
   | "statusInconsistencia"
+  | "statusPosVenda"
+  | "parcelasPagasCancelamento"
   | "contrato"
   | "grupo"
   | "cota"
@@ -51,6 +68,8 @@ export function normalizeVendaFields(raw: LegacyVendaDoc): Pick<
   return {
     status: normalizeVendaStatus(raw.status),
     statusInconsistencia: normalizeStatusInconsistencia(raw.statusInconsistencia),
+    statusPosVenda: normalizeStatusPosVenda(raw.statusPosVenda),
+    parcelasPagasCancelamento: normalizeParcelasPagasCancelamento(raw.parcelasPagasCancelamento),
     contrato: raw.contrato?.trim() || raw.titulo?.trim() || "",
     grupo: raw.grupo?.trim() || "",
     cota: raw.cota?.trim() || "",

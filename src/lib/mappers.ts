@@ -153,6 +153,8 @@ export function toVendaRow(
     vendedor: vendedor ? toVendedorMini(vendedor) : null,
     status: normalized.status,
     statusInconsistencia: normalized.statusInconsistencia,
+    statusPosVenda: normalized.statusPosVenda,
+    parcelasPagasCancelamento: normalized.parcelasPagasCancelamento,
     contrato: normalized.contrato,
     grupo: normalized.grupo,
     cota: normalized.cota,

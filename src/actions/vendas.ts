@@ -13,9 +13,11 @@ import {
   getVenda as getVendaDoc,
   getVendedor,
   listVendas as listVendasDocs,
+  listVendasPosVendaControle as listVendasPosVendaControleDocs,
   updateVenda as updateVendaDoc,
 } from "@/lib/firestore/repository";
-import type { StatusInconsistencia, VendaRow, VendaStatus } from "@/lib/types/domain";
+import { aplicarEstornoCancelamentoVenda } from "@/lib/firestore/estorno-cancelamento";
+import type { StatusInconsistencia, StatusPosVenda, VendaRow, VendaStatus } from "@/lib/types/domain";
 
 export type VendaInput = {
   administradoraId: string;
@@ -34,6 +36,7 @@ export type VendaInput = {
   dataVenda: Date | null;
   observacoes: string | null;
   statusInconsistencia?: StatusInconsistencia;
+  parcelasPagasCancelamento?: number | null;
 };
 
 function assertVendaMatrizFields(data: {
@@ -55,6 +58,8 @@ function revalidateVendas() {
   revalidatePath("/vendas");
   revalidatePath("/controle/inadimplencia");
   revalidatePath("/controle/inconsistencia");
+  revalidatePath("/controle/pos-venda");
+  revalidatePath("/comissoes");
 }
 
 async function assertAdministradoraExists(administradoraId: string): Promise<void> {
@@ -94,6 +99,11 @@ async function assertEquipeAndVendedor(equipeId: string, vendedorId: string): Pr
 export async function listVendas(): Promise<VendaRow[]> {
   await requireServerSessionUser();
   return listVendasDocs();
+}
+
+export async function listVendasPosVendaControle(): Promise<VendaRow[]> {
+  await requireServerSessionUser();
+  return listVendasPosVendaControleDocs();
 }
 
 export async function getVenda(id: string): Promise<VendaRow | null> {
@@ -140,6 +150,28 @@ export async function updateVendaStatusInconsistencia(
   statusInconsistencia: StatusInconsistencia,
 ): Promise<VendaRow> {
   return updateVenda(id, { statusInconsistencia });
+}
+
+export async function updateVendaStatusPosVenda(
+  id: string,
+  statusPosVenda: StatusPosVenda,
+): Promise<VendaRow> {
+  const sessionUser = await requireServerSessionUser();
+  const current = await getVendaDoc(id);
+  if (!current) throw new Error("Venda não encontrada.");
+
+  const row = await updateVendaDoc(id, { statusPosVenda });
+
+  if (statusPosVenda !== current.statusPosVenda) {
+    await writeAuditLog({
+      userId: sessionUser.uid,
+      acao: `venda.status_pos_venda.${current.statusPosVenda.toLowerCase()}_para_${statusPosVenda.toLowerCase()}`,
+      documentoId: id,
+    });
+  }
+
+  revalidateVendas();
+  return row;
 }
 
 export async function updateVenda(id: string, patch: Partial<VendaInput>): Promise<VendaRow> {
@@ -194,6 +226,22 @@ export async function updateVenda(id: string, patch: Partial<VendaInput>): Promi
   const sessionUser = await requireServerSessionUser();
   const statusAnterior = current.status;
   const statusNovo = data.status ?? current.status;
+  const isNovoCancelamento = statusNovo === "CANCELADO" && statusAnterior !== "CANCELADO";
+
+  if (isNovoCancelamento) {
+    if (
+      patch.parcelasPagasCancelamento === undefined ||
+      patch.parcelasPagasCancelamento === null
+    ) {
+      throw new Error("Informe quantas parcelas foram pagas antes do cancelamento.");
+    }
+    if (
+      !Number.isInteger(patch.parcelasPagasCancelamento) ||
+      patch.parcelasPagasCancelamento < 0
+    ) {
+      throw new Error("Parcelas pagas deve ser um número inteiro maior ou igual a zero.");
+    }
+  }
 
   const row = await updateVendaDoc(id, {
     administradoraId: data.administradoraId,
@@ -217,6 +265,7 @@ export async function updateVenda(id: string, patch: Partial<VendaInput>): Promi
         : undefined,
     observacoes: data.observacoes,
     statusInconsistencia: data.statusInconsistencia,
+    parcelasPagasCancelamento: patch.parcelasPagasCancelamento,
   });
 
   if (patch.status !== undefined && statusNovo !== statusAnterior) {
@@ -225,6 +274,17 @@ export async function updateVenda(id: string, patch: Partial<VendaInput>): Promi
       acao: `venda.status.${statusAnterior.toLowerCase()}_para_${statusNovo.toLowerCase()}`,
       documentoId: id,
     });
+  }
+
+  if (isNovoCancelamento && patch.parcelasPagasCancelamento !== undefined && patch.parcelasPagasCancelamento !== null) {
+    const estorno = await aplicarEstornoCancelamentoVenda(id, patch.parcelasPagasCancelamento);
+    if (estorno.estornoGerado) {
+      await writeAuditLog({
+        userId: sessionUser.uid,
+        acao: `venda.estorno.gerado_${estorno.valorEstornoCentavos}`,
+        documentoId: id,
+      });
+    }
   }
 
   revalidateVendas();

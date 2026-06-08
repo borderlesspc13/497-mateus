@@ -1,4 +1,11 @@
-import type { ChecklistAtivacao } from "@/lib/types/domain";
+import type { ChecklistAtivacao, StatusPosVenda } from "@/lib/types/domain";
+
+export const DEFAULT_STATUS_POS_VENDA: StatusPosVenda = "PENDENTE";
+
+export const STATUS_POS_VENDA_LABELS: Record<StatusPosVenda, string> = {
+  PENDENTE: "Pendente",
+  FEITO: "Feito",
+};
 
 export const DEFAULT_CHECKLIST_ATIVACAO: ChecklistAtivacao = {
   documentacaoRecebida: false,

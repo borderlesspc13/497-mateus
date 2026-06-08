@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InconsistenciaBadge } from "@/components/ui/InconsistenciaBadge";
+import { PosVendaBadge } from "@/components/ui/PosVendaBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { VendaAtendimentoDrawer } from "@/components/vendas/VendaAtendimentoDrawer";
 import {
@@ -15,10 +16,10 @@ import {
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
-import type { StatusInconsistencia, VendaRow, VendaStatus } from "@/lib/types/domain";
+import type { StatusInconsistencia, StatusPosVenda, VendaRow, VendaStatus } from "@/lib/types/domain";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 
-export type ControleModo = "inadimplencia" | "inconsistencia";
+export type ControleModo = "inadimplencia" | "inconsistencia" | "pos-venda";
 
 type ControleCotasClientProps = {
   modo: ControleModo;
@@ -38,6 +39,9 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
   const [inconsistenciaFilter, setInconsistenciaFilter] = useState<"" | StatusInconsistencia>(
     modo === "inconsistencia" ? "INCONSISTENTE" : "",
   );
+  const [posVendaFilter, setPosVendaFilter] = useState<"" | StatusPosVenda>(
+    modo === "pos-venda" ? "PENDENTE" : "",
+  );
   const [selectedVenda, setSelectedVenda] = useState<VendaRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -48,11 +52,12 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
       if (modo === "inconsistencia" && inconsistenciaFilter && v.statusInconsistencia !== inconsistenciaFilter) {
         return false;
       }
+      if (modo === "pos-venda" && posVendaFilter && v.statusPosVenda !== posVendaFilter) return false;
       if (!q) return true;
       const hay = `${v.contrato} ${v.grupo} ${v.cota} ${v.consorciado?.nome ?? ""} ${v.equipe?.nome ?? ""} ${v.vendedor?.nome ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [items, query, statusFilter, inconsistenciaFilter, modo]);
+  }, [items, query, statusFilter, inconsistenciaFilter, posVendaFilter, modo]);
 
   function openDrawer(venda: VendaRow) {
     setSelectedVenda(venda);
@@ -63,8 +68,30 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
     setDrawerOpen(false);
   }
 
+  function onPosVendaCompleted(vendaId: string) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === vendaId ? { ...item, statusPosVenda: "FEITO" as const } : item,
+      ),
+    );
+    setSelectedVenda((current) =>
+      current?.id === vendaId ? { ...current, statusPosVenda: "FEITO" } : current,
+    );
+  }
+
   const defaultTipo =
-    modo === "inconsistencia" ? ("INCONSISTENCIA" as const) : ("COBRANCA" as const);
+    modo === "inconsistencia"
+      ? ("INCONSISTENCIA" as const)
+      : modo === "pos-venda"
+        ? ("POS_VENDA" as const)
+        : ("COBRANCA" as const);
+
+  const emptyDescription =
+    modo === "inconsistencia"
+      ? "Ajuste o filtro ou marque cotas como inconsistentes na operação diária."
+      : modo === "pos-venda"
+        ? "Não há vendas recentes nem pendentes de pós-venda com os filtros atuais."
+        : "Ajuste o filtro de status ou o termo de busca.";
 
   return (
     <>
@@ -88,7 +115,8 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
                 <option value="INADIMPLENTE">Inadimplente</option>
                 <option value="CANCELADO">Cancelado</option>
               </select>
-            ) : (
+            ) : null}
+            {modo === "inconsistencia" ? (
               <select
                 value={inconsistenciaFilter}
                 onChange={(e) =>
@@ -100,19 +128,23 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
                 <option value="INCONSISTENTE">Inconsistentes</option>
                 <option value="CONSISTENTE">Consistentes</option>
               </select>
-            )}
+            ) : null}
+            {modo === "pos-venda" ? (
+              <select
+                value={posVendaFilter}
+                onChange={(e) => setPosVendaFilter(e.target.value as typeof posVendaFilter)}
+                className={formControlClass("md")}
+              >
+                <option value="">Todos</option>
+                <option value="PENDENTE">Pendentes</option>
+                <option value="FEITO">Feitos</option>
+              </select>
+            ) : null}
           </>
         }
       >
         {filtered.length === 0 ? (
-          <EmptyState
-            title="Nenhuma cota encontrada"
-            description={
-              modo === "inconsistencia"
-                ? "Ajuste o filtro ou marque cotas como inconsistentes na operação diária."
-                : "Ajuste o filtro de status ou o termo de busca."
-            }
-          />
+          <EmptyState title="Nenhuma cota encontrada" description={emptyDescription} />
         ) : (
           <div className={tableWrapClass()}>
             <table className={dataTableClass()}>
@@ -124,6 +156,9 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
                   <th className={tableHeadCellClass()}>Status</th>
                   {modo === "inconsistencia" ? (
                     <th className={tableHeadCellClass()}>Inconsistência</th>
+                  ) : null}
+                  {modo === "pos-venda" ? (
+                    <th className={tableHeadCellClass()}>Pós-venda</th>
                   ) : null}
                   <th className={tableHeadCellClass()}>Equipe</th>
                   <th className={tableHeadCellClass()}>Valor</th>
@@ -149,6 +184,11 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
                     {modo === "inconsistencia" ? (
                       <td className={tableCellClass()} onClick={(e) => e.stopPropagation()}>
                         <InconsistenciaBadge status={v.statusInconsistencia} />
+                      </td>
+                    ) : null}
+                    {modo === "pos-venda" ? (
+                      <td className={tableCellClass()} onClick={(e) => e.stopPropagation()}>
+                        <PosVendaBadge status={v.statusPosVenda} />
                       </td>
                     ) : null}
                     <td className={tableCellClass()}>{v.equipe?.nome ?? "—"}</td>
@@ -180,7 +220,9 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
         open={drawerOpen}
         onClose={closeDrawer}
         showInconsistenciaControls={modo === "inconsistencia"}
+        showPosVendaControls={modo === "pos-venda"}
         defaultTipoRegistro={defaultTipo}
+        onPosVendaCompleted={modo === "pos-venda" ? onPosVendaCompleted : undefined}
       />
     </>
   );

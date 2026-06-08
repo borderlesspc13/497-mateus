@@ -19,14 +19,19 @@ const BASE_MAIN_NAV: NavLinkItem[] = [
   { href: "/", label: "Dashboard" },
   { href: "/consorciados", label: "Consorciados" },
   { href: "/vendas", label: "Vendas" },
+  { href: "/importacao", label: "Importação" },
   { href: "/controle/inadimplencia", label: "Inadimplência" },
   { href: "/controle/inconsistencia", label: "Inconsistência" },
+  { href: "/controle/pos-venda", label: "Pós-venda" },
 ];
 
 function buildMainNav(role: UserRole | null): NavLinkItem[] {
   const items = [...BASE_MAIN_NAV];
   if (role && canViewComissoes(role)) {
     items.splice(3, 0, { href: "/comissoes", label: "Comissões" });
+  }
+  if (!role || !canAccessConfiguracoes(role)) {
+    return items.filter((item) => item.href !== "/importacao");
   }
   return items;
 }

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { updateVendaStatusInconsistencia } from "@/actions/vendas";
+import { updateVendaStatusInconsistencia, updateVendaStatusPosVenda } from "@/actions/vendas";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InconsistenciaBadge } from "@/components/ui/InconsistenciaBadge";
+import { PosVendaBadge } from "@/components/ui/PosVendaBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formControlClass } from "@/components/ui/list-panel-classes";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -16,6 +17,7 @@ import {
 import type {
   HistoricoAtendimentoUniversalRow,
   StatusInconsistencia,
+  StatusPosVenda,
   TipoRegistroAtendimento,
   VendaRow,
 } from "@/lib/types/domain";
@@ -31,7 +33,9 @@ type VendaAtendimentoDrawerProps = {
   open: boolean;
   onClose: () => void;
   showInconsistenciaControls?: boolean;
+  showPosVendaControls?: boolean;
   defaultTipoRegistro?: TipoRegistroAtendimento;
+  onPosVendaCompleted?: (vendaId: string) => void;
 };
 
 function formatDateTime(iso: string) {
@@ -104,7 +108,9 @@ export function VendaAtendimentoDrawer({
   open,
   onClose,
   showInconsistenciaControls = false,
+  showPosVendaControls = false,
   defaultTipoRegistro = "COBRANCA",
+  onPosVendaCompleted,
 }: VendaAtendimentoDrawerProps) {
   const router = useRouter();
   const [historico, setHistorico] = useState<HistoricoAtendimentoUniversalRow[]>([]);
@@ -115,6 +121,8 @@ export function VendaAtendimentoDrawer({
   const [savingRegistro, setSavingRegistro] = useState(false);
   const [savingInconsistencia, setSavingInconsistencia] = useState(false);
   const [statusInconsistencia, setStatusInconsistencia] = useState<StatusInconsistencia>("CONSISTENTE");
+  const [statusPosVenda, setStatusPosVenda] = useState<StatusPosVenda>("PENDENTE");
+  const [marcarPosVendaFeito, setMarcarPosVendaFeito] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -137,6 +145,8 @@ export function VendaAtendimentoDrawer({
     setObservacao("");
     setFormError(null);
     setStatusInconsistencia(venda.statusInconsistencia);
+    setStatusPosVenda(venda.statusPosVenda);
+    setMarcarPosVendaFeito(false);
     setLoadingHistorico(true);
     setHistoricoError(null);
 
@@ -159,8 +169,18 @@ export function VendaAtendimentoDrawer({
     setFormError(null);
     setSavingRegistro(true);
     try {
-      await addHistoricoAtendimentoUniversal(venda.id, tipoRegistro, observacao);
+      const tipo = showPosVendaControls ? ("POS_VENDA" as const) : tipoRegistro;
+      await addHistoricoAtendimentoUniversal(venda.id, tipo, observacao);
+
+      if (showPosVendaControls && marcarPosVendaFeito && statusPosVenda !== "FEITO") {
+        const updated = await updateVendaStatusPosVenda(venda.id, "FEITO");
+        setStatusPosVenda(updated.statusPosVenda);
+        onPosVendaCompleted?.(venda.id);
+      }
+
       setObservacao("");
+      setMarcarPosVendaFeito(false);
+      router.refresh();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Erro ao salvar registro.");
     } finally {
@@ -186,21 +206,29 @@ export function VendaAtendimentoDrawer({
   if (!open || !venda) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="venda-atendimento-modal-title"
+    >
       <button
         type="button"
         className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[1px]"
-        aria-label="Fechar painel"
+        aria-label="Fechar modal"
         onClick={onClose}
       />
-      <aside className="relative flex h-full w-full max-w-lg flex-col border-l border-zinc-200 bg-white shadow-2xl">
-        <header className="shrink-0 border-b border-zinc-200 px-5 py-4">
+      <div className="relative flex max-h-[min(90vh,880px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+        <header className="shrink-0 border-b border-zinc-200 px-5 py-4 sm:px-6">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                 Cota / Contrato
               </p>
-              <h2 className="mt-0.5 truncate text-lg font-semibold text-zinc-900">
+              <h2
+                id="venda-atendimento-modal-title"
+                className="mt-0.5 truncate text-lg font-semibold text-zinc-900"
+              >
                 {venda.contrato}
               </h2>
               <p className="mt-1 text-sm text-zinc-600">
@@ -219,6 +247,7 @@ export function VendaAtendimentoDrawer({
           <div className="mt-3 flex flex-wrap gap-2">
             <StatusBadge status={venda.status} />
             <InconsistenciaBadge status={statusInconsistencia} />
+            {showPosVendaControls ? <PosVendaBadge status={statusPosVenda} /> : null}
           </div>
           <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-600">
             <div>
@@ -272,6 +301,12 @@ export function VendaAtendimentoDrawer({
           </div>
         ) : null}
 
+        {showPosVendaControls && statusPosVenda === "FEITO" ? (
+          <div className="shrink-0 border-b border-emerald-200 bg-emerald-50/80 px-5 py-3 text-xs font-medium text-emerald-800">
+            Pós-venda concluído para esta venda.
+          </div>
+        ) : null}
+
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <h3 className="text-sm font-semibold text-zinc-900">Timeline de atendimento</h3>
@@ -301,33 +336,59 @@ export function VendaAtendimentoDrawer({
             </div>
           </div>
 
-          <footer className="shrink-0 border-t border-zinc-200 bg-white px-5 py-4">
+          <footer className="shrink-0 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6">
             <div className="text-xs font-medium text-zinc-600">Novo registro</div>
             <div className="mt-2 grid gap-3">
-              <label className="block">
-                <span className="sr-only">Tipo</span>
-                <select
-                  value={tipoRegistro}
-                  onChange={(e) => setTipoRegistro(e.target.value as TipoRegistroAtendimento)}
-                  className={formControlClass()}
-                >
-                  {TIPO_REGISTRO_OPTIONS.map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {TIPO_REGISTRO_LABELS[tipo]}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {!showPosVendaControls ? (
+                <label className="block">
+                  <span className="sr-only">Tipo</span>
+                  <select
+                    value={tipoRegistro}
+                    onChange={(e) => setTipoRegistro(e.target.value as TipoRegistroAtendimento)}
+                    className={formControlClass()}
+                  >
+                    {TIPO_REGISTRO_OPTIONS.map((tipo) => (
+                      <option key={tipo} value={tipo}>
+                        {TIPO_REGISTRO_LABELS[tipo]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">
+                  Tipo: {TIPO_REGISTRO_LABELS.POS_VENDA}
+                </div>
+              )}
               <label className="block">
                 <span className="sr-only">Observação</span>
                 <textarea
                   value={observacao}
                   onChange={(e) => setObservacao(e.target.value)}
-                  placeholder="Ex.: 11/12 — enviado WhatsApp cobrando parcela"
+                  placeholder={
+                    showPosVendaControls
+                      ? "Ex.: Boas-vindas realizadas, checklist de ativação orientado"
+                      : "Ex.: 11/12 — enviado WhatsApp cobrando parcela"
+                  }
                   rows={3}
                   className="w-full resize-y rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
                 />
               </label>
+              {showPosVendaControls && statusPosVenda !== "FEITO" ? (
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-200 bg-zinc-50/80 px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={marcarPosVendaFeito}
+                    onChange={(e) => setMarcarPosVendaFeito(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-zinc-300"
+                  />
+                  <span className="text-sm leading-snug text-zinc-800">
+                    <span className="font-semibold">Pós-venda realizado com sucesso</span>
+                    <span className="mt-0.5 block text-xs text-zinc-500">
+                      Marca esta venda como concluída na fila de pós-venda ao salvar o registro.
+                    </span>
+                  </span>
+                </label>
+              ) : null}
             </div>
             {formError ? (
               <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">
@@ -344,7 +405,7 @@ export function VendaAtendimentoDrawer({
             </button>
           </footer>
         </div>
-      </aside>
+      </div>
     </div>
   );
 }

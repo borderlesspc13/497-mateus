@@ -74,6 +74,77 @@ export function extratoDocId(vendaId: string, parcelaNumero: number): string {
   return `${vendaId}_p${parcelaNumero}`;
 }
 
+export function extratoEstornoDocId(vendaId: string): string {
+  return `${vendaId}_estorno`;
+}
+
+export type EstornoCalculado = {
+  aplicaEstorno: boolean;
+  valorEstornoCentavos: number;
+  parcelasDevolvidas: number;
+  motivo: string | null;
+};
+
+/**
+ * Calcula o valor de estorno quando o cancelamento ocorre antes de completar
+ * as parcelas mínimas definidas no plano (parcelasRecebimento).
+ * Devolve a comissão das parcelas de recebimento ainda não consolidadas.
+ */
+export function calcularEstorno(
+  creditoCentavos: number,
+  regras: RegrasFinanceirasPlano,
+  parcelasPagas: number,
+): EstornoCalculado {
+  const parcelaMinima = regras.parcelasRecebimento;
+
+  if (!Number.isInteger(parcelasPagas) || parcelasPagas < 0) {
+    return {
+      aplicaEstorno: false,
+      valorEstornoCentavos: 0,
+      parcelasDevolvidas: 0,
+      motivo: "Quantidade de parcelas pagas inválida.",
+    };
+  }
+
+  if (parcelasPagas >= parcelaMinima) {
+    return {
+      aplicaEstorno: false,
+      valorEstornoCentavos: 0,
+      parcelasDevolvidas: 0,
+      motivo: null,
+    };
+  }
+
+  const parcelasComissao = calcularParcelasComissao(creditoCentavos, regras);
+  if (parcelasComissao.length === 0) {
+    return {
+      aplicaEstorno: false,
+      valorEstornoCentavos: 0,
+      parcelasDevolvidas: 0,
+      motivo: null,
+    };
+  }
+
+  const parcelasAEstornar = parcelasComissao.slice(parcelasPagas);
+  const valorEstornoCentavos = parcelasAEstornar.reduce((sum, p) => sum + p.valorCentavos, 0);
+
+  if (valorEstornoCentavos <= 0) {
+    return {
+      aplicaEstorno: false,
+      valorEstornoCentavos: 0,
+      parcelasDevolvidas: 0,
+      motivo: null,
+    };
+  }
+
+  return {
+    aplicaEstorno: true,
+    valorEstornoCentavos,
+    parcelasDevolvidas: parcelasAEstornar.length,
+    motivo: `Cancelamento com ${parcelasPagas} parcela(s) paga(s), inferior ao mínimo de ${parcelaMinima} exigido pelo plano.`,
+  };
+}
+
 const MS_POR_DIA = 86_400_000;
 
 /** Verifica se a data de referência ainda está dentro da janela de estorno. */

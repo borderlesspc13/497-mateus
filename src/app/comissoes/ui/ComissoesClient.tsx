@@ -241,15 +241,25 @@ export default function ComissoesClient({ initialItems }: ComissoesClientProps) 
                       / {row.parcelaTotal}
                     </span>
                   </td>
-                  <td className={`${tableCellClass()} whitespace-nowrap tabular-nums font-medium`}>
+                  <td className={`${tableCellClass()} whitespace-nowrap tabular-nums font-medium ${row.valorCentavos < 0 ? "text-red-700" : ""}`}>
                     {formatMoneyPtBrFromCentavos(row.valorCentavos)}
                   </td>
                   <td className={tableCellClass()}>
-                    <ExtratoStatusBadge status={row.status} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      {row.tipo === "ESTORNO" ? (
+                        <span className="inline-flex h-7 items-center rounded-full border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-800">
+                          Estorno
+                        </span>
+                      ) : null}
+                      <ExtratoStatusBadge status={row.status} />
+                    </div>
                   </td>
                   <td className={`${tableCellClass()} pr-0 text-right`}>
                     <div className="flex justify-end gap-2">
-                      {row.status === "PENDENTE" ? (
+                      {row.tipo === "ESTORNO" ? (
+                        <span className="text-xs font-medium text-red-700">Débito automático</span>
+                      ) : null}
+                      {row.tipo !== "ESTORNO" && row.status === "PENDENTE" ? (
                         <button
                           type="button"
                           onClick={() => void onLiberar(row.id)}
@@ -259,7 +269,7 @@ export default function ComissoesClient({ initialItems }: ComissoesClientProps) 
                           {actionId === row.id ? "..." : "Liberar"}
                         </button>
                       ) : null}
-                      {row.status === "LIBERADO" ? (
+                      {row.tipo !== "ESTORNO" && row.status === "LIBERADO" ? (
                         <button
                           type="button"
                           onClick={() => void onMarcarPago(row.id)}
@@ -269,7 +279,7 @@ export default function ComissoesClient({ initialItems }: ComissoesClientProps) 
                           {actionId === row.id ? "..." : "Marcar pago"}
                         </button>
                       ) : null}
-                      {row.status === "PAGO" ? (
+                      {row.tipo !== "ESTORNO" && row.status === "PAGO" ? (
                         <span className="text-xs text-zinc-400">Concluído</span>
                       ) : null}
                     </div>

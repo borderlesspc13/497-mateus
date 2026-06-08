@@ -1,6 +1,6 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { buildDashboardStats } from "@/lib/dashboard/stats";
-import { DEFAULT_CHECKLIST_ATIVACAO } from "@/lib/vendas/pos-venda";
+import { DEFAULT_CHECKLIST_ATIVACAO, DEFAULT_STATUS_POS_VENDA } from "@/lib/vendas/pos-venda";
 import { normalizeVendaFields } from "@/lib/firestore/legacy";
 import { resolvePlanoRegrasFinanceiras } from "@/lib/planos/regras-financeiras";
 import {
@@ -499,6 +499,8 @@ function normalizeVendaDoc(raw: DocWithId<VendaDoc>): DocWithId<VendaDoc> {
     },
     dataPendencia: raw.dataPendencia ?? null,
     alertaAtivo: raw.alertaAtivo ?? false,
+    statusPosVenda: fields.statusPosVenda,
+    parcelasPagasCancelamento: fields.parcelasPagasCancelamento,
   };
 }
 
@@ -506,6 +508,8 @@ function withVendaPosVendaDefaults(data: VendaCreateInput): Omit<VendaDoc, "crea
   return {
     ...data,
     statusInconsistencia: data.statusInconsistencia ?? "CONSISTENTE",
+    statusPosVenda: data.statusPosVenda ?? DEFAULT_STATUS_POS_VENDA,
+    parcelasPagasCancelamento: data.parcelasPagasCancelamento ?? null,
     checklistAtivacao: data.checklistAtivacao ?? DEFAULT_CHECKLIST_ATIVACAO,
     dataPendencia: data.dataPendencia ?? null,
     alertaAtivo: data.alertaAtivo ?? false,
@@ -535,6 +539,22 @@ export async function listVendas(): Promise<VendaRow[]> {
     .filter((x): x is VendaRow => x !== null);
 }
 
+const POS_VENDA_RECENT_DAYS = 30;
+
+function isVendaRecentForPosVenda(createdAt: string): boolean {
+  const created = new Date(createdAt).getTime();
+  if (Number.isNaN(created)) return false;
+  const cutoff = Date.now() - POS_VENDA_RECENT_DAYS * 24 * 60 * 60 * 1000;
+  return created >= cutoff;
+}
+
+export async function listVendasPosVendaControle(): Promise<VendaRow[]> {
+  const all = await listVendas();
+  return all.filter(
+    (v) => v.statusPosVenda === "PENDENTE" || isVendaRecentForPosVenda(v.createdAt),
+  );
+}
+
 export async function getVenda(id: string): Promise<VendaRow | null> {
   const snap = await db().collection(COLLECTIONS.vendas).doc(id).get();
   if (!snap.exists) return null;
@@ -550,11 +570,19 @@ export async function getVenda(id: string): Promise<VendaRow | null> {
 
 export type VendaCreateInput = Omit<
   VendaDoc,
-  "createdAt" | "updatedAt" | "checklistAtivacao" | "dataPendencia" | "alertaAtivo"
+  | "createdAt"
+  | "updatedAt"
+  | "checklistAtivacao"
+  | "dataPendencia"
+  | "alertaAtivo"
+  | "statusPosVenda"
+  | "parcelasPagasCancelamento"
 > & {
   checklistAtivacao?: ChecklistAtivacao;
   dataPendencia?: string | null;
   alertaAtivo?: boolean;
+  statusPosVenda?: VendaDoc["statusPosVenda"];
+  parcelasPagasCancelamento?: number | null;
 };
 
 export async function createVenda(
@@ -726,6 +754,7 @@ export async function syncExtratosComissao(): Promise<number> {
         parcelaLabel: parcela.label,
         valorCentavos: parcela.valorCentavos,
         status: prev?.status ?? "PENDENTE",
+        tipo: prev?.tipo ?? "COMISSAO",
         vendedorId: venda.vendedorId,
         equipeId: venda.equipeId,
         createdAt: prev?.createdAt ?? ts,
@@ -745,6 +774,9 @@ export async function syncExtratosComissao(): Promise<number> {
   }
 
   for (const extrato of existing) {
+    const extratoData = extrato as DocWithId<ExtratoDoc> & { tipo?: ExtratoDoc["tipo"] };
+    if ((extratoData.tipo ?? "COMISSAO") === "ESTORNO") continue;
+
     const venda = vendaMap.get(extrato.vendaId);
     if (!venda) {
       await db().collection(COLLECTIONS.extratos).doc(extrato.id).delete();
@@ -810,6 +842,7 @@ export async function listExtratosComissao(): Promise<ExtratoRow[]> {
       parcelaLabel: extrato.parcelaLabel,
       valorCentavos: extrato.valorCentavos,
       status: extrato.status,
+      tipo: extrato.tipo ?? "COMISSAO",
       vendedorId: extrato.vendedorId,
       equipeId: extrato.equipeId,
       vendaTitulo: venda.titulo,

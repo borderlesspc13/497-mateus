@@ -1,6 +1,7 @@
 import type {
   ChecklistAtivacao,
   StatusInconsistencia,
+  StatusPosVenda,
   TipoRegistroAtendimento,
   VendaStatus,
 } from "@/lib/types/domain";
@@ -77,6 +78,8 @@ export type LogAuditoriaDoc = {
 
 export type ExtratoStatus = "PENDENTE" | "LIBERADO" | "PAGO";
 
+export type ExtratoTipo = "COMISSAO" | "ESTORNO";
+
 export type ExtratoDoc = {
   vendaId: string;
   planoId: string;
@@ -85,6 +88,7 @@ export type ExtratoDoc = {
   parcelaLabel: string;
   valorCentavos: number;
   status: ExtratoStatus;
+  tipo: ExtratoTipo;
   vendedorId: string;
   equipeId: string;
   createdAt: string;
@@ -134,6 +138,8 @@ export type VendaDoc = {
   vendedorId: string;
   status: VendaStatus;
   statusInconsistencia: StatusInconsistencia;
+  statusPosVenda: StatusPosVenda;
+  parcelasPagasCancelamento: number | null;
   contrato: string;
   grupo: string;
   cota: string;

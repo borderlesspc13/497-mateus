@@ -12,6 +12,7 @@ import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 import { VendaPosVendaPanel } from "@/components/vendas/VendaPosVendaPanel";
+import { CancelamentoEstornoModal } from "@/components/vendas/CancelamentoEstornoModal";
 import type {
   AdministradoraMini,
   ConsorciadoMini,
@@ -54,6 +55,7 @@ export default function EditarVendaForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [valorTouched, setValorTouched] = useState(false);
   const [planos, setPlanos] = useState<PlanoMini[]>(initialPlanos);
   const [vendedores, setVendedores] = useState<VendedorMini[]>([]);
@@ -139,8 +141,7 @@ export default function EditarVendaForm({
     }
   }, [form.valor, valorTouched]);
 
-  async function onSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function executeSave(parcelasPagasCancelamento?: number) {
     setValorTouched(true);
     setSaving(true);
     setError(null);
@@ -225,7 +226,9 @@ export default function EditarVendaForm({
         dataVenda: form.dataVenda ? new Date(`${form.dataVenda}T00:00:00.000Z`) : null,
         descricao: trimOrNull(form.descricao),
         observacoes: trimOrNull(form.observacoes),
+        parcelasPagasCancelamento,
       });
+      setCancelModalOpen(false);
       router.push("/vendas");
       router.refresh();
     } catch (e) {
@@ -233,6 +236,25 @@ export default function EditarVendaForm({
     } finally {
       setSaving(false);
     }
+  }
+
+  async function onSave(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setValorTouched(true);
+
+    if (valorError) {
+      setError(valorError);
+      return;
+    }
+
+    const isNovoCancelamento = form.status === "CANCELADO" && item.status !== "CANCELADO";
+    if (isNovoCancelamento) {
+      setCancelModalOpen(true);
+      return;
+    }
+
+    await executeSave();
   }
 
   return (
@@ -495,6 +517,14 @@ export default function EditarVendaForm({
           dataPendencia: item.dataPendencia,
           alertaAtivo: item.alertaAtivo,
         }}
+      />
+
+      <CancelamentoEstornoModal
+        open={cancelModalOpen}
+        contrato={form.contrato.trim() || item.contrato}
+        saving={saving}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={(parcelasPagas) => void executeSave(parcelasPagas)}
       />
     </>
   );
