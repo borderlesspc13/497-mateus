@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { getDashboardStats } from "@/actions/dashboard";
-import { DashboardHome } from "@/components/dashboard/DashboardHome";
+import { getDashboardRanking, getDashboardStats } from "@/actions/dashboard";
+import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { KpiCardSkeleton } from "@/components/ui/Skeleton";
 import { panelClass } from "@/components/ui/list-panel-classes";
@@ -38,8 +38,14 @@ function DashboardFallback() {
 }
 
 async function DashboardContent() {
-  const [stats, session] = await Promise.all([getDashboardStats(), getServerSessionUser()]);
-  return <DashboardHome stats={stats} userRole={session?.role ?? null} />;
+  const [stats, ranking, session] = await Promise.all([
+    getDashboardStats(),
+    getDashboardRanking(),
+    getServerSessionUser(),
+  ]);
+  return (
+    <DashboardTabs stats={stats} ranking={ranking} userRole={session?.role ?? null} />
+  );
 }
 
 export default function Home() {

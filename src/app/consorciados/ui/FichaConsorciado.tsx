@@ -19,6 +19,7 @@ import {
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import type { ConsorciadoRow, VendaRow } from "@/lib/types/domain";
+import { WhatsAppButton } from "@/components/whatsapp/WhatsAppButton";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 
 type FichaConsorciadoProps = {
@@ -130,7 +131,18 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <DetailItem label="Nome" value={consorciado.nome} />
           <DetailItem label="CPF / CNPJ" value={consorciado.cpf_cnpj} />
-          <DetailItem label="Telefone" value={consorciado.telefone} />
+          <div>
+            <div className="text-xs font-medium text-zinc-500">Telefone</div>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-sm font-medium text-zinc-900">
+                {consorciado.telefone || "—"}
+              </span>
+              <WhatsAppButton
+                telefone={consorciado.telefone}
+                nomeCliente={consorciado.nome}
+              />
+            </div>
+          </div>
           <DetailItem label="E-mail" value={consorciado.email} />
           <DetailItem
             label="Cadastrado em"
@@ -208,16 +220,25 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
                       className={`${tableCellClass()} pr-0 text-right`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedVenda(venda);
-                          setDrawerOpen(true);
-                        }}
-                        className={secondaryActionClass()}
-                      >
-                        Timeline
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <WhatsAppButton
+                          telefone={consorciado.telefone}
+                          nomeCliente={consorciado.nome}
+                          contrato={venda.contrato}
+                          statusVenda={venda.status}
+                          vendaId={venda.id}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedVenda(venda);
+                            setDrawerOpen(true);
+                          }}
+                          className={secondaryActionClass()}
+                        >
+                          Timeline
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

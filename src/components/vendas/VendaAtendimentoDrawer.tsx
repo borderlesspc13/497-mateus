@@ -54,6 +54,8 @@ function tipoRegistroClass(tipo: TipoRegistroAtendimento) {
   switch (tipo) {
     case "COBRANCA":
       return "border-red-200 bg-red-50 text-red-800";
+    case "COBRANCA_WHATSAPP":
+      return "border-emerald-200 bg-emerald-50 text-emerald-800";
     case "POS_VENDA":
       return "border-sky-200 bg-sky-50 text-sky-800";
     case "INCONSISTENCIA":

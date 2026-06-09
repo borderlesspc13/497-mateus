@@ -2,6 +2,7 @@ import type { StatusInconsistencia, TipoRegistroAtendimento } from "@/lib/types/
 
 export const TIPO_REGISTRO_LABELS: Record<TipoRegistroAtendimento, string> = {
   COBRANCA: "Cobrança",
+  COBRANCA_WHATSAPP: "Cobrança WhatsApp",
   POS_VENDA: "Pós-venda",
   INCONSISTENCIA: "Inconsistência",
 };

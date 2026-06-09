@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
@@ -255,12 +254,6 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
 
   return (
     <>
-      <PageFlowHeader
-        crumbs={[{ label: "Dashboard" }]}
-        title="Dashboard"
-        description="Indicadores operacionais em tempo real a partir do Firestore."
-      />
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4">
         <KpiCard
           label="Vendas ativas"

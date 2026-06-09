@@ -94,6 +94,7 @@ export function toConsorciadoMini(item: DocWithId<ConsorciadoDoc>): ConsorciadoM
     id: item.id,
     nome: item.nome,
     cpf_cnpj: readConsorciadoCpfCnpj(item),
+    telefone: item.telefone,
   };
 }
 

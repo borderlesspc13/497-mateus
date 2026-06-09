@@ -36,6 +36,7 @@ function toConsorciadoMini(doc: DocWithId<ConsorciadoDoc>): ConsorciadoMini {
     id: doc.id,
     nome: doc.nome,
     cpf_cnpj: readConsorciadoCpfCnpj(doc),
+    telefone: doc.telefone,
   };
 }
 

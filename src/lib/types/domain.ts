@@ -15,7 +15,11 @@ export type StatusPosVenda = "PENDENTE" | "FEITO";
 
 export type StatusInconsistencia = "CONSISTENTE" | "INCONSISTENTE";
 
-export type TipoRegistroAtendimento = "COBRANCA" | "POS_VENDA" | "INCONSISTENCIA";
+export type TipoRegistroAtendimento =
+  | "COBRANCA"
+  | "COBRANCA_WHATSAPP"
+  | "POS_VENDA"
+  | "INCONSISTENCIA";
 
 export type HistoricoAtendimentoUniversalRow = {
   id: string;
@@ -113,7 +117,7 @@ export type ConsorciadoRow = {
   criadoEm: string;
 };
 
-export type ConsorciadoMini = { id: string; nome: string; cpf_cnpj: string };
+export type ConsorciadoMini = { id: string; nome: string; cpf_cnpj: string; telefone: string };
 
 export type EquipeRow = {
   id: string;
@@ -198,6 +202,30 @@ export type DashboardAdmResumo = {
   nome: string;
   quantidade: number;
   valorCentavos: number;
+};
+
+export type DashboardVendedorRanking = {
+  id: string;
+  nome: string;
+  equipeId: string;
+  equipeNome: string;
+  creditoCentavos: number;
+  quantidadeVendas: number;
+};
+
+export type DashboardEquipeRanking = {
+  id: string;
+  nome: string;
+  creditoCentavos: number;
+  quantidadeVendas: number;
+};
+
+export type DashboardRanking = {
+  mesLabel: string;
+  mesAno: { month: number; year: number };
+  topVendedores: DashboardVendedorRanking[];
+  melhorEquipe: DashboardEquipeRanking | null;
+  topEquipes: DashboardEquipeRanking[];
 };
 
 export type DashboardStats = {

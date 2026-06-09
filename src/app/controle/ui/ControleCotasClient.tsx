@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { InconsistenciaBadge } from "@/components/ui/InconsistenciaBadge";
 import { PosVendaBadge } from "@/components/ui/PosVendaBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { WhatsAppButton } from "@/components/whatsapp/WhatsAppButton";
 import { VendaAtendimentoDrawer } from "@/components/vendas/VendaAtendimentoDrawer";
 import {
   dataTableClass,
@@ -199,13 +200,24 @@ export default function ControleCotasClient({ modo, initialItems }: ControleCota
                       className={`${tableCellClass()} pr-0 text-right`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
-                        type="button"
-                        onClick={() => openDrawer(v)}
-                        className={secondaryActionClass()}
-                      >
-                        Timeline
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {(modo === "inadimplencia" || modo === "inconsistencia") && (
+                          <WhatsAppButton
+                            telefone={v.consorciado?.telefone}
+                            nomeCliente={v.consorciado?.nome ?? ""}
+                            contrato={v.contrato}
+                            statusVenda={v.status}
+                            vendaId={v.id}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => openDrawer(v)}
+                          className={secondaryActionClass()}
+                        >
+                          Timeline
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

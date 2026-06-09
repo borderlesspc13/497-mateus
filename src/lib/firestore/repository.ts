@@ -1,4 +1,10 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import {
+  buildDashboardRanking,
+  getCurrentMonthBounds,
+  isIsoInRange,
+  vendaRankingReferenceDate,
+} from "@/lib/dashboard/ranking";
 import { buildDashboardStats } from "@/lib/dashboard/stats";
 import { DEFAULT_CHECKLIST_ATIVACAO, DEFAULT_STATUS_POS_VENDA } from "@/lib/vendas/pos-venda";
 import { normalizeVendaFields } from "@/lib/firestore/legacy";
@@ -706,6 +712,39 @@ export async function getDashboardStats(): Promise<import("@/lib/types/domain").
     planos.length,
     extratos,
   );
+}
+
+/**
+ * Vendas ATIVO do mês corrente.
+ * Usa filtro simples por status (índice automático) e restringe o mês em memória,
+ * evitando índices compostos obrigatórios no Firestore.
+ */
+async function listVendasAtivasNoMesAtual(): Promise<DocWithId<VendaDoc>[]> {
+  const { start, end } = getCurrentMonthBounds();
+  const snap = await db().collection(COLLECTIONS.vendas).where("status", "==", "ATIVO").get();
+
+  return snap.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() as VendaDoc) }))
+    .filter((venda) => isIsoInRange(vendaRankingReferenceDate(venda), start, end));
+}
+
+export async function getDashboardRanking(): Promise<
+  import("@/lib/types/domain").DashboardRanking
+> {
+  const [vendas, planos, vendedores, equipes] = await Promise.all([
+    listVendasAtivasNoMesAtual(),
+    listPlanoDocs(),
+    listVendedorDocs(),
+    listEquipeDocs(),
+  ]);
+
+  const planoMap = new Map(planos.map((p) => [p.id, p]));
+  const vendedorNomes = new Map(
+    vendedores.map((v) => [v.id, { nome: v.nome, equipeId: v.equipeId }]),
+  );
+  const equipeNomes = new Map(equipes.map((e) => [e.id, e.nome]));
+
+  return buildDashboardRanking(vendas, { planoMap, vendedorNomes, equipeNomes });
 }
 
 async function listExtratoDocs(): Promise<DocWithId<ExtratoDoc>[]> {
