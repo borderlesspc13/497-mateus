@@ -1,12 +1,12 @@
 import { Suspense } from "react";
-import { listVendas } from "@/actions/vendas";
+import { listVendasPaginated } from "@/actions/vendas";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { PageLoading } from "@/components/ui/PageLoading";
 import ControleCotasClient from "../ui/ControleCotasClient";
 
 async function InconsistenciaData() {
-  const items = await listVendas();
-  return <ControleCotasClient modo="inconsistencia" initialItems={items} />;
+  const page = await listVendasPaginated({ statusInconsistencia: "INCONSISTENTE" });
+  return <ControleCotasClient modo="inconsistencia" initialPage={page} />;
 }
 
 export default function ControleInconsistenciaPage() {

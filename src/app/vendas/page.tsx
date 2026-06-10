@@ -1,16 +1,19 @@
 import { Suspense } from "react";
 import { listAdministradoras } from "@/actions/administradoras";
-import { listVendas } from "@/actions/vendas";
+import { listVendasPaginated } from "@/actions/vendas";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { PageLoading } from "@/components/ui/PageLoading";
 import VendasClient from "./ui/VendasClient";
 
 async function VendasData() {
-  const [items, administradoras] = await Promise.all([listVendas(), listAdministradoras()]);
+  const [page, administradoras] = await Promise.all([
+    listVendasPaginated(),
+    listAdministradoras(),
+  ]);
 
   return (
     <VendasClient
-      initialItems={items}
+      initialPage={page}
       initialAdministradoras={administradoras.map((a) => ({
         id: a.id,
         nome: a.nome,

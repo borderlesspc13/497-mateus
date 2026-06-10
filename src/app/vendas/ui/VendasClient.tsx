@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { deleteVenda } from "@/actions/vendas";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { deleteVenda, listVendasPaginated } from "@/actions/vendas";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PendenciaBadge } from "@/components/vendas/PendenciaBadge";
 import {
@@ -19,40 +20,74 @@ import {
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
+import type { VendasListPage } from "@/lib/firestore/repository";
 import type { AdministradoraMini, VendaRow } from "@/lib/types/domain";
+import {
+  useVendasPaginatedList,
+} from "@/lib/vendas/use-vendas-paginated-list";
+import { PaginatedListFooter } from "@/components/ui/PaginatedListFooter";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
+import type { VendasListFilters } from "@/lib/firestore/repository";
+
+const VENDAS_DEFAULT_FILTERS: VendasListFilters = {};
 
 type VendasClientProps = {
-  initialItems: VendaRow[];
+  initialPage: VendasListPage;
   initialAdministradoras: AdministradoraMini[];
 };
 
 export default function VendasClient({
-  initialItems,
+  initialPage,
   initialAdministradoras,
 }: VendasClientProps) {
   const router = useRouter();
-  const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"" | VendaRow["status"]>("");
   const [administradoraId, setAdministradoraId] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
+  const {
+    visibleItems,
+    hasMore,
+    isLoadingMore,
+    isResetting,
+    error,
+    setError,
+    loadMore,
+    resetAndFetch,
+    removeItem,
+  } = useVendasPaginatedList<VendaRow>({
+    initialPage,
+    initialFilters: VENDAS_DEFAULT_FILTERS,
+    fetchPage: listVendasPaginated,
+    clientFilter: useCallback(
+      (items: VendaRow[]) => {
+        const q = query.trim().toLowerCase();
+        return items.filter((v) => {
+          if (!q) return true;
+          const hay = `${v.titulo} ${v.contrato} ${v.grupo} ${v.cota} ${v.consorciado?.nome ?? ""} ${v.consorciado?.cpf_cnpj ?? ""} ${v.administradora?.nome ?? ""} ${v.plano?.nome ?? ""}`.toLowerCase();
+          return hay.includes(q);
+        });
+      },
+      [query],
+    ),
+  });
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return items.filter((v) => {
-      if (status && v.status !== status) return false;
-      if (administradoraId && v.administradoraId !== administradoraId) return false;
-      if (!q) return true;
-      const hay = `${v.titulo} ${v.contrato} ${v.grupo} ${v.cota} ${v.consorciado?.nome ?? ""} ${v.consorciado?.cpf_cnpj ?? ""} ${v.administradora?.nome ?? ""} ${v.plano?.nome ?? ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, query, status, administradoraId]);
+  const skipInitialFilterFetch = useRef(true);
+
+  useEffect(() => {
+    const nextFilters = {
+      ...(status ? { status } : {}),
+      ...(administradoraId ? { administradoraId } : {}),
+    };
+
+    if (skipInitialFilterFetch.current) {
+      skipInitialFilterFetch.current = false;
+      return;
+    }
+
+    void resetAndFetch(nextFilters);
+  }, [status, administradoraId, resetAndFetch]);
 
   async function onDelete(id: string) {
     if (!confirm("Excluir venda?")) return;
@@ -60,7 +95,7 @@ export default function VendasClient({
     setDeletingId(id);
     try {
       await deleteVenda(id);
-      setItems((prev) => prev.filter((x) => x.id !== id));
+      removeItem(id);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao excluir.");
@@ -68,6 +103,9 @@ export default function VendasClient({
       setDeletingId(null);
     }
   }
+
+  const showEmpty = !isResetting && visibleItems.length === 0;
+  const hasServerFilters = Boolean(status || administradoraId);
 
   return (
     <DataListPanel
@@ -114,16 +152,22 @@ export default function VendasClient({
         ) : null
       }
     >
-      {filtered.length === 0 ? (
+      {isResetting ? (
+        <TableSkeleton rows={8} columns={6} />
+      ) : showEmpty ? (
         <EmptyState
-          title={items.length === 0 ? "Nenhuma venda cadastrada" : "Nenhum resultado encontrado"}
+          title={
+            !hasServerFilters && !query.trim()
+              ? "Nenhuma venda cadastrada"
+              : "Nenhum resultado encontrado"
+          }
           description={
-            items.length === 0
+            !hasServerFilters && !query.trim()
               ? "Cadastre a primeira venda vinculada a um consorciado e administradora."
               : "Ajuste os filtros ou o termo de busca para ver outros registros."
           }
           action={
-            items.length === 0 ? (
+            !hasServerFilters && !query.trim() ? (
               <Link href="/vendas/nova" className={primaryActionClass()}>
                 Nova venda
               </Link>
@@ -131,122 +175,131 @@ export default function VendasClient({
           }
         />
       ) : (
-      <div className={tableWrapClass()}>
-        <table className={dataTableClass()}>
-          <thead>
-            <tr>
-              <th className={tableHeadCellClass()}>Contrato</th>
-              <th className={tableHeadCellClass()}>Grupo / Cota</th>
-              <th className={tableHeadCellClass()}>Consorciado</th>
-              <th className={tableHeadCellClass()}>Equipe / Vendedor</th>
-              <th className={tableHeadCellClass()}>Administradora</th>
-              <th className={tableHeadCellClass()}>Plano</th>
-              <th className={tableHeadCellClass()}>Status</th>
-              <th className={tableHeadCellClass()}>Pós-venda</th>
-              <th className={tableHeadCellClass()}>Valor</th>
-              <th className={tableHeadCellClass()}>Data da venda</th>
-              <th className={tableHeadCellClass()}>Criado em</th>
-              <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-              {filtered.map((v, index) => (
-                <tr key={v.id} className={tableRowClass(index)}>
-                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{v.contrato}</td>
-                  <td className={tableCellClass()}>
-                    <div className="leading-5">
-                      <div className="text-zinc-900">
-                        {v.grupo} / {v.cota}
-                      </div>
-                      <div className="text-xs text-zinc-500">Venc. dia {v.dataVencimento}</div>
-                    </div>
-                  </td>
-                  <td className={tableCellClass()}>
-                    <div className="leading-5">
-                      {v.consorciado ? (
-                        <Link
-                          href={`/consorciados/${v.consorciado.id}`}
-                          className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
-                        >
-                          {v.consorciado.nome}
-                        </Link>
-                      ) : (
-                        <div className="text-zinc-800">—</div>
-                      )}
-                      {v.consorciado?.cpf_cnpj ? (
-                        <div className="text-xs text-zinc-500">{v.consorciado.cpf_cnpj}</div>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className={tableCellClass()}>
-                    <div className="leading-5">
-                      <div className="text-zinc-900">{v.equipe?.nome ?? "—"}</div>
-                      <div className="text-xs text-zinc-500">{v.vendedor?.nome ?? "—"}</div>
-                    </div>
-                  </td>
-                  <td className={tableCellClass()}>
-                    <div className="leading-5">
-                      <Link
-                        href={`/administradoras/${v.administradoraId}`}
-                        className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
-                      >
-                        {v.administradora?.nome ?? "—"}
-                      </Link>
-                      <div className="text-xs text-zinc-500">{v.administradora?.cnpj ?? ""}</div>
-                    </div>
-                  </td>
-                  <td className={tableCellClass()}>
-                    <div className="leading-5">
-                      {v.plano ? (
-                        <Link
-                          href={`/planos/${v.plano.id}`}
-                          className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
-                        >
-                          {v.plano.nome}
-                        </Link>
-                      ) : (
-                        <div className="text-zinc-800">—</div>
-                      )}
-                      {v.plano?.tipoBem ? (
-                        <div className="text-xs text-zinc-500">{v.plano.tipoBem}</div>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className={tableCellClass()}>
-                    <StatusBadge status={v.status} />
-                  </td>
-                  <td className={tableCellClass()}>
-                    <PendenciaBadge venda={v} />
-                  </td>
-                  <td className={`${tableCellClass()} whitespace-nowrap tabular-nums`}>
-                    {formatMoneyPtBrFromCentavos(v.valorCentavos)}
-                  </td>
-                  <td className={`${tableCellClass()} whitespace-nowrap`}>
-                    {v.dataVenda ? new Date(v.dataVenda).toLocaleDateString("pt-BR") : "—"}
-                  </td>
-                  <td className={`${tableCellClass()} whitespace-nowrap`}>
-                    {new Date(v.createdAt).toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className={`${tableCellClass()} pr-0 text-right`}>
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/vendas/${v.id}`} className={secondaryActionClass()}>
-                        Editar
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => void onDelete(v.id)}
-                        disabled={deletingId === v.id}
-                        className={dangerActionClass()}
-                      >
-                        {deletingId === v.id ? "Excluindo..." : "Excluir"}
-                      </button>
-                    </div>
-                  </td>
+        <>
+          <div className={tableWrapClass()}>
+            <table className={dataTableClass()}>
+              <thead>
+                <tr>
+                  <th className={tableHeadCellClass()}>Contrato</th>
+                  <th className={tableHeadCellClass()}>Grupo / Cota</th>
+                  <th className={tableHeadCellClass()}>Consorciado</th>
+                  <th className={tableHeadCellClass()}>Equipe / Vendedor</th>
+                  <th className={tableHeadCellClass()}>Administradora</th>
+                  <th className={tableHeadCellClass()}>Plano</th>
+                  <th className={tableHeadCellClass()}>Status</th>
+                  <th className={tableHeadCellClass()}>Pós-venda</th>
+                  <th className={tableHeadCellClass()}>Valor</th>
+                  <th className={tableHeadCellClass()}>Data da venda</th>
+                  <th className={tableHeadCellClass()}>Criado em</th>
+                  <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
                 </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {visibleItems.map((v, index) => (
+                  <tr key={v.id} className={tableRowClass(index)}>
+                    <td className={`${tableCellClass()} font-medium text-zinc-900`}>{v.contrato}</td>
+                    <td className={tableCellClass()}>
+                      <div className="leading-5">
+                        <div className="text-zinc-900">
+                          {v.grupo} / {v.cota}
+                        </div>
+                        <div className="text-xs text-zinc-500">Venc. dia {v.dataVencimento}</div>
+                      </div>
+                    </td>
+                    <td className={tableCellClass()}>
+                      <div className="leading-5">
+                        {v.consorciado ? (
+                          <Link
+                            href={`/consorciados/${v.consorciado.id}`}
+                            className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
+                          >
+                            {v.consorciado.nome}
+                          </Link>
+                        ) : (
+                          <div className="text-zinc-800">—</div>
+                        )}
+                        {v.consorciado?.cpf_cnpj ? (
+                          <div className="text-xs text-zinc-500">{v.consorciado.cpf_cnpj}</div>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className={tableCellClass()}>
+                      <div className="leading-5">
+                        <div className="text-zinc-900">{v.equipe?.nome ?? "—"}</div>
+                        <div className="text-xs text-zinc-500">{v.vendedor?.nome ?? "—"}</div>
+                      </div>
+                    </td>
+                    <td className={tableCellClass()}>
+                      <div className="leading-5">
+                        <Link
+                          href={`/administradoras/${v.administradoraId}`}
+                          className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
+                        >
+                          {v.administradora?.nome ?? "—"}
+                        </Link>
+                        <div className="text-xs text-zinc-500">{v.administradora?.cnpj ?? ""}</div>
+                      </div>
+                    </td>
+                    <td className={tableCellClass()}>
+                      <div className="leading-5">
+                        {v.plano ? (
+                          <Link
+                            href={`/planos/${v.plano.id}`}
+                            className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
+                          >
+                            {v.plano.nome}
+                          </Link>
+                        ) : (
+                          <div className="text-zinc-800">—</div>
+                        )}
+                        {v.plano?.tipoBem ? (
+                          <div className="text-xs text-zinc-500">{v.plano.tipoBem}</div>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className={tableCellClass()}>
+                      <StatusBadge status={v.status} />
+                    </td>
+                    <td className={tableCellClass()}>
+                      <PendenciaBadge venda={v} />
+                    </td>
+                    <td className={`${tableCellClass()} whitespace-nowrap tabular-nums`}>
+                      {formatMoneyPtBrFromCentavos(v.valorCentavos)}
+                    </td>
+                    <td className={`${tableCellClass()} whitespace-nowrap`}>
+                      {v.dataVenda ? new Date(v.dataVenda).toLocaleDateString("pt-BR") : "—"}
+                    </td>
+                    <td className={`${tableCellClass()} whitespace-nowrap`}>
+                      {new Date(v.createdAt).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className={`${tableCellClass()} pr-0 text-right`}>
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/vendas/${v.id}`} className={secondaryActionClass()}>
+                          Editar
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => void onDelete(v.id)}
+                          disabled={deletingId === v.id}
+                          className={dangerActionClass()}
+                        >
+                          {deletingId === v.id ? "Excluindo..." : "Excluir"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <PaginatedListFooter
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={() => void loadMore()}
+            columns={6}
+            skeletonRows={4}
+          />
+        </>
       )}
     </DataListPanel>
   );

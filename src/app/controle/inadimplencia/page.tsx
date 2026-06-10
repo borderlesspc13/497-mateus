@@ -1,12 +1,12 @@
 import { Suspense } from "react";
-import { listVendas } from "@/actions/vendas";
+import { listVendasPaginated } from "@/actions/vendas";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { PageLoading } from "@/components/ui/PageLoading";
 import ControleCotasClient from "../ui/ControleCotasClient";
 
 async function InadimplenciaData() {
-  const items = await listVendas();
-  return <ControleCotasClient modo="inadimplencia" initialItems={items} />;
+  const page = await listVendasPaginated({ status: "INADIMPLENTE" });
+  return <ControleCotasClient modo="inadimplencia" initialPage={page} />;
 }
 
 export default function ControleInadimplenciaPage() {

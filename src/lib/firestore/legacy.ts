@@ -52,6 +52,14 @@ function normalizeStatusPosVenda(value: string | undefined): StatusPosVenda {
   return DEFAULT_STATUS_POS_VENDA;
 }
 
+export function resolveDataContrato(raw: {
+  dataContrato?: string;
+  dataVenda?: string | null;
+  createdAt?: string;
+}): string {
+  return raw.dataContrato ?? raw.dataVenda ?? raw.createdAt ?? new Date(0).toISOString();
+}
+
 export function normalizeVendaFields(raw: LegacyVendaDoc): Pick<
   VendaDoc,
   | "status"
@@ -64,6 +72,7 @@ export function normalizeVendaFields(raw: LegacyVendaDoc): Pick<
   | "dataVencimento"
   | "equipeId"
   | "vendedorId"
+  | "dataContrato"
 > {
   return {
     status: normalizeVendaStatus(raw.status),
@@ -79,5 +88,6 @@ export function normalizeVendaFields(raw: LegacyVendaDoc): Pick<
         : 10,
     equipeId: raw.equipeId?.trim() || "",
     vendedorId: raw.vendedorId?.trim() || "",
+    dataContrato: resolveDataContrato(raw),
   };
 }

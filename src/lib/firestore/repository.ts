@@ -1,4 +1,5 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { handleFirestoreIndexError } from "@/lib/firestore/firestore-errors";
 import {
   buildDashboardRanking,
   getCurrentMonthBounds,
@@ -7,7 +8,7 @@ import {
 } from "@/lib/dashboard/ranking";
 import { buildDashboardStats } from "@/lib/dashboard/stats";
 import { DEFAULT_CHECKLIST_ATIVACAO, DEFAULT_STATUS_POS_VENDA } from "@/lib/vendas/pos-venda";
-import { normalizeVendaFields } from "@/lib/firestore/legacy";
+import { normalizeVendaFields, resolveDataContrato } from "@/lib/firestore/legacy";
 import { resolvePlanoRegrasFinanceiras } from "@/lib/planos/regras-financeiras";
 import {
   COLLECTIONS,
@@ -54,11 +55,12 @@ import type {
   ExtratoRow,
   PlanoMini,
   PlanoRow,
+  StatusInconsistencia,
   VendaRow,
+  VendaStatus,
   VendedorMini,
   VendedorRow,
 } from "@/lib/types/domain";
-import type { VendaStatus } from "@/lib/types/domain";
 
 function db() {
   return getAdminFirestore();
@@ -497,6 +499,7 @@ function normalizeVendaDoc(raw: DocWithId<VendaDoc>): DocWithId<VendaDoc> {
   return {
     ...raw,
     ...fields,
+    dataContrato: fields.dataContrato,
     consorciadoId: raw.consorciadoId ?? null,
     checklistAtivacao: {
       documentacaoRecebida: raw.checklistAtivacao?.documentacaoRecebida ?? false,
@@ -510,7 +513,7 @@ function normalizeVendaDoc(raw: DocWithId<VendaDoc>): DocWithId<VendaDoc> {
   };
 }
 
-function withVendaPosVendaDefaults(data: VendaCreateInput): Omit<VendaDoc, "createdAt" | "updatedAt"> {
+function withVendaPosVendaDefaults(data: VendaCreateInput): Omit<VendaDoc, "createdAt" | "updatedAt" | "dataContrato"> {
   return {
     ...data,
     statusInconsistencia: data.statusInconsistencia ?? "CONSISTENTE",
@@ -520,6 +523,114 @@ function withVendaPosVendaDefaults(data: VendaCreateInput): Omit<VendaDoc, "crea
     dataPendencia: data.dataPendencia ?? null,
     alertaAtivo: data.alertaAtivo ?? false,
   };
+}
+
+export const VENDAS_PAGE_SIZE = 50;
+
+export type VendasListFilters = {
+  status?: VendaStatus;
+  statusInconsistencia?: StatusInconsistencia;
+  administradoraId?: string;
+};
+
+export type VendasListPage = {
+  items: VendaRow[];
+  lastDocId: string | null;
+  hasMore: boolean;
+};
+
+async function fetchDocsByIds<T>(
+  collectionName: string,
+  ids: string[],
+): Promise<Map<string, DocWithId<T>>> {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  const map = new Map<string, DocWithId<T>>();
+  if (uniqueIds.length === 0) return map;
+
+  const snaps = await Promise.all(
+    uniqueIds.map((id) => db().collection(collectionName).doc(id).get()),
+  );
+  for (const snap of snaps) {
+    if (snap.exists) {
+      map.set(snap.id, { id: snap.id, ...(snap.data() as T) });
+    }
+  }
+  return map;
+}
+
+async function buildRelationMapsForVendas(vendas: DocWithId<VendaDoc>[]) {
+  const [admMap, planoMap, consorciadoMap, equipeMap, vendedorMap] = await Promise.all([
+    fetchDocsByIds<AdministradoraDoc>(
+      COLLECTIONS.administradoras,
+      vendas.map((v) => v.administradoraId),
+    ),
+    fetchDocsByIds<PlanoDoc>(
+      COLLECTIONS.planos,
+      vendas.map((v) => v.planoId).filter((id): id is string => Boolean(id)),
+    ),
+    fetchDocsByIds<ConsorciadoDoc>(
+      COLLECTIONS.consorciados,
+      vendas.map((v) => v.consorciadoId).filter((id): id is string => Boolean(id)),
+    ),
+    fetchDocsByIds<EquipeDoc>(COLLECTIONS.equipes, vendas.map((v) => v.equipeId)),
+    fetchDocsByIds<VendedorDoc>(COLLECTIONS.vendedores, vendas.map((v) => v.vendedorId)),
+  ]);
+  return { admMap, planoMap, consorciadoMap, equipeMap, vendedorMap };
+}
+
+function buildVendasPaginatedQuery(filters: VendasListFilters) {
+  let q: FirebaseFirestore.Query = db().collection(COLLECTIONS.vendas);
+
+  if (filters.administradoraId) {
+    q = q.where("administradoraId", "==", filters.administradoraId);
+  }
+  if (filters.status) {
+    q = q.where("status", "==", filters.status);
+  }
+  if (filters.statusInconsistencia) {
+    q = q.where("statusInconsistencia", "==", filters.statusInconsistencia);
+  }
+
+  return q.orderBy("dataContrato", "desc").limit(VENDAS_PAGE_SIZE);
+}
+
+export async function listVendasPaginated(
+  filters: VendasListFilters = {},
+  cursorDocId?: string | null,
+): Promise<VendasListPage> {
+  try {
+    let q = buildVendasPaginatedQuery(filters);
+
+    if (cursorDocId) {
+      const cursorSnap = await db().collection(COLLECTIONS.vendas).doc(cursorDocId).get();
+      if (cursorSnap.exists) {
+        q = q.startAfter(cursorSnap);
+      }
+    }
+
+    const snap = await q.get();
+    const vendas = snap.docs.map((doc) =>
+      normalizeVendaDoc({ id: doc.id, ...(doc.data() as VendaDoc) }),
+    );
+
+    if (vendas.length === 0) {
+      return { items: [], lastDocId: null, hasMore: false };
+    }
+
+    const maps = await buildRelationMapsForVendas(vendas);
+    const items = vendas
+      .map((v) => resolveVendaRelations(v, maps))
+      .filter((x): x is VendaRow => x !== null);
+
+    const lastDoc = snap.docs[snap.docs.length - 1];
+    return {
+      items,
+      lastDocId: lastDoc?.id ?? null,
+      hasMore: snap.docs.length === VENDAS_PAGE_SIZE,
+    };
+  } catch (error) {
+    handleFirestoreIndexError(error);
+  }
 }
 
 export async function listVendas(): Promise<VendaRow[]> {
@@ -578,6 +689,7 @@ export type VendaCreateInput = Omit<
   VendaDoc,
   | "createdAt"
   | "updatedAt"
+  | "dataContrato"
   | "checklistAtivacao"
   | "dataPendencia"
   | "alertaAtivo"
@@ -618,8 +730,10 @@ export async function createVenda(
   }
   const ts = nowIso();
   const id = newId();
+  const dataContrato = resolveDataContrato({ dataVenda: data.dataVenda, createdAt: ts });
   const doc: VendaDoc = {
     ...withVendaPosVendaDefaults(data),
+    dataContrato,
     createdAt: ts,
     updatedAt: ts,
   };
@@ -668,9 +782,15 @@ export async function updateVenda(
   }
 
   const { id: _id, ...currentData } = current;
+  const nextDataVenda =
+    patch.dataVenda !== undefined ? patch.dataVenda : currentData.dataVenda;
   const next: VendaDoc = {
     ...currentData,
     ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
+    dataContrato: resolveDataContrato({
+      dataVenda: nextDataVenda,
+      createdAt: current.createdAt,
+    }),
     createdAt: current.createdAt,
     updatedAt: nowIso(),
   };

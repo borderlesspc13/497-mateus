@@ -148,6 +148,8 @@ export type VendaDoc = {
   descricao: string | null;
   valorCentavos: number | null;
   dataVenda: string | null;
+  /** Data do contrato usada para ordenação e paginação (dataVenda ?? createdAt). */
+  dataContrato: string;
   observacoes: string | null;
   checklistAtivacao: ChecklistAtivacao;
   dataPendencia: string | null;

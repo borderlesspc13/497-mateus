@@ -13,11 +13,13 @@ import {
   getVenda as getVendaDoc,
   getVendedor,
   listVendas as listVendasDocs,
+  listVendasPaginated as listVendasPaginatedDocs,
   listVendasPosVendaControle as listVendasPosVendaControleDocs,
   updateVenda as updateVendaDoc,
 } from "@/lib/firestore/repository";
 import { aplicarEstornoCancelamentoVenda } from "@/lib/firestore/estorno-cancelamento";
 import type { StatusInconsistencia, StatusPosVenda, VendaRow, VendaStatus } from "@/lib/types/domain";
+import type { VendasListFilters, VendasListPage } from "@/lib/firestore/repository";
 
 export type VendaInput = {
   administradoraId: string;
@@ -99,6 +101,14 @@ async function assertEquipeAndVendedor(equipeId: string, vendedorId: string): Pr
 export async function listVendas(): Promise<VendaRow[]> {
   await requireServerSessionUser();
   return listVendasDocs();
+}
+
+export async function listVendasPaginated(
+  filters: VendasListFilters = {},
+  cursorDocId?: string | null,
+): Promise<VendasListPage> {
+  await requireServerSessionUser();
+  return listVendasPaginatedDocs(filters, cursorDocId);
 }
 
 export async function listVendasPosVendaControle(): Promise<VendaRow[]> {
