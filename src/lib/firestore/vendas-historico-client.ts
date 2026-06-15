@@ -3,6 +3,7 @@
 import {
   addDoc,
   collection,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -69,6 +70,60 @@ export function subscribeHistoricoAtendimentoUniversal(
     });
 
   return () => unsubscribe();
+}
+
+export type HistoricoAtendimentoWithVenda = HistoricoAtendimentoUniversalRow & {
+  vendaId: string;
+  numeroContrato: string;
+  grupo: string;
+  cota: string;
+};
+
+export type VendaHistoricoRef = {
+  id: string;
+  numeroContrato: string;
+  grupo: string;
+  cota: string;
+};
+
+export async function fetchHistoricoAtendimentoForVendas(
+  vendas: VendaHistoricoRef[],
+): Promise<HistoricoAtendimentoWithVenda[]> {
+  if (vendas.length === 0) return [];
+
+  const db = await getDb();
+  const batches = await Promise.all(
+    vendas.map(async (venda) => {
+      const snap = await getDocs(
+        query(
+          collection(
+            db,
+            COLLECTIONS.vendas,
+            venda.id,
+            VENDA_SUBCOLLECTIONS.historico_atendimento,
+          ),
+          orderBy("dataRegistro", "desc"),
+        ),
+      );
+      return snap.docs.map((item) => {
+        const data = item.data() as HistoricoAtendimentoUniversalDoc;
+        return {
+          id: item.id,
+          vendaId: venda.id,
+          numeroContrato: venda.numeroContrato,
+          grupo: venda.grupo,
+          cota: venda.cota,
+          dataRegistro: data.dataRegistro,
+          tipoRegistro: data.tipoRegistro,
+          observacao: data.observacao,
+        };
+      });
+    }),
+  );
+
+  return batches
+    .flat()
+    .sort((a, b) => b.dataRegistro.localeCompare(a.dataRegistro));
 }
 
 export async function addHistoricoAtendimentoUniversal(

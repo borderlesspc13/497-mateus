@@ -10,7 +10,7 @@ export default function ConsorciadosPage() {
           { label: "Consorciados" },
         ]}
         title="Consorciados"
-        description="Cadastre e gerencie consorciados — base do CRM operacional do sistema."
+        description="Central de consulta de consorciados — pesquise por nome, documento, contrato, grupo ou cota e acesse a ficha completa."
       />
 
       <ConsorciadosClient />

@@ -2,17 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ConsorciadoHistoricoTabs } from "@/components/consorciados/ConsorciadoHistoricoTabs";
 import { VendaAtendimentoDrawer } from "@/components/vendas/VendaAtendimentoDrawer";
 import { getConsorciado, listVendasByConsorciado } from "@/actions/consorciados";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
+import { AlertBanner } from "@/components/ui/AlertBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PanelSectionHeader } from "@/components/ui/PanelSectionHeader";
+import { DetailPageSkeleton } from "@/components/ui/Skeleton";
+import { InconsistenciaBadge } from "@/components/ui/InconsistenciaBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   dataTableClass,
   panelClass,
   panelInsetClass,
-  primaryActionClass,
   secondaryActionClass,
   tableCellClass,
   tableHeadCellClass,
@@ -73,11 +77,7 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600">
-        Carregando ficha do consorciado...
-      </div>
-    );
+    return <DetailPageSkeleton sections={3} />;
   }
 
   if (notFound || !consorciado) {
@@ -92,7 +92,7 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
         description="Não foi possível carregar este registro."
         actions={
           <Link href="/consorciados" className={backLinkClass()}>
-            Voltar à lista
+            Voltar à consulta
           </Link>
         }
       />
@@ -108,28 +108,34 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
           { label: consorciado.nome },
         ]}
         title={consorciado.nome}
-        description="Ficha do consorciado com cotas (vendas) vinculadas."
+        description="Ficha completa com produtos contratados e históricos operacionais consolidados."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href="/consorciados" className={backLinkClass()}>
-              Voltar à lista
+              Voltar à consulta
             </Link>
             <Link href={`/consorciados/${id}/editar`} className={secondaryActionClass()}>
               Editar dados
+            </Link>
+            <Link href="/vendas/nova" className={secondaryActionClass()}>
+              Nova venda
             </Link>
           </div>
         }
       />
 
       {error ? (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <AlertBanner tone="error" className="mb-4">
           {error}
-        </div>
+        </AlertBanner>
       ) : null}
 
-      <section className={`${panelClass()} p-6`}>
-        <h2 className="text-sm font-medium text-zinc-900">Dados pessoais</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className={panelClass()}>
+        <div className={`py-5 ${panelInsetClass()}`}>
+          <h2 className="text-base font-semibold text-zinc-900">Dados pessoais</h2>
+        </div>
+        <div className={`pb-5 ${panelInsetClass()}`}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <DetailItem label="Nome" value={consorciado.nome} />
           <DetailItem label="CPF / CNPJ" value={consorciado.cpf_cnpj} />
           <div>
@@ -138,10 +144,7 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
               <span className="text-sm font-medium text-zinc-900">
                 {consorciado.telefone || "—"}
               </span>
-              <WhatsAppButton
-                telefone={consorciado.telefone}
-                nomeCliente={consorciado.nome}
-              />
+              <WhatsAppButton telefone={consorciado.telefone} nomeCliente={consorciado.nome} />
             </div>
           </div>
           <DetailItem label="E-mail" value={consorciado.email} />
@@ -149,36 +152,25 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
             label="Cadastrado em"
             value={new Date(consorciado.criadoEm).toLocaleDateString("pt-BR")}
           />
+          </div>
         </div>
       </section>
 
       <section className={`${panelClass()} mt-5`}>
-        <div
-          className={`flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between ${panelInsetClass()}`}
-        >
-          <div>
-            <h2 className="text-sm font-medium text-zinc-900">Cotas (vendas)</h2>
-            <p className="mt-1 text-sm text-zinc-600">
-              {vendas.length === 0
-                ? "Nenhuma cota vinculada a este consorciado."
-                : `${vendas.length} cota(s) vinculada(s).`}
-            </p>
-          </div>
-          <Link href="/vendas/nova" className={primaryActionClass()}>
-            Nova venda
-          </Link>
-        </div>
+        <PanelSectionHeader
+          title="Produtos e cotas contratadas"
+          description={
+            vendas.length === 0
+              ? "Nenhum produto ou cota vinculado a este consorciado."
+              : `${vendas.length} produto(s)/cota(s) vinculado(s). Clique em uma linha para abrir o atendimento da cota.`
+          }
+        />
 
         {vendas.length === 0 ? (
           <div className={`pb-5 ${panelInsetClass()}`}>
             <EmptyState
-              title="Sem cotas cadastradas"
-              description="Registre uma venda vinculada a este consorciado."
-              action={
-                <Link href="/vendas/nova" className={primaryActionClass()}>
-                  Nova venda
-                </Link>
-              }
+              title="Sem produtos contratados"
+              description="Quando houver vendas vinculadas, elas aparecerão aqui com status e histórico."
             />
           </div>
         ) : (
@@ -189,8 +181,10 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
                   <th className={tableHeadCellClass()}>Contrato</th>
                   <th className={tableHeadCellClass()}>Grupo</th>
                   <th className={tableHeadCellClass()}>Cota</th>
+                  <th className={tableHeadCellClass()}>Produto / Plano</th>
                   <th className={tableHeadCellClass()}>Vencimento</th>
                   <th className={tableHeadCellClass()}>Status</th>
+                  <th className={tableHeadCellClass()}>Inconsistência</th>
                   <th className={tableHeadCellClass()}>Administradora</th>
                   <th className={tableHeadCellClass()}>Valor</th>
                   <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ação</th>
@@ -211,9 +205,13 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
                     </td>
                     <td className={tableCellClass()}>{venda.grupo}</td>
                     <td className={tableCellClass()}>{venda.cota}</td>
+                    <td className={tableCellClass()}>{venda.plano?.nome ?? "—"}</td>
                     <td className={tableCellClass()}>Dia {venda.dataVencimento}</td>
                     <td className={tableCellClass()}>
                       <StatusBadge status={venda.statusOperacional} />
+                    </td>
+                    <td className={tableCellClass()}>
+                      <InconsistenciaBadge status={venda.statusInconsistencia} />
                     </td>
                     <td className={tableCellClass()}>{venda.administradora.nome}</td>
                     <td className={`${tableCellClass()} tabular-nums`}>
@@ -239,7 +237,7 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
                           }}
                           className={secondaryActionClass()}
                         >
-                          Timeline
+                          Atendimento
                         </button>
                       </div>
                     </td>
@@ -250,6 +248,8 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
           </div>
         )}
       </section>
+
+      <ConsorciadoHistoricoTabs vendas={vendas} />
 
       <VendaAtendimentoDrawer
         venda={selectedVenda}

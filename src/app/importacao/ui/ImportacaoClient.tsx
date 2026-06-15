@@ -3,11 +3,16 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmImportacaoStatus, previewImportacaoStatus } from "@/actions/importacao";
-import { primaryCtaClass } from "@/components/page-flow/button-classes";
+import { AlertBanner } from "@/components/ui/AlertBanner";
+import { FilterChipBar, FilterChipButton } from "@/components/ui/FilterChipButton";
+import { PanelSectionHeader } from "@/components/ui/PanelSectionHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { SummaryChip } from "@/components/ui/SummaryChip";
 import {
   dataTableClass,
   panelClass,
+  panelInsetClass,
+  primaryActionClass,
   secondaryActionClass,
   tableCellClass,
   tableHeadCellClass,
@@ -15,10 +20,18 @@ import {
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import { parseImportFile } from "@/lib/importacao/parse-import-file";
+import {
+  buildSpreadsheetContractSet,
+  isReconciliationComplete,
+} from "@/lib/importacao/reconciliation";
 import type {
   ImportConfirmItem,
   ImportPreviewResult,
+  ImportReconciliationItem,
+  ImportReconciliationResolution,
+  ImportRowInput,
 } from "@/lib/importacao/types";
+import { ImportacaoReconciliationPanel } from "./ImportacaoReconciliationPanel";
 
 type ImportPhase = "idle" | "parsing" | "previewing" | "confirming" | "done";
 
@@ -32,12 +45,16 @@ export default function ImportacaoClient() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [parseWarnings, setParseWarnings] = useState<string[]>([]);
+  const [parsedRows, setParsedRows] = useState<ImportRowInput[]>([]);
   const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirmResult, setConfirmResult] = useState<{ updated: number; skipped: number } | null>(
     null,
   );
   const [filter, setFilter] = useState<PreviewFilter>("all");
+  const [reconciliationResolutions, setReconciliationResolutions] = useState<
+    Record<string, ImportReconciliationResolution | undefined>
+  >({});
 
   const isBusy = phase === "parsing" || phase === "previewing" || phase === "confirming";
 
@@ -70,11 +87,31 @@ export default function ImportacaoClient() {
     setFileName(null);
     setParseErrors([]);
     setParseWarnings([]);
+    setParsedRows([]);
     setPreview(null);
     setConfirmError(null);
     setConfirmResult(null);
     setFilter("all");
+    setReconciliationResolutions({});
   }, []);
+
+  const reconciliationComplete = useMemo(() => {
+    if (!preview) return true;
+    return isReconciliationComplete(
+      preview.reconciliation.missingFromSpreadsheet,
+      reconciliationResolutions,
+    );
+  }, [preview, reconciliationResolutions]);
+
+  const canConfirmImport = useMemo(() => {
+    if (!preview || phase === "done") return false;
+    if (!reconciliationComplete) return false;
+    const spreadsheetUpdates = preview.matched.filter((item) => item.willUpdate).length;
+    const reconciliationUpdates = preview.reconciliation.missingFromSpreadsheet.filter(
+      (item) => reconciliationResolutions[item.vendaId],
+    ).length;
+    return spreadsheetUpdates + reconciliationUpdates > 0;
+  }, [phase, preview, reconciliationComplete, reconciliationResolutions]);
 
   const processFile = useCallback(async (file: File) => {
     resetState();
@@ -93,7 +130,9 @@ export default function ImportacaoClient() {
 
       setPhase("previewing");
       const result = await previewImportacaoStatus(parsed.rows);
+      setParsedRows(parsed.rows);
       setPreview(result);
+      setReconciliationResolutions({});
       setPhase("idle");
     } catch (error) {
       setParseErrors([
@@ -123,12 +162,12 @@ export default function ImportacaoClient() {
   );
 
   async function onConfirmImport() {
-    if (!preview || preview.summary.toUpdate === 0) return;
+    if (!preview || !canConfirmImport) return;
 
     setConfirmError(null);
     setPhase("confirming");
 
-    const updates: ImportConfirmItem[] = preview.matched
+    const spreadsheetUpdates: ImportConfirmItem[] = preview.matched
       .filter((item) => item.willUpdate)
       .map((item) => ({
         vendaId: item.vendaId,
@@ -136,8 +175,22 @@ export default function ImportacaoClient() {
         parcelasPagasCancelamento: item.parcelasPagasCancelamento,
       }));
 
+    const reconciliationUpdates: ImportConfirmItem[] = preview.reconciliation.missingFromSpreadsheet
+      .map((item) => reconciliationResolutions[item.vendaId])
+      .filter((item): item is ImportReconciliationResolution => Boolean(item))
+      .map((item) => ({
+        vendaId: item.vendaId,
+        statusOperacional: item.statusOperacional,
+        parcelasPagasCancelamento: item.parcelasPagasCancelamento,
+      }));
+
+    const updates = [...spreadsheetUpdates, ...reconciliationUpdates];
+
     try {
-      const result = await confirmImportacaoStatus(updates);
+      const result = await confirmImportacaoStatus({
+        updates,
+        spreadsheetContractNumbers: [...buildSpreadsheetContractSet(parsedRows)],
+      });
       setConfirmResult(result);
       setPhase("done");
       router.refresh();
@@ -149,20 +202,52 @@ export default function ImportacaoClient() {
     }
   }
 
+  function resolveReconciliationAtivo(item: ImportReconciliationItem) {
+    setReconciliationResolutions((current) => ({
+      ...current,
+      [item.vendaId]: {
+        vendaId: item.vendaId,
+        statusOperacional: "ATIVO",
+      },
+    }));
+  }
+
+  function resolveReconciliationCancelado(item: ImportReconciliationItem, parcelasPagas: number) {
+    setReconciliationResolutions((current) => ({
+      ...current,
+      [item.vendaId]: {
+        vendaId: item.vendaId,
+        statusOperacional: "CANCELADO",
+        parcelasPagasCancelamento: parcelasPagas,
+      },
+    }));
+  }
+
+  function clearReconciliationResolution(vendaId: string) {
+    setReconciliationResolutions((current) => {
+      const next = { ...current };
+      delete next[vendaId];
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className={panelClass()}>
-        <div className="border-b border-zinc-100 px-4 py-4 sm:px-6 lg:px-8">
-          <h2 className="text-base font-semibold text-zinc-900">Upload da remessa</h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Arraste um arquivo .csv ou .xlsx com as colunas{" "}
-            <span className="font-semibold">CONTRATO</span> e{" "}
-            <span className="font-semibold">STATUS</span> (ATIVO, INADIMPLENTE ou CANCELADO).
-            Para cancelamentos, inclua também <span className="font-semibold">PARCELAS_PAGAS</span>.
-          </p>
-        </div>
+        <PanelSectionHeader
+          title="Upload da remessa"
+          description={
+            <>
+              Arraste um arquivo .csv ou .xlsx com as colunas{" "}
+              <span className="font-semibold">CONTRATO</span> e{" "}
+              <span className="font-semibold">STATUS</span> (ATIVO, INADIMPLENTE ou CANCELADO).
+              Para cancelamentos, inclua também <span className="font-semibold">PARCELAS_PAGAS</span>.
+              Contratos inadimplentes no sistema que não constarem na remessa exigirão conciliação manual.
+            </>
+          }
+        />
 
-        <div className="px-4 py-4 sm:px-6 lg:px-8">
+        <div className={`py-4 sm:py-5 ${panelInsetClass()}`}>
           <div
             role="button"
             tabIndex={0}
@@ -221,9 +306,8 @@ export default function ImportacaoClient() {
           </div>
 
           {parseErrors.length > 0 ? (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-              <p className="font-semibold">Erros no arquivo</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
+            <AlertBanner tone="error" title="Erros no arquivo" className="mt-4">
+              <ul className="list-disc space-y-1 pl-5">
                 {parseErrors.slice(0, 8).map((error) => (
                   <li key={error}>{error}</li>
                 ))}
@@ -231,13 +315,12 @@ export default function ImportacaoClient() {
               {parseErrors.length > 8 ? (
                 <p className="mt-2 text-xs">... e mais {parseErrors.length - 8} erro(s).</p>
               ) : null}
-            </div>
+            </AlertBanner>
           ) : null}
 
           {parseWarnings.length > 0 ? (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <p className="font-semibold">Avisos</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
+            <AlertBanner tone="warning" title="Avisos" className="mt-4">
+              <ul className="list-disc space-y-1 pl-5">
                 {parseWarnings.slice(0, 5).map((warning) => (
                   <li key={warning}>{warning}</li>
                 ))}
@@ -245,245 +328,218 @@ export default function ImportacaoClient() {
               {parseWarnings.length > 5 ? (
                 <p className="mt-2 text-xs">... e mais {parseWarnings.length - 5} aviso(s).</p>
               ) : null}
-            </div>
+            </AlertBanner>
           ) : null}
         </div>
       </div>
 
       {preview ? (
-        <div className={panelClass()}>
-          <div className="flex flex-col gap-4 border-b border-zinc-100 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-zinc-900">Pré-visualização</h2>
-              <p className="mt-1 text-sm text-zinc-600">
-                Revise os registros antes de confirmar. Contratos encontrados aparecem em verde;
-                ausentes no sistema, em amarelo.
-              </p>
+        <>
+          <ImportacaoReconciliationPanel
+            reconciliation={preview.reconciliation}
+            resolutions={reconciliationResolutions}
+            onResolveAtivo={resolveReconciliationAtivo}
+            onResolveCancelado={resolveReconciliationCancelado}
+            onClearResolution={clearReconciliationResolution}
+          />
+
+          <div className={panelClass()}>
+            <PanelSectionHeader
+              title="Pré-visualização"
+              description="Revise os registros antes de confirmar. Contratos encontrados aparecem em verde; ausentes no sistema, em amarelo."
+              actions={
+                <>
+                  <SummaryChip label="Total" value={preview.summary.total} />
+                  <SummaryChip label="Atualizar" value={preview.summary.toUpdate} tone="green" />
+                  <SummaryChip label="Sem alteração" value={preview.summary.unchanged} />
+                  <SummaryChip label="Não encontrados" value={preview.summary.notFound} tone="yellow" />
+                  {preview.summary.invalid > 0 ? (
+                    <SummaryChip label="Inválidos" value={preview.summary.invalid} tone="red" />
+                  ) : null}
+                  {preview.reconciliation.totalDivergentes > 0 ? (
+                    <SummaryChip
+                      label="Divergentes"
+                      value={preview.reconciliation.totalDivergentes}
+                      tone="yellow"
+                    />
+                  ) : null}
+                </>
+              }
+            />
+
+            <div className={`border-b border-zinc-100 py-4 ${panelInsetClass()}`}>
+              <FilterChipBar>
+                <FilterChipButton active={filter === "all"} onClick={() => setFilter("all")}>
+                  Todos ({preview.summary.total})
+                </FilterChipButton>
+                <FilterChipButton active={filter === "matched"} onClick={() => setFilter("matched")}>
+                  Encontrados ({preview.matched.length})
+                </FilterChipButton>
+                <FilterChipButton active={filter === "not_found"} onClick={() => setFilter("not_found")}>
+                  Não encontrados ({preview.notFound.length})
+                </FilterChipButton>
+                {preview.invalid.length > 0 ? (
+                  <FilterChipButton active={filter === "invalid"} onClick={() => setFilter("invalid")}>
+                    Inválidos ({preview.invalid.length})
+                  </FilterChipButton>
+                ) : null}
+              </FilterChipBar>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <SummaryChip label="Total" value={preview.summary.total} />
-              <SummaryChip label="Atualizar" value={preview.summary.toUpdate} tone="green" />
-              <SummaryChip label="Sem alteração" value={preview.summary.unchanged} />
-              <SummaryChip label="Não encontrados" value={preview.summary.notFound} tone="yellow" />
-              {preview.summary.invalid > 0 ? (
-                <SummaryChip label="Inválidos" value={preview.summary.invalid} tone="red" />
+
+            <div className={`py-4 sm:py-5 ${panelInsetClass()}`}>
+              <div className={tableWrapClass()}>
+                <table className={dataTableClass()}>
+                  <thead>
+                    <tr>
+                      <th className={tableHeadCellClass()}>Linha</th>
+                      <th className={tableHeadCellClass()}>Contrato</th>
+                      <th className={tableHeadCellClass()}>Status atual</th>
+                      <th className={tableHeadCellClass()}>Status importado</th>
+                      <th className={tableHeadCellClass()}>Resultado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className={`${tableCellClass()} text-zinc-500`}>
+                          Nenhum registro neste filtro.
+                        </td>
+                      </tr>
+                    ) : (
+                      previewRows.map((row, index) => {
+                        if (row.type === "matched") {
+                          const { item } = row;
+                          return (
+                            <tr
+                              key={`matched-${item.vendaId}-${item.linha}`}
+                              className={[
+                                tableRowClass(index),
+                                item.willUpdate ? "bg-emerald-50/70" : "",
+                              ].join(" ")}
+                            >
+                              <td className={tableCellClass()}>{item.linha}</td>
+                              <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                                {item.numeroContrato}
+                              </td>
+                              <td className={tableCellClass()}>
+                                <StatusBadge status={item.statusAtual} />
+                              </td>
+                              <td className={tableCellClass()}>
+                                <StatusBadge status={item.statusNovo} />
+                              </td>
+                              <td className={tableCellClass()}>
+                                {item.willUpdate ? (
+                                  <span className="text-xs font-semibold text-emerald-700">
+                                    Será atualizado
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-zinc-500">Sem alteração</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        if (row.type === "not_found") {
+                          const { item } = row;
+                          return (
+                            <tr
+                              key={`not-found-${item.numeroContrato}-${item.linha}`}
+                              className={[tableRowClass(index), "bg-amber-50/80"].join(" ")}
+                            >
+                              <td className={tableCellClass()}>{item.linha}</td>
+                              <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                                {item.numeroContrato}
+                              </td>
+                              <td className={tableCellClass()}>—</td>
+                              <td className={tableCellClass()}>
+                                <StatusBadge status={item.statusNovo} />
+                              </td>
+                              <td className={tableCellClass()}>
+                                <span className="text-xs font-semibold text-amber-800">
+                                  Contrato não encontrado
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        const { item } = row;
+                        return (
+                          <tr
+                            key={`invalid-${item.linha}`}
+                            className={[tableRowClass(index), "bg-red-50/60"].join(" ")}
+                          >
+                            <td className={tableCellClass()}>{item.linha}</td>
+                            <td className={tableCellClass()}>{item.numeroContrato ?? "—"}</td>
+                            <td className={tableCellClass()}>—</td>
+                            <td className={tableCellClass()}>—</td>
+                            <td className={tableCellClass()}>
+                              <span className="text-xs font-semibold text-red-700">{item.error}</span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-zinc-600">
+                  {!reconciliationComplete
+                    ? `Conciliação pendente: defina o status de ${preview.reconciliation.totalDivergentes} contrato(s) ausente(s) na planilha.`
+                    : preview.summary.toUpdate > 0 ||
+                        preview.reconciliation.missingFromSpreadsheet.some(
+                          (item) => reconciliationResolutions[item.vendaId],
+                        )
+                      ? `${
+                          preview.summary.toUpdate +
+                          preview.reconciliation.missingFromSpreadsheet.filter(
+                            (item) => reconciliationResolutions[item.vendaId],
+                          ).length
+                        } contrato(s) serão atualizados após a confirmação.`
+                      : "Nenhuma alteração pendente para confirmar."}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={secondaryActionClass()}
+                    disabled={isBusy}
+                    onClick={resetState}
+                  >
+                    Nova importação
+                  </button>
+                  <button
+                    type="button"
+                    className={primaryActionClass()}
+                    disabled={isBusy || !canConfirmImport}
+                    onClick={() => void onConfirmImport()}
+                  >
+                    {phase === "confirming" ? "Confirmando..." : "Confirmar importação"}
+                  </button>
+                </div>
+              </div>
+
+              {confirmError ? (
+                <AlertBanner tone="error" className="mt-4">
+                  {confirmError}
+                </AlertBanner>
+              ) : null}
+
+              {confirmResult ? (
+                <AlertBanner tone="success" className="mt-4">
+                  Importação concluída: {confirmResult.updated} venda(s) atualizada(s)
+                  {confirmResult.skipped > 0
+                    ? ` · ${confirmResult.skipped} ignorada(s) (já estavam no status ou não existiam)`
+                    : ""}
+                  .
+                </AlertBanner>
               ) : null}
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 px-6 py-4">
-            <FilterButton active={filter === "all"} onClick={() => setFilter("all")}>
-              Todos ({preview.summary.total})
-            </FilterButton>
-            <FilterButton active={filter === "matched"} onClick={() => setFilter("matched")}>
-              Encontrados ({preview.matched.length})
-            </FilterButton>
-            <FilterButton active={filter === "not_found"} onClick={() => setFilter("not_found")}>
-              Não encontrados ({preview.notFound.length})
-            </FilterButton>
-            {preview.invalid.length > 0 ? (
-              <FilterButton active={filter === "invalid"} onClick={() => setFilter("invalid")}>
-                Inválidos ({preview.invalid.length})
-              </FilterButton>
-            ) : null}
-          </div>
-
-          <div className="px-4 py-4 sm:px-6 lg:px-8">
-            <div className={tableWrapClass()}>
-              <table className={dataTableClass()}>
-                <thead>
-                  <tr>
-                    <th className={tableHeadCellClass()}>Linha</th>
-                    <th className={tableHeadCellClass()}>Contrato</th>
-                    <th className={tableHeadCellClass()}>Status atual</th>
-                    <th className={tableHeadCellClass()}>Status importado</th>
-                    <th className={tableHeadCellClass()}>Resultado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewRows.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className={`${tableCellClass()} text-zinc-500`}>
-                        Nenhum registro neste filtro.
-                      </td>
-                    </tr>
-                  ) : (
-                    previewRows.map((row, index) => {
-                      if (row.type === "matched") {
-                        const { item } = row;
-                        return (
-                          <tr
-                            key={`matched-${item.vendaId}-${item.linha}`}
-                            className={[
-                              tableRowClass(index),
-                              item.willUpdate ? "bg-emerald-50/70" : "",
-                            ].join(" ")}
-                          >
-                            <td className={tableCellClass()}>{item.linha}</td>
-                            <td className={`${tableCellClass()} font-medium text-zinc-900`}>
-                              {item.numeroContrato}
-                            </td>
-                            <td className={tableCellClass()}>
-                              <StatusBadge status={item.statusAtual} />
-                            </td>
-                            <td className={tableCellClass()}>
-                              <StatusBadge status={item.statusNovo} />
-                            </td>
-                            <td className={tableCellClass()}>
-                              {item.willUpdate ? (
-                                <span className="text-xs font-semibold text-emerald-700">
-                                  Será atualizado
-                                </span>
-                              ) : (
-                                <span className="text-xs text-zinc-500">Sem alteração</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      if (row.type === "not_found") {
-                        const { item } = row;
-                        return (
-                          <tr
-                            key={`not-found-${item.numeroContrato}-${item.linha}`}
-                            className={[tableRowClass(index), "bg-amber-50/80"].join(" ")}
-                          >
-                            <td className={tableCellClass()}>{item.linha}</td>
-                            <td className={`${tableCellClass()} font-medium text-zinc-900`}>
-                              {item.numeroContrato}
-                            </td>
-                            <td className={tableCellClass()}>—</td>
-                            <td className={tableCellClass()}>
-                              <StatusBadge status={item.statusNovo} />
-                            </td>
-                            <td className={tableCellClass()}>
-                              <span className="text-xs font-semibold text-amber-800">
-                                Contrato não encontrado
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      const { item } = row;
-                      return (
-                        <tr
-                          key={`invalid-${item.linha}`}
-                          className={[tableRowClass(index), "bg-red-50/60"].join(" ")}
-                        >
-                          <td className={tableCellClass()}>{item.linha}</td>
-                          <td className={tableCellClass()}>{item.numeroContrato ?? "—"}</td>
-                          <td className={tableCellClass()}>—</td>
-                          <td className={tableCellClass()}>—</td>
-                          <td className={tableCellClass()}>
-                            <span className="text-xs font-semibold text-red-700">{item.error}</span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-zinc-600">
-                {preview.summary.toUpdate > 0
-                  ? `${preview.summary.toUpdate} contrato(s) serão atualizados.`
-                  : "Nenhuma alteração pendente para confirmar."}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={secondaryActionClass()}
-                  disabled={isBusy}
-                  onClick={resetState}
-                >
-                  Nova importação
-                </button>
-                <button
-                  type="button"
-                  className={primaryCtaClass()}
-                  disabled={isBusy || preview.summary.toUpdate === 0 || phase === "done"}
-                  onClick={() => void onConfirmImport()}
-                >
-                  {phase === "confirming" ? "Confirmando..." : "Confirmar importação"}
-                </button>
-              </div>
-            </div>
-
-            {confirmError ? (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                {confirmError}
-              </div>
-            ) : null}
-
-            {confirmResult ? (
-              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                Importação concluída: {confirmResult.updated} venda(s) atualizada(s)
-                {confirmResult.skipped > 0
-                  ? ` · ${confirmResult.skipped} ignorada(s) (já estavam no status ou não existiam)`
-                  : ""}
-                .
-              </div>
-            ) : null}
-          </div>
-        </div>
+        </>
       ) : null}
     </div>
-  );
-}
-
-function SummaryChip({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number;
-  tone?: "neutral" | "green" | "yellow" | "red";
-}) {
-  const toneClass =
-    tone === "green"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : tone === "yellow"
-        ? "border-amber-200 bg-amber-50 text-amber-800"
-        : tone === "red"
-          ? "border-red-200 bg-red-50 text-red-800"
-          : "border-zinc-200 bg-zinc-50 text-zinc-700";
-
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${toneClass}`}
-    >
-      {label}
-      <span className="tabular-nums">{value}</span>
-    </span>
-  );
-}
-
-function FilterButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors",
-        active
-          ? "bg-zinc-900 text-white"
-          : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
-      ].join(" ")}
-    >
-      {children}
-    </button>
   );
 }

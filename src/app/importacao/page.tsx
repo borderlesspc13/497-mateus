@@ -12,7 +12,7 @@ export default function ImportacaoPage() {
           { label: "Importação de remessa" },
         ]}
         title="Importação de remessa / retorno"
-        description="Atualize o status de inadimplência e cancelamento das vendas em lote a partir de planilhas das administradoras."
+        description="Atualize o status de inadimplência e cancelamento em lote. O sistema exige conciliação quando contratos inadimplentes do banco não constam na remessa."
       />
       <Suspense fallback={<PageLoading rows={6} columns={4} withHeader={false} />}>
         <ImportacaoClient />

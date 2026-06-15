@@ -1,9 +1,14 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import type { VendaContratoLookup } from "@/lib/firestore/contrato-matriz";
+import { normalizeNumeroContrato } from "@/lib/firestore/contrato-matriz";
 import { aplicarEstornoCancelamentoVenda } from "@/lib/firestore/estorno-cancelamento";
 import { normalizeVendaFields } from "@/lib/firestore/legacy";
-import { COLLECTIONS, nowIso, type VendaDoc } from "@/lib/firestore/types";
-import type { ImportConfirmItem, ImportConfirmResult } from "@/lib/importacao/types";
+import { COLLECTIONS, nowIso, type ConsorciadoDoc, type VendaDoc } from "@/lib/firestore/types";
+import type {
+  ImportConfirmItem,
+  ImportConfirmResult,
+  ImportReconciliationItem,
+} from "@/lib/importacao/types";
 
 export type { VendaContratoLookup };
 
@@ -24,6 +29,76 @@ export async function buildVendaContratoLookupMap(): Promise<Map<string, VendaCo
   }
 
   return map;
+}
+
+export async function listInadimplentesMissingFromSpreadsheet(
+  spreadsheetContractNumbers: string[],
+): Promise<{
+  missingFromSpreadsheet: ImportReconciliationItem[];
+  totalInadimplentesNoSistema: number;
+}> {
+  const spreadsheetSet = new Set(
+    spreadsheetContractNumbers.map((item) => normalizeNumeroContrato(item)).filter(Boolean),
+  );
+
+  const db = getAdminFirestore();
+  const snap = await db.collection(COLLECTIONS.vendas).where("status", "==", "INADIMPLENTE").get();
+
+  const inadimplentes: Array<{
+    vendaId: string;
+    numeroContrato: string;
+    grupo: string;
+    cota: string;
+    consorciadoId: string | null;
+  }> = [];
+
+  for (const doc of snap.docs) {
+    const data = doc.data() as VendaDoc;
+    const normalized = normalizeVendaFields(data);
+    if (normalized.statusOperacional !== "INADIMPLENTE") continue;
+
+    const numeroContrato = normalized.numeroContrato;
+    if (!numeroContrato || spreadsheetSet.has(numeroContrato)) continue;
+
+    inadimplentes.push({
+      vendaId: doc.id,
+      numeroContrato,
+      grupo: normalized.grupo,
+      cota: normalized.cota,
+      consorciadoId: data.consorciadoId ?? null,
+    });
+  }
+
+  const consorciadoIds = [
+    ...new Set(inadimplentes.map((item) => item.consorciadoId).filter((id): id is string => Boolean(id))),
+  ];
+
+  const consorciadoNomeMap = new Map<string, string>();
+  await Promise.all(
+    consorciadoIds.map(async (id) => {
+      const consorciadoSnap = await db.collection(COLLECTIONS.consorciados).doc(id).get();
+      if (!consorciadoSnap.exists) return;
+      const consorciado = consorciadoSnap.data() as ConsorciadoDoc;
+      consorciadoNomeMap.set(id, consorciado.nome);
+    }),
+  );
+
+  const missingFromSpreadsheet = inadimplentes
+    .map((item) => ({
+      vendaId: item.vendaId,
+      numeroContrato: item.numeroContrato,
+      grupo: item.grupo,
+      cota: item.cota,
+      consorciadoNome: item.consorciadoId
+        ? (consorciadoNomeMap.get(item.consorciadoId) ?? null)
+        : null,
+    }))
+    .sort((a, b) => a.numeroContrato.localeCompare(b.numeroContrato));
+
+  return {
+    missingFromSpreadsheet,
+    totalInadimplentesNoSistema: snap.size,
+  };
 }
 
 export async function batchUpdateVendaStatus(

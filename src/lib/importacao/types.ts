@@ -43,6 +43,7 @@ export type ImportPreviewResult = {
     unchanged: number;
     invalid: number;
   };
+  reconciliation: ImportReconciliationSummary;
 };
 
 export type ImportConfirmItem = {
@@ -54,4 +55,30 @@ export type ImportConfirmItem = {
 export type ImportConfirmResult = {
   updated: number;
   skipped: number;
+};
+
+export type ImportReconciliationItem = {
+  vendaId: string;
+  numeroContrato: string;
+  grupo: string;
+  cota: string;
+  consorciadoNome: string | null;
+};
+
+export type ImportReconciliationResolution = {
+  vendaId: string;
+  statusOperacional: "ATIVO" | "CANCELADO";
+  parcelasPagasCancelamento?: number;
+};
+
+export type ImportReconciliationSummary = {
+  missingFromSpreadsheet: ImportReconciliationItem[];
+  totalInadimplentesNoSistema: number;
+  totalNaPlanilha: number;
+  totalDivergentes: number;
+};
+
+export type ImportConfirmPayload = {
+  updates: ImportConfirmItem[];
+  spreadsheetContractNumbers: string[];
 };

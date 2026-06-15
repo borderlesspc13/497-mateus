@@ -41,6 +41,33 @@ export function TableSkeleton({ rows = 5, columns = 4 }: TableSkeletonProps) {
   );
 }
 
+type DetailPageSkeletonProps = {
+  sections?: number;
+};
+
+export function DetailPageSkeleton({ sections = 2 }: DetailPageSkeletonProps) {
+  return (
+    <div className="space-y-5" aria-label="Carregando ficha">
+      {Array.from({ length: sections }).map((_, i) => (
+        <div
+          key={i}
+          className="overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
+        >
+          <Skeleton className="h-4 w-36" />
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, j) => (
+              <div key={j} className="space-y-2">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-full max-w-[10rem]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 type KpiCardSkeletonProps = {
   count?: number;
 };
