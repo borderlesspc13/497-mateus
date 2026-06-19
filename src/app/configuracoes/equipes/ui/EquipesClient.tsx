@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { deleteEquipe } from "@/actions/equipes";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   dangerActionClass,
@@ -25,6 +26,7 @@ type EquipesClientProps = {
 
 export default function EquipesClient({ initialItems }: EquipesClientProps) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,13 @@ export default function EquipesClient({ initialItems }: EquipesClientProps) {
   }, [items, query]);
 
   async function onDelete(id: string) {
-    if (!confirm("Excluir equipe?")) return;
+    const ok = await confirm({
+      title: "Excluir equipe?",
+      description: "Esta ação não pode ser desfeita.",
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
     setError(null);
     setDeletingId(id);
     try {

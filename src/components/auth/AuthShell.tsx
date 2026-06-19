@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, type PropsWithChildren } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function AuthShell({ children }: PropsWithChildren) {
   const { user, loading } = useAuth();
@@ -15,43 +16,48 @@ export function AuthShell({ children }: PropsWithChildren) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 text-sm text-zinc-600 shadow-sm">
-          Carregando...
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Card className="px-6 py-4">
+          <CardContent className="p-0 text-sm text-muted-foreground">Carregando...</CardContent>
+        </Card>
       </div>
     );
   }
 
   if (user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 text-sm text-zinc-600 shadow-sm">
-          Redirecionando...
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Card className="px-6 py-4">
+          <CardContent className="p-0 text-sm text-muted-foreground">Redirecionando...</CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50">
-      <header className="border-b border-zinc-200 bg-white">
+    <div className="relative flex min-h-screen flex-col bg-background">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-200/40 via-background to-background"
+        aria-hidden
+      />
+
+      <header className="relative border-b border-border bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-lg items-center gap-3 px-4 sm:px-6">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-zinc-900 text-sm font-semibold text-white">
+          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm">
             GO
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-semibold text-zinc-900">Gestão Operacional</div>
-            <div className="text-xs text-zinc-500">Consórcio</div>
+            <div className="text-sm font-semibold text-foreground">Gestão Operacional</div>
+            <div className="text-xs text-muted-foreground">Consórcio</div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-4 py-10 sm:px-6">
+      <main className="relative mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-4 py-10 sm:px-6">
         {children}
       </main>
 
-      <footer className="border-t border-zinc-200 bg-white py-4 text-center text-xs text-zinc-500">
+      <footer className="relative border-t border-border bg-card/80 py-4 text-center text-xs text-muted-foreground backdrop-blur-md">
         Gestão Operacional · Consórcio
       </footer>
     </div>

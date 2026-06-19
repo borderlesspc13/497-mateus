@@ -18,11 +18,11 @@ export function DataListPanel({
 }: DataListPanelProps) {
   return (
     <div className={panelClass()}>
-      <div className={`border-b border-zinc-100 py-4 ${panelInsetClass()}`}>
+      <div className={`border-b border-border/60 py-4 ${panelInsetClass()}`}>
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
           {description ? (
-            <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
           ) : null}
         </div>
         {toolbar ? (
@@ -31,7 +31,7 @@ export function DataListPanel({
       </div>
 
       {error ? (
-        <div className={`border-b border-zinc-100 py-3 ${panelInsetClass()}`}>{error}</div>
+        <div className={`border-b border-border/60 py-3 ${panelInsetClass()}`}>{error}</div>
       ) : null}
 
       <div className="py-3 sm:py-4">{children}</div>

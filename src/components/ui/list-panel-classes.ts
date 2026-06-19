@@ -1,12 +1,12 @@
 /** Classes compartilhadas para painéis de listagem (Server e Client). */
 
 export function panelClass() {
-  return "overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm";
+  return "overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm";
 }
 
 /** Painéis de formulário — sem overflow-hidden para não cortar dropdowns/autocomplete. */
 export function formSectionClass() {
-  return "rounded-2xl border border-zinc-200 bg-white shadow-sm";
+  return "rounded-2xl border border-border bg-card text-card-foreground shadow-sm";
 }
 
 /** Padding horizontal padrão de painéis (listas, cabeçalhos, rodapés). */
@@ -24,9 +24,9 @@ export function formControlClass(width?: "sm" | "md" | "lg" | "search") {
           ? "w-full min-w-0 sm:min-w-[12rem] lg:flex-1 lg:basis-64"
           : "";
   return [
-    "h-10 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-sm text-zinc-900 shadow-sm outline-none transition-colors",
-    "placeholder:text-zinc-400",
-    "focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/60",
+    "h-10 w-full rounded-xl border border-input bg-background px-3.5 text-sm text-foreground shadow-sm outline-none transition-colors",
+    "placeholder:text-muted-foreground",
+    "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30",
     w,
   ]
     .filter(Boolean)
@@ -47,30 +47,30 @@ export function dataTableClass() {
 
 export function tableHeadCellClass() {
   return [
-    "whitespace-nowrap pb-2.5 pr-4 text-[11px] font-semibold uppercase tracking-wide text-zinc-500",
+    "whitespace-nowrap pb-2.5 pr-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
     "first:pl-4 last:pr-4 sm:first:pl-6 sm:last:pr-6 lg:first:pl-8 lg:last:pr-8",
   ].join(" ");
 }
 
 export function tableCellClass() {
   return [
-    "border-t border-zinc-100 py-3 pr-4 align-middle text-zinc-700",
+    "border-t border-border/60 py-3 pr-4 align-middle text-foreground/80",
     "first:pl-4 last:pr-4 sm:first:pl-6 sm:last:pr-6 lg:first:pl-8 lg:last:pr-8",
   ].join(" ");
 }
 
 export function tableRowClass(index: number) {
-  return index % 2 === 1 ? "bg-zinc-50/80" : "bg-white";
+  return index % 2 === 1 ? "bg-muted/50" : "bg-card";
 }
 
 export function primaryActionClass() {
-  return "inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400";
+  return "inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 }
 
 export function secondaryActionClass() {
-  return "inline-flex h-9 items-center justify-center rounded-xl border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400";
+  return "inline-flex h-9 items-center justify-center rounded-xl border border-input bg-background px-3.5 text-xs font-semibold text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 }
 
 export function dangerActionClass() {
-  return "inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-3.5 text-xs font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300";
+  return "inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-background px-3.5 text-xs font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300";
 }

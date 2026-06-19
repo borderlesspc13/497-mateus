@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deleteVenda, listVendasPaginated } from "@/actions/vendas";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -41,6 +42,7 @@ export default function VendasClient({
   initialAdministradoras,
 }: VendasClientProps) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const [query, setQuery] = useState("");
   const [statusOperacional, setStatusOperacional] = useState<"" | VendaRow["statusOperacional"]>("");
   const [administradoraId, setAdministradoraId] = useState("");
@@ -90,7 +92,13 @@ export default function VendasClient({
   }, [statusOperacional, administradoraId, resetAndFetch]);
 
   async function onDelete(id: string) {
-    if (!confirm("Excluir venda?")) return;
+    const ok = await confirm({
+      title: "Excluir venda?",
+      description: "Esta ação não pode ser desfeita.",
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
     setError(null);
     setDeletingId(id);
     try {

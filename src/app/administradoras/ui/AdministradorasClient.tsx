@@ -4,19 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { deleteAdministradora } from "@/actions/administradoras";
+import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
-import {
-  dangerActionClass,
-  dataTableClass,
-  formControlClass,
-  primaryActionClass,
-  secondaryActionClass,
-  tableCellClass,
-  tableHeadCellClass,
-  tableRowClass,
-  tableWrapClass,
-} from "@/components/ui/list-panel-classes";
+import { Input } from "@/components/ui/input";
+import { formControlClass, primaryActionClass } from "@/components/ui/list-panel-classes";
+import { PremiumDataTable, type GridColDef } from "@/components/ui/PremiumDataTableLazy";
 import type { AdministradoraRow } from "@/lib/types/domain";
 
 type AdministradorasClientProps = {
@@ -25,6 +19,7 @@ type AdministradorasClientProps = {
 
 export default function AdministradorasClient({ initialItems }: AdministradorasClientProps) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +35,14 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
   }, [items, query]);
 
   async function onDelete(id: string) {
-    if (!confirm("Excluir administradora?")) return;
+    const ok = await confirm({
+      title: "Excluir administradora?",
+      description: "Esta ação não pode ser desfeita. Os planos vinculados podem ser afetados.",
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+
     setError(null);
     setDeletingId(id);
     try {
@@ -54,24 +56,96 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
     }
   }
 
+  const columns: GridColDef<AdministradoraRow>[] = useMemo(
+    () => [
+      {
+        field: "nome",
+        headerName: "Nome",
+        flex: 1.2,
+        minWidth: 160,
+        renderCell: ({ value }) => (
+          <span className="font-medium text-foreground">{value as string}</span>
+        ),
+      },
+      {
+        field: "cnpj",
+        headerName: "CNPJ",
+        width: 150,
+      },
+      {
+        field: "contatoPrincipal",
+        headerName: "Contato",
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (_value, row) => row.contatoPrincipal || "—",
+        renderCell: ({ row }) => (
+          <div className="leading-5 py-1">
+            <div className="text-foreground">{row.contatoPrincipal || "—"}</div>
+            <div className="text-xs text-muted-foreground">{row.email || "—"}</div>
+          </div>
+        ),
+      },
+      {
+        field: "enderecoCidade",
+        headerName: "Cidade/UF",
+        width: 130,
+        valueGetter: (_value, row) =>
+          `${row.enderecoCidade || "—"}${row.enderecoUf ? `/${row.enderecoUf}` : ""}`,
+      },
+      {
+        field: "createdAt",
+        headerName: "Criado em",
+        width: 120,
+        valueFormatter: (value) =>
+          value ? new Date(value as string).toLocaleDateString("pt-BR") : "—",
+      },
+      {
+        field: "actions",
+        headerName: "Ações",
+        width: 260,
+        sortable: false,
+        filterable: false,
+        renderCell: ({ row }) => (
+          <div className="flex h-full items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/planos?administradoraId=${encodeURIComponent(row.id)}`}>Planos</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/administradoras/${row.id}`}>Editar</Link>
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={deletingId === row.id}
+              onClick={() => void onDelete(row.id)}
+            >
+              {deletingId === row.id ? "Excluindo..." : "Excluir"}
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [deletingId],
+  );
+
   return (
     <DataListPanel
       toolbar={
         <>
-          <input
+          <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por nome, CNPJ, e-mail..."
             className={formControlClass("lg")}
           />
-          <Link href="/administradoras/nova" className={primaryActionClass()}>
-            Nova administradora
-          </Link>
+          <Button asChild>
+            <Link href="/administradoras/nova">Nova administradora</Link>
+          </Button>
         </>
       }
       error={
         error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}
           </div>
         ) : null
@@ -94,62 +168,7 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
           }
         />
       ) : (
-      <div className={tableWrapClass()}>
-        <table className={dataTableClass()}>
-          <thead>
-            <tr>
-              <th className={tableHeadCellClass()}>Nome</th>
-              <th className={tableHeadCellClass()}>CNPJ</th>
-              <th className={tableHeadCellClass()}>Contato</th>
-              <th className={tableHeadCellClass()}>Cidade/UF</th>
-              <th className={tableHeadCellClass()}>Criado em</th>
-              <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-              {filtered.map((a, index) => (
-                <tr key={a.id} className={tableRowClass(index)}>
-                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{a.nome}</td>
-                  <td className={`${tableCellClass()} whitespace-nowrap`}>{a.cnpj}</td>
-                  <td className={tableCellClass()}>
-                    <div className="leading-5">
-                      <div className="text-zinc-800">{a.contatoPrincipal || "—"}</div>
-                      <div className="text-xs text-zinc-500">{a.email || "—"}</div>
-                    </div>
-                  </td>
-                  <td className={tableCellClass()}>
-                    {a.enderecoCidade || "—"}
-                    {a.enderecoUf ? `/${a.enderecoUf}` : ""}
-                  </td>
-                  <td className={`${tableCellClass()} whitespace-nowrap`}>
-                    {new Date(a.createdAt).toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className={`${tableCellClass()} pr-0 text-right`}>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Link
-                        href={`/planos?administradoraId=${encodeURIComponent(a.id)}`}
-                        className={secondaryActionClass()}
-                      >
-                        Planos
-                      </Link>
-                      <Link href={`/administradoras/${a.id}`} className={secondaryActionClass()}>
-                        Editar
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => void onDelete(a.id)}
-                        disabled={deletingId === a.id}
-                        className={dangerActionClass()}
-                      >
-                        {deletingId === a.id ? "Excluindo..." : "Excluir"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+        <PremiumDataTable rows={filtered} columns={columns} pageSize={15} />
       )}
     </DataListPanel>
   );

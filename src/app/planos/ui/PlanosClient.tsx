@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { deletePlano } from "@/actions/planos";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   dangerActionClass,
@@ -31,6 +32,7 @@ export default function PlanosClient({
   initialAdministradoras,
 }: PlanosClientProps) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const searchParams = useSearchParams();
   const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
@@ -58,7 +60,13 @@ export default function PlanosClient({
   }, [items, query, administradoraId]);
 
   async function onDelete(id: string) {
-    if (!confirm("Excluir este plano?")) return;
+    const ok = await confirm({
+      title: "Excluir este plano?",
+      description: "Esta ação não pode ser desfeita.",
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
     setError(null);
     setDeletingId(id);
     try {

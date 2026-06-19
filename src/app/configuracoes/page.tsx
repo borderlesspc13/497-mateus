@@ -52,13 +52,13 @@ export default async function ConfiguracoesPage() {
           <Link
             key={card.href}
             href={card.href}
-            className={`${panelClass()} group block p-6 transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400`}
+            className={`${panelClass()} group block p-6 transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-[var(--shadow-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
           >
-            <h2 className="text-base font-semibold text-zinc-900 group-hover:underline">
+            <h2 className="text-base font-semibold text-foreground group-hover:underline">
               {card.title}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">{card.description}</p>
-            <span className="mt-4 inline-block text-xs font-semibold text-zinc-800">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.description}</p>
+            <span className="mt-4 inline-block text-xs font-semibold text-foreground">
               Abrir →
             </span>
           </Link>

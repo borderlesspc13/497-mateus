@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { deleteVendedor } from "@/actions/vendedores";
 import { DataListPanel } from "@/components/ui/DataListPanel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   dangerActionClass,
@@ -25,6 +26,7 @@ type VendedoresClientProps = {
 
 export default function VendedoresClient({ initialItems }: VendedoresClientProps) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,13 @@ export default function VendedoresClient({ initialItems }: VendedoresClientProps
   }, [items, query]);
 
   async function onDelete(id: string) {
-    if (!confirm("Excluir vendedor?")) return;
+    const ok = await confirm({
+      title: "Excluir vendedor?",
+      description: "Esta ação não pode ser desfeita.",
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
     setError(null);
     setDeletingId(id);
     try {
