@@ -90,7 +90,8 @@ export async function establishServerSession(): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error("Não foi possível iniciar a sessão no servidor.");
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? "Não foi possível iniciar a sessão no servidor.");
   }
 }
 

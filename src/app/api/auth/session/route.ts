@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, SESSION_MAX_AGE_MS } from "@/lib/auth/constants";
-import { getAdminAuth } from "@/lib/firebase/admin";
+import { getAdminAuth, mapFirebaseAdminAuthError } from "@/lib/firebase/admin";
 import { ensureUsuarioProfile } from "@/lib/firestore/usuarios";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type SessionBody = {
   idToken?: string;
@@ -42,8 +43,16 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch {
-    return NextResponse.json({ error: "Não foi possível criar a sessão." }, { status: 401 });
+  } catch (error) {
+    const message = mapFirebaseAdminAuthError(error);
+    const isConfigError = message.includes("Firebase Admin não configurado");
+    const status = isConfigError ? 503 : 401;
+
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[api/auth/session]", error);
+    }
+
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
