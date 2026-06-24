@@ -72,5 +72,5 @@ export function secondaryActionClass() {
 }
 
 export function dangerActionClass() {
-  return "inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-background px-3.5 text-xs font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300";
+  return "inline-flex h-9 items-center justify-center rounded-xl border border-destructive/30 bg-background px-3.5 text-xs font-semibold text-destructive shadow-sm transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40";
 }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, type PropsWithChildren } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function AuthShell({ children }: PropsWithChildren) {
@@ -37,19 +38,22 @@ export function AuthShell({ children }: PropsWithChildren) {
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-200/40 via-background to-background"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-muted/60 via-background to-background"
         aria-hidden
       />
 
       <header className="relative border-b border-border bg-card/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-lg items-center gap-3 px-4 sm:px-6">
-          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm">
-            GO
+        <div className="mx-auto flex h-16 max-w-lg items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm">
+              GO
+            </div>
+            <div className="leading-tight">
+              <div className="text-sm font-semibold text-foreground">Gestão Operacional</div>
+              <div className="text-xs text-muted-foreground">Consórcio</div>
+            </div>
           </div>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold text-foreground">Gestão Operacional</div>
-            <div className="text-xs text-muted-foreground">Consórcio</div>
-          </div>
+          <ThemeToggle />
         </div>
       </header>
 

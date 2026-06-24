@@ -6,7 +6,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
   return (
     <div
       className={[
-        "animate-pulse rounded-lg bg-zinc-200/80",
+        "animate-pulse rounded-lg bg-muted",
         className,
       ].join(" ")}
       aria-hidden
@@ -22,7 +22,7 @@ type TableSkeletonProps = {
 export function TableSkeleton({ rows = 5, columns = 4 }: TableSkeletonProps) {
   return (
     <div className="space-y-3" aria-label="Carregando dados">
-      <div className="flex gap-4 border-b border-zinc-100 pb-4">
+      <div className="flex gap-4 border-b border-border pb-4">
         {Array.from({ length: columns }).map((_, i) => (
           <Skeleton key={`head-${i}`} className="h-3 flex-1" />
         ))}
@@ -51,7 +51,7 @@ export function DetailPageSkeleton({ sections = 2 }: DetailPageSkeletonProps) {
       {Array.from({ length: sections }).map((_, i) => (
         <div
           key={i}
-          className="overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
+          className="overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm"
         >
           <Skeleton className="h-4 w-36" />
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -78,7 +78,7 @@ export function KpiCardSkeleton({ count = 6 }: KpiCardSkeletonProps) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
+          className="rounded-2xl border border-border bg-card p-6 shadow-sm"
           aria-hidden
         >
           <Skeleton className="mx-auto h-12 w-12 rounded-2xl" />

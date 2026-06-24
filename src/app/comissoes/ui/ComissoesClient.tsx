@@ -8,6 +8,7 @@ import {
   marcarExtratoPago,
   sincronizarExtratos,
 } from "@/actions/comissoes";
+import { ExportButton } from "@/components/export/ExportButton";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ExtratoStatusBadge } from "@/components/ui/ExtratoStatusBadge";
@@ -21,6 +22,7 @@ import {
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
+import { COMISSOES_EXPORT_COLUMNS } from "@/lib/export/columns/comissoes";
 import type { ExtratoRow, ExtratoStatus } from "@/lib/types/domain";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 
@@ -137,6 +139,12 @@ export default function ComissoesClient({ initialItems }: ComissoesClientProps) 
           >
             {syncing ? "Sincronizando..." : "Recalcular extratos"}
           </button>
+          <ExportButton
+            fileNameBase="comissoes"
+            sheetName="Comissões"
+            rows={filtered}
+            columns={COMISSOES_EXPORT_COLUMNS}
+          />
         </>
       }
       error={

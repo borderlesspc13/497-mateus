@@ -10,21 +10,21 @@ type PanelSectionHeaderProps = {
 };
 
 const VARIANT_CLASSES = {
-  default: "border-zinc-100 bg-white",
-  warning: "border-amber-200 bg-amber-50",
-  success: "border-emerald-200 bg-emerald-50",
+  default: "border-border bg-card",
+  warning: "border-amber-500/30 bg-amber-500/10",
+  success: "border-emerald-500/30 bg-emerald-500/10",
 } as const;
 
 const TITLE_CLASSES = {
-  default: "text-zinc-900",
-  warning: "text-amber-950",
-  success: "text-emerald-950",
+  default: "text-foreground",
+  warning: "text-amber-900 dark:text-amber-100",
+  success: "text-emerald-900 dark:text-emerald-100",
 } as const;
 
 const DESCRIPTION_CLASSES = {
-  default: "text-zinc-600",
-  warning: "text-amber-900",
-  success: "text-emerald-900",
+  default: "text-muted-foreground",
+  warning: "text-amber-800 dark:text-amber-200",
+  success: "text-emerald-800 dark:text-emerald-200",
 } as const;
 
 export function PanelSectionHeader({

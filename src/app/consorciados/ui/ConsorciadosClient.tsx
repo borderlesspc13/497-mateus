@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ConsorciadoAdvancedSearch } from "@/components/consorciados/ConsorciadoAdvancedSearch";
+import { ExportButton } from "@/components/export/ExportButton";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -20,6 +21,10 @@ import {
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import { buildConsorciadoVendaStatsMap } from "@/lib/consorciados/consorciado-venda-stats";
+import {
+  buildConsorciadoExportRows,
+  CONSORCIADOS_EXPORT_COLUMNS,
+} from "@/lib/export/columns/consorciados";
 import {
   EMPTY_CONSORCIADO_SEARCH_FILTERS,
   filterConsorciados,
@@ -83,6 +88,11 @@ export default function ConsorciadosClient() {
     [filtered, visibleCount],
   );
 
+  const exportRows = useMemo(
+    () => buildConsorciadoExportRows(visibleItems, vendaStatsMap),
+    [visibleItems, vendaStatsMap],
+  );
+
   const hasMore = visibleCount < filtered.length;
   const hasFilters = hasActiveConsorciadoSearchFilters(filters);
 
@@ -119,6 +129,15 @@ export default function ConsorciadosClient() {
           hasFilters
             ? "Clique em uma linha ou em «Abrir ficha» para ver produtos contratados e históricos."
             : "Listagem completa. Use a busca avançada acima para refinar por contrato, grupo ou cota."
+        }
+        toolbar={
+          <ExportButton
+            fileNameBase="consorciados"
+            sheetName="Consorciados"
+            rows={exportRows}
+            columns={CONSORCIADOS_EXPORT_COLUMNS}
+            partialExport={hasMore}
+          />
         }
         error={error ? <AlertBanner tone="error">{error}</AlertBanner> : null}
       >

@@ -41,28 +41,32 @@ export function PremiumDataTable<T extends { id: string }>({
             border: "none",
             borderRadius: 0,
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            color: "var(--foreground)",
+            backgroundColor: "var(--card)",
             "& .MuiDataGrid-columnSeparator": { display: "none" },
             "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "#fafafa",
-              borderBottom: "1px solid #e4e4e7",
+              backgroundColor: "var(--muted)",
+              borderBottom: "1px solid var(--border)",
               fontSize: "11px",
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.05em",
-              color: "#71717a",
+              color: "var(--muted-foreground)",
             },
             "& .MuiDataGrid-row:nth-of-type(even)": {
-              backgroundColor: "rgba(250, 250, 250, 0.8)",
+              backgroundColor: "color-mix(in srgb, var(--muted) 70%, transparent)",
             },
             "& .MuiDataGrid-row:hover": {
-              backgroundColor: "#f4f4f5",
+              backgroundColor: "var(--accent)",
             },
             "& .MuiDataGrid-cell": {
-              borderBottom: "1px solid #f4f4f5",
+              borderBottom: "1px solid var(--border)",
               fontSize: "14px",
+              color: "var(--foreground)",
             },
             "& .MuiDataGrid-footerContainer": {
-              borderTop: "1px solid #e4e4e7",
+              borderTop: "1px solid var(--border)",
+              color: "var(--muted-foreground)",
             },
           }}
           {...props}

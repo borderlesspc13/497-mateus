@@ -15,6 +15,7 @@ import {
 } from "@/components/app-shell/nav-config";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { NavigationProgress } from "@/components/navigation/NavigationProgress";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -289,7 +290,9 @@ export function AppShell({ children }: PropsWithChildren) {
                 </div>
               </div>
 
-              <DropdownMenu>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
@@ -332,6 +335,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
             </div>
           </header>
 

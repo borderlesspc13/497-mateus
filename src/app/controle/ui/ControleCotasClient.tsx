@@ -25,6 +25,12 @@ import {
   useVendasPaginatedList,
 } from "@/lib/vendas/use-vendas-paginated-list";
 import { PaginatedListFooter } from "@/components/ui/PaginatedListFooter";
+import { ExportButton } from "@/components/export/ExportButton";
+import {
+  getControleExportColumns,
+  getControleExportFileNameBase,
+  getControleExportSheetName,
+} from "@/lib/export/columns/controle";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 
 export type ControleModo = "inadimplencia" | "inconsistencia" | "pos-venda";
@@ -186,6 +192,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
 
   const isResettingList = isPaginated && isResetting;
   const showEmpty = !isResettingList && visibleItems.length === 0;
+  const exportColumns = useMemo(() => getControleExportColumns(modo), [modo]);
 
   return (
     <>
@@ -234,6 +241,13 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
                 <option value="FEITO">Feitos</option>
               </select>
             ) : null}
+            <ExportButton
+              fileNameBase={getControleExportFileNameBase(modo)}
+              sheetName={getControleExportSheetName(modo)}
+              rows={visibleItems}
+              columns={exportColumns}
+              partialExport={isPaginated && hasMore}
+            />
           </>
         }
         error={

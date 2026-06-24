@@ -16,8 +16,8 @@ export function FilterChipButton({ active, onClick, children, count }: FilterChi
       className={[
         "inline-flex h-9 items-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-colors",
         active
-          ? "border-zinc-900 bg-zinc-900 text-white"
-          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-card text-foreground hover:bg-accent",
       ].join(" ")}
     >
       {children}
@@ -25,7 +25,7 @@ export function FilterChipButton({ active, onClick, children, count }: FilterChi
         <span
           className={[
             "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] tabular-nums",
-            active ? "bg-white/15 text-white" : "bg-zinc-100 text-zinc-600",
+            active ? "bg-primary-foreground/15 text-primary-foreground" : "bg-muted text-muted-foreground",
           ].join(" ")}
         >
           {count}

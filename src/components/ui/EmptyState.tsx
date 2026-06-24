@@ -9,8 +9,8 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, description, action, icon }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-14 text-center">
-      <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-zinc-200 bg-white text-zinc-400 shadow-sm">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/40 px-6 py-14 text-center">
+      <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-border bg-card text-muted-foreground shadow-sm">
         {icon ?? (
           <svg
             viewBox="0 0 24 24"
@@ -28,9 +28,9 @@ export function EmptyState({ title, description, action, icon }: EmptyStateProps
           </svg>
         )}
       </div>
-      <h3 className="text-base font-semibold text-zinc-900">{title}</h3>
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
       {description ? (
-        <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-600">{description}</p>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{description}</p>
       ) : null}
       {action ? <div className="mt-5">{action}</div> : null}
     </div>

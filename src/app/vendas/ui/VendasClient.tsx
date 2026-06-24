@@ -27,6 +27,8 @@ import {
   useVendasPaginatedList,
 } from "@/lib/vendas/use-vendas-paginated-list";
 import { PaginatedListFooter } from "@/components/ui/PaginatedListFooter";
+import { ExportButton } from "@/components/export/ExportButton";
+import { VENDAS_EXPORT_COLUMNS } from "@/lib/export/columns/vendas";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 import type { VendasListFilters } from "@/lib/firestore/repository";
 
@@ -150,6 +152,13 @@ export default function VendasClient({
           <Link href="/vendas/nova" className={primaryActionClass()}>
             Nova venda
           </Link>
+          <ExportButton
+            fileNameBase="vendas"
+            sheetName="Vendas"
+            rows={visibleItems}
+            columns={VENDAS_EXPORT_COLUMNS}
+            partialExport={hasMore}
+          />
         </>
       }
       error={
