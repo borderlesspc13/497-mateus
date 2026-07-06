@@ -69,6 +69,7 @@ export function toPlanoRow(
     percentualComissao: plano.percentualComissao ?? regras?.percentualComissao ?? null,
     parcelasRecebimento: plano.parcelasRecebimento ?? regras?.parcelasRecebimento ?? null,
     diasParaEstorno: plano.diasParaEstorno ?? regras?.diasParaEstorno ?? null,
+    regrasRepasseJson: plano.regrasRepasseJson ?? null,
     createdAt: plano.createdAt,
     updatedAt: plano.updatedAt,
   };
@@ -104,6 +105,8 @@ export function toEquipeRow(item: DocWithId<EquipeDoc>): EquipeRow {
   return {
     id: item.id,
     nome: item.nome,
+    supervisorId: item.supervisorId ?? null,
+    diretorId: item.diretorId ?? null,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };

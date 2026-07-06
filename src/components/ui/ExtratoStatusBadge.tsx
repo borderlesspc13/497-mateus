@@ -8,6 +8,10 @@ const STATUS_CONFIG: Record<
     label: "Pendente",
     className: "border-border bg-muted text-muted-foreground",
   },
+  RECEBIDO: {
+    label: "Recebido",
+    className: "border-violet-500/30 bg-violet-500/10 text-violet-800 dark:text-violet-300",
+  },
   LIBERADO: {
     label: "Liberado",
     className: "border-blue-500/30 bg-blue-500/10 text-blue-800 dark:text-blue-300",

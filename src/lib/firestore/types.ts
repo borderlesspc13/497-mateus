@@ -14,6 +14,7 @@ export const COLLECTIONS = {
   equipes: "equipes",
   vendedores: "vendedores",
   extratos: "extratos",
+  repasses: "repasses",
   usuarios: "usuarios",
   logs_auditoria: "logs_auditoria",
   metas: "metas",
@@ -52,6 +53,8 @@ export type PlanoDoc = {
   percentualComissao: number | null;
   parcelasRecebimento: number | null;
   diasParaEstorno: number | null;
+  /** Regras de repasse interno (vendedor / supervisor / diretor) em JSON. */
+  regrasRepasseJson: string | null;
   /** @deprecated Use percentualComissao. Mantido para documentos legados. */
   regrasComissaoJson?: string | null;
   /** @deprecated Use parcelasRecebimento. */
@@ -79,7 +82,8 @@ export type LogAuditoriaDoc = {
   dataTimestamp: string;
 };
 
-export type ExtratoStatus = "PENDENTE" | "LIBERADO" | "PAGO";
+/** Status do extrato da administradora. RECEBIDO = valor creditado via importação/remessa. */
+export type ExtratoStatus = "PENDENTE" | "RECEBIDO" | "LIBERADO" | "PAGO";
 
 export type ExtratoTipo = "COMISSAO" | "ESTORNO";
 
@@ -111,6 +115,33 @@ export type ConsorciadoDoc = {
 
 export type EquipeDoc = {
   nome: string;
+  supervisorId: string | null;
+  diretorId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RepasseStatus = "PENDENTE" | "PAGO";
+
+export type PapelRepasse = "VENDEDOR" | "SUPERVISOR" | "DIRETOR";
+
+/** Linha do mapa de pagamento interno — gerada ao marcar extrato como RECEBIDO. */
+export type RepasseDoc = {
+  extratoOrigemId: string;
+  vendaId: string;
+  numeroContrato: string;
+  planoId: string;
+  parcelaNumero: number;
+  parcelaTotal: number;
+  parcelaLabel: string;
+  papel: PapelRepasse;
+  beneficiarioId: string;
+  beneficiarioNome: string;
+  vendedorId: string;
+  equipeId: string;
+  valorCentavos: number;
+  percentualPapel: number;
+  status: RepasseStatus;
   createdAt: string;
   updatedAt: string;
 };

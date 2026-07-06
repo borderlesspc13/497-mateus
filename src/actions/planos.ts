@@ -22,6 +22,7 @@ export type PlanoInput = {
   percentualComissao: number | null;
   parcelasRecebimento: number | null;
   diasParaEstorno: number | null;
+  regrasRepasseJson: string | null;
 };
 
 function assertRegrasFinanceiras(data: PlanoInput): void {
@@ -82,7 +83,12 @@ export async function createPlano(data: PlanoInput): Promise<PlanoRow> {
   await assertAdministradoraExists(data.administradoraId);
   assertRegrasFinanceiras(data);
 
-  const row = await createPlanoDoc({ ...data, nome, tipoBem });
+  const row = await createPlanoDoc({
+    ...data,
+    nome,
+    tipoBem,
+    regrasRepasseJson: data.regrasRepasseJson ?? null,
+  });
   revalidatePlanos();
   return row;
 }
@@ -125,6 +131,10 @@ export async function updatePlano(id: string, patch: Partial<PlanoInput>): Promi
         : current.parcelasRecebimento,
     diasParaEstorno:
       data.diasParaEstorno !== undefined ? data.diasParaEstorno : current.diasParaEstorno,
+    regrasRepasseJson:
+      data.regrasRepasseJson !== undefined
+        ? data.regrasRepasseJson
+        : current.regrasRepasseJson,
   };
   assertRegrasFinanceiras(merged);
 

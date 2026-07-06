@@ -9,10 +9,17 @@ import { formControlClass, panelClass } from "@/components/ui/list-panel-classes
 import type { AdministradoraMini } from "@/lib/types/domain";
 import { parseCurrencyToCentavos } from "@/lib/validators/currency";
 import {
+  EMPTY_REGRAS_REPASSE_FORM,
+  parseRegrasRepasseForm,
+  regrasRepasseToForm,
+  serializeRegrasRepasse,
+} from "@/lib/comissoes/regras-repasse";
+import {
   parseRegrasFinanceirasForm,
   RegrasFinanceirasFields,
   type RegrasFinanceirasFormState,
 } from "./RegrasFinanceirasFields";
+import { RegrasRepasseFields, type RegrasRepasseFormState } from "./RegrasRepasseFields";
 import { RegrasFinanceirasPreview } from "./RegrasFinanceirasPreview";
 
 type FormState = {
@@ -20,6 +27,7 @@ type FormState = {
   nome: string;
   tipoBem: string;
   valorCredito: string;
+  regrasRepasse: RegrasRepasseFormState;
 } & RegrasFinanceirasFormState;
 
 type NovoPlanoFormProps = {
@@ -66,6 +74,7 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
     percentualComissao: "",
     parcelasRecebimento: "3",
     diasParaEstorno: "90",
+    regrasRepasse: { ...EMPTY_REGRAS_REPASSE_FORM },
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +123,12 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
       return;
     }
 
+    const regrasRepasse = parseRegrasRepasseForm(form.regrasRepasse);
+    if (regrasRepasse && "error" in regrasRepasse) {
+      setError(regrasRepasse.error);
+      return;
+    }
+
     setSaving(true);
     try {
       await createPlano({
@@ -124,6 +139,10 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
         percentualComissao: regras.percentualComissao,
         parcelasRecebimento: regras.parcelasRecebimento,
         diasParaEstorno: regras.diasParaEstorno,
+        regrasRepasseJson:
+          regrasRepasse && !("error" in regrasRepasse)
+            ? serializeRegrasRepasse(regrasRepasse)
+            : null,
       });
       router.push("/planos");
       router.refresh();
@@ -195,6 +214,16 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
       <RegrasFinanceirasFields
         form={form}
         onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+      />
+
+      <RegrasRepasseFields
+        form={form.regrasRepasse}
+        onChange={(patch) =>
+          setForm((p) => ({
+            ...p,
+            regrasRepasse: { ...p.regrasRepasse, ...patch },
+          }))
+        }
       />
 
       <RegrasFinanceirasPreview

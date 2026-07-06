@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getEquipe, updateEquipe } from "@/actions/equipes";
+import { listVendedoresMini } from "@/actions/vendedores";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
+import type { VendedorMini } from "@/lib/types/domain";
 
 type EditarEquipeFormProps = {
   id: string;
@@ -15,6 +17,9 @@ type EditarEquipeFormProps = {
 export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
   const router = useRouter();
   const [nome, setNome] = useState("");
+  const [supervisorId, setSupervisorId] = useState("");
+  const [diretorId, setDiretorId] = useState("");
+  const [vendedores, setVendedores] = useState<VendedorMini[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,14 +27,17 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
 
   useEffect(() => {
     let alive = true;
-    void getEquipe(id)
-      .then((item) => {
+    void Promise.all([getEquipe(id), listVendedoresMini()])
+      .then(([item, vendedoresList]) => {
         if (!alive) return;
         if (!item) {
           setNotFound(true);
           return;
         }
         setNome(item.nome);
+        setSupervisorId(item.supervisorId ?? "");
+        setDiretorId(item.diretorId ?? "");
+        setVendedores(vendedoresList);
       })
       .catch((e: unknown) => {
         if (!alive) return;
@@ -49,7 +57,11 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
     setSaving(true);
     setError(null);
     try {
-      await updateEquipe(id, { nome });
+      await updateEquipe(id, {
+        nome,
+        supervisorId: supervisorId || null,
+        diretorId: diretorId || null,
+      });
       router.push("/configuracoes/equipes");
       router.refresh();
     } catch (e) {
@@ -102,17 +114,49 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
       />
 
       <form onSubmit={(e) => void onSave(e)} className={`${panelClass()} p-6`}>
-        <label className="block">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
-            Nome da equipe <span className="text-red-600">*</span>
-          </div>
-          <input
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            className={formControlClass()}
-            required
-          />
-        </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block md:col-span-2">
+            <div className="mb-1 text-xs font-medium text-zinc-600">
+              Nome da equipe <span className="text-red-600">*</span>
+            </div>
+            <input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className={formControlClass()}
+              required
+            />
+          </label>
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">Supervisor</div>
+            <select
+              value={supervisorId}
+              onChange={(e) => setSupervisorId(e.target.value)}
+              className={formControlClass()}
+            >
+              <option value="">Não definido</option>
+              {vendedores.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <div className="mb-1 text-xs font-medium text-zinc-600">Diretor</div>
+            <select
+              value={diretorId}
+              onChange={(e) => setDiretorId(e.target.value)}
+              className={formControlClass()}
+            >
+              <option value="">Não definido</option>
+              {vendedores.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         {error ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

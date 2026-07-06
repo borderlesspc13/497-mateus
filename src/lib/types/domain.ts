@@ -90,11 +90,12 @@ export type PlanoRow = {
   percentualComissao: number | null;
   parcelasRecebimento: number | null;
   diasParaEstorno: number | null;
+  regrasRepasseJson: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
-export type ExtratoStatus = "PENDENTE" | "LIBERADO" | "PAGO";
+export type ExtratoStatus = "PENDENTE" | "RECEBIDO" | "LIBERADO" | "PAGO";
 
 export type ExtratoTipo = "COMISSAO" | "ESTORNO";
 
@@ -122,6 +123,33 @@ export type ExtratoRow = {
   updatedAt: string;
 };
 
+export type RepasseStatus = "PENDENTE" | "PAGO";
+
+export type PapelRepasse = "VENDEDOR" | "SUPERVISOR" | "DIRETOR";
+
+export type RepasseRow = {
+  id: string;
+  extratoOrigemId: string;
+  vendaId: string;
+  numeroContrato: string;
+  planoId: string;
+  planoNome: string;
+  parcelaNumero: number;
+  parcelaTotal: number;
+  parcelaLabel: string;
+  papel: PapelRepasse;
+  beneficiarioId: string;
+  beneficiarioNome: string;
+  vendedorNome: string | null;
+  equipeNome: string | null;
+  consorciadoNome: string | null;
+  valorCentavos: number;
+  percentualPapel: number;
+  status: RepasseStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PlanoMini = { id: string; nome: string; tipoBem: string };
 
 /** Perfil do consorciado — sem status operacional (cada cota tem o seu). */
@@ -139,6 +167,8 @@ export type ConsorciadoMini = { id: string; nome: string; cpf_cnpj: string; tele
 export type EquipeRow = {
   id: string;
   nome: string;
+  supervisorId: string | null;
+  diretorId: string | null;
   createdAt: string;
   updatedAt: string;
 };

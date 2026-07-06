@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { listExtratos } from "@/actions/comissoes";
+import { listExtratos, listRepassesMapaPagamento } from "@/actions/comissoes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { PageLoading } from "@/components/ui/PageLoading";
 import { canViewComissoes } from "@/lib/auth/roles";
@@ -8,8 +8,11 @@ import { getServerSessionUser } from "@/lib/auth/server";
 import ComissoesClient from "./ui/ComissoesClient";
 
 async function ComissoesData() {
-  const items = await listExtratos();
-  return <ComissoesClient initialItems={items} />;
+  const [items, initialRepasses] = await Promise.all([
+    listExtratos(),
+    listRepassesMapaPagamento(),
+  ]);
+  return <ComissoesClient initialItems={items} initialRepasses={initialRepasses} />;
 }
 
 export default async function ComissoesPage() {
@@ -25,8 +28,8 @@ export default async function ComissoesPage() {
           { label: "Dashboard", href: "/" },
           { label: "Comissões" },
         ]}
-        title="Extratos de comissão"
-        description="Parcelas geradas automaticamente ao registrar vendas ativas. Aprove liberações e registre pagamentos."
+        title="Comissões e repasses"
+        description="Extratos da administradora e mapa de pagamento interno (vendedor, supervisor e diretor) gerado ao confirmar recebimento."
       />
 
       <Suspense fallback={<PageLoading rows={8} columns={5} withHeader={false} />}>

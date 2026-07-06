@@ -12,6 +12,7 @@ export const STATUS_OPERACIONAL_LABELS: Record<StatusOperacionalCota, string> = 
 
 export const EXTRATO_STATUS_LABELS: Record<ExtratoStatus, string> = {
   PENDENTE: "Pendente",
+  RECEBIDO: "Recebido",
   LIBERADO: "Liberado",
   PAGO: "Pago",
 };

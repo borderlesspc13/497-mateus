@@ -14,9 +14,16 @@ import {
   parseCurrencyToCentavos,
 } from "@/lib/validators/currency";
 import {
+  parseRegrasRepasseForm,
+  regrasRepasseToForm,
+  serializeRegrasRepasse,
+  parseRegrasRepasseJson,
+} from "@/lib/comissoes/regras-repasse";
+import {
   parseRegrasFinanceirasForm,
   RegrasFinanceirasFields,
 } from "./RegrasFinanceirasFields";
+import { RegrasRepasseFields } from "./RegrasRepasseFields";
 import { RegrasFinanceirasPreview } from "./RegrasFinanceirasPreview";
 
 type EditarPlanoFormProps = {
@@ -38,6 +45,7 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
     percentualComissao: item.percentualComissao?.toString() ?? "",
     parcelasRecebimento: item.parcelasRecebimento?.toString() ?? "3",
     diasParaEstorno: item.diasParaEstorno?.toString() ?? "90",
+    regrasRepasse: regrasRepasseToForm(parseRegrasRepasseJson(item.regrasRepasseJson)),
   });
 
   const valorError = useMemo(() => {
@@ -81,6 +89,13 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
       return;
     }
 
+    const regrasRepasse = parseRegrasRepasseForm(form.regrasRepasse);
+    if (regrasRepasse && "error" in regrasRepasse) {
+      setError(regrasRepasse.error);
+      setSaving(false);
+      return;
+    }
+
     try {
       await updatePlano(item.id, {
         administradoraId: form.administradoraId,
@@ -90,6 +105,10 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
         percentualComissao: regras.percentualComissao,
         parcelasRecebimento: regras.parcelasRecebimento,
         diasParaEstorno: regras.diasParaEstorno,
+        regrasRepasseJson:
+          regrasRepasse && !("error" in regrasRepasse)
+            ? serializeRegrasRepasse(regrasRepasse)
+            : null,
       });
       router.push("/planos");
       router.refresh();
@@ -169,6 +188,16 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
         <RegrasFinanceirasFields
           form={form}
           onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+        />
+
+        <RegrasRepasseFields
+          form={form.regrasRepasse}
+          onChange={(patch) =>
+            setForm((p) => ({
+              ...p,
+              regrasRepasse: { ...p.regrasRepasse, ...patch },
+            }))
+          }
         />
 
         <RegrasFinanceirasPreview

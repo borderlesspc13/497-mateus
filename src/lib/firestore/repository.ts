@@ -9,6 +9,7 @@ import {
 import { buildDashboardStats } from "@/lib/dashboard/stats";
 import { DEFAULT_CHECKLIST_ATIVACAO, DEFAULT_STATUS_POS_VENDA } from "@/lib/vendas/pos-venda";
 import { withNumeroContratoFields, normalizeNumeroContrato } from "@/lib/firestore/contrato-matriz";
+import { gerarRepassesParaExtratoRecebido } from "@/lib/comissoes/gerar-repasse";
 import {
   normalizeVendaFields,
   resolveDataContrato,
@@ -30,6 +31,8 @@ import {
   type ExtratoDoc,
   type ExtratoStatus,
   type PlanoDoc,
+  type RepasseDoc,
+  type RepasseStatus,
   type VendaDoc,
   type VendedorDoc,
 } from "@/lib/firestore/types";
@@ -60,6 +63,7 @@ import type {
   EquipeMini,
   EquipeRow,
   ExtratoRow,
+  RepasseRow,
   PlanoMini,
   PlanoRow,
   StatusInconsistencia,
@@ -271,6 +275,7 @@ export async function createPlano(
   const id = newId();
   const doc: PlanoDoc = {
     ...data,
+    regrasRepasseJson: data.regrasRepasseJson ?? null,
     regrasComissaoJson: null,
     regrasRecebimentoJson: null,
     regrasEstornoJson: null,
@@ -384,7 +389,13 @@ export async function createEquipe(
 ): Promise<EquipeRow> {
   const ts = nowIso();
   const id = newId();
-  const doc: EquipeDoc = { ...data, createdAt: ts, updatedAt: ts };
+  const doc: EquipeDoc = {
+    nome: data.nome,
+    supervisorId: data.supervisorId ?? null,
+    diretorId: data.diretorId ?? null,
+    createdAt: ts,
+    updatedAt: ts,
+  };
   await db().collection(COLLECTIONS.equipes).doc(id).set(doc);
   return toEquipeRow({ id, ...doc });
 }
@@ -635,9 +646,6 @@ function buildVendasPaginatedQuery(filters: VendasListFilters) {
   if (filters.administradoraId) {
     q = q.where("administradoraId", "==", filters.administradoraId);
   }
-  if (filters.statusOperacional) {
-    q = q.where(STATUS_OPERACIONAL_FIELD, "==", filters.statusOperacional);
-  }
   if (filters.statusInconsistencia) {
     q = q.where("statusInconsistencia", "==", filters.statusInconsistencia);
   }
@@ -687,11 +695,77 @@ async function assertNumeroContratoDisponivel(
   }
 }
 
+function applyVendasListFiltersInMemory(
+  vendas: DocWithId<VendaDoc>[],
+  filters: VendasListFilters,
+): DocWithId<VendaDoc>[] {
+  return vendas.filter((venda) => {
+    if (filters.administradoraId && venda.administradoraId !== filters.administradoraId) {
+      return false;
+    }
+    if (
+      filters.statusInconsistencia &&
+      venda.statusInconsistencia !== filters.statusInconsistencia
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * Paginação com filtro de status operacional: une documentos com `statusOperacional`
+ * (canônico) e `status` (legado) antes de paginar em memória.
+ */
+async function listVendasPaginatedByStatusOperacional(
+  filters: VendasListFilters,
+  cursorDocId?: string | null,
+): Promise<VendasListPage> {
+  const statusOperacional = filters.statusOperacional;
+  if (!statusOperacional) {
+    return { items: [], lastDocId: null, hasMore: false };
+  }
+
+  const vendas = applyVendasListFiltersInMemory(
+    (await listVendaDocsByStatusOperacional(statusOperacional)).map(normalizeVendaDoc),
+    filters,
+  );
+
+  vendas.sort((a, b) => b.dataContrato.localeCompare(a.dataContrato));
+
+  let startIndex = 0;
+  if (cursorDocId) {
+    const cursorIndex = vendas.findIndex((venda) => venda.id === cursorDocId);
+    startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+  }
+
+  const page = vendas.slice(startIndex, startIndex + VENDAS_PAGE_SIZE);
+  if (page.length === 0) {
+    return { items: [], lastDocId: null, hasMore: false };
+  }
+
+  const maps = await buildRelationMapsForVendas(page);
+  const items = page
+    .map((venda) => resolveVendaRelations(venda, maps))
+    .filter((x): x is VendaRow => x !== null);
+
+  const lastDoc = page[page.length - 1];
+  return {
+    items,
+    lastDocId: lastDoc?.id ?? null,
+    hasMore: startIndex + VENDAS_PAGE_SIZE < vendas.length,
+  };
+}
+
 export async function listVendasPaginated(
   filters: VendasListFilters = {},
   cursorDocId?: string | null,
 ): Promise<VendasListPage> {
   try {
+    if (filters.statusOperacional) {
+      return listVendasPaginatedByStatusOperacional(filters, cursorDocId);
+    }
+
     let q = buildVendasPaginatedQuery(filters);
 
     if (cursorDocId) {
@@ -1221,7 +1295,8 @@ export async function updateExtratoStatus(
 
   const current = snap.data() as ExtratoDoc;
   const allowed: Record<ExtratoStatus, ExtratoStatus[]> = {
-    PENDENTE: ["LIBERADO"],
+    PENDENTE: ["RECEBIDO", "LIBERADO"],
+    RECEBIDO: [],
     LIBERADO: ["PAGO"],
     PAGO: [],
   };
@@ -1233,4 +1308,118 @@ export async function updateExtratoStatus(
   }
 
   await ref.update({ status, updatedAt: nowIso() });
+
+  if (status === "RECEBIDO" && current.tipo !== "ESTORNO") {
+    await gerarRepassesParaExtratoRecebido(id, { ...current, status: "RECEBIDO" });
+  }
+}
+
+export async function marcarExtratoRecebido(id: string): Promise<{ repassesGerados: number }> {
+  const ref = db().collection(COLLECTIONS.extratos).doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error("Extrato não encontrado.");
+
+  const current = snap.data() as ExtratoDoc;
+  if (current.status === "RECEBIDO") {
+    const repassesGerados = await gerarRepassesParaExtratoRecebido(id, current);
+    return { repassesGerados };
+  }
+  if (current.status !== "PENDENTE") {
+    throw new Error(`Extrato em status ${current.status} não pode ser marcado como recebido.`);
+  }
+
+  const ts = nowIso();
+  await ref.update({ status: "RECEBIDO", updatedAt: ts });
+  const repassesGerados = await gerarRepassesParaExtratoRecebido(id, {
+    ...current,
+    status: "RECEBIDO",
+  });
+  return { repassesGerados };
+}
+
+async function listRepasseDocs(): Promise<DocWithId<RepasseDoc>[]> {
+  const snap = await db().collection(COLLECTIONS.repasses).get();
+  return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as RepasseDoc) }));
+}
+
+export type MapaPagamentoFilters = {
+  incluirPagos?: boolean;
+};
+
+export async function listMapaPagamento(
+  filters: MapaPagamentoFilters = {},
+): Promise<RepasseRow[]> {
+  const [repasses, vendas, planos] = await Promise.all([
+    listRepasseDocs(),
+    listVendas(),
+    listPlanoDocs(),
+  ]);
+
+  const vendaMap = new Map(vendas.map((v) => [v.id, v]));
+  const planoMap = new Map(planos.map((p) => [p.id, p]));
+  const extratoIds = [...new Set(repasses.map((r) => r.extratoOrigemId))];
+  const extratoSnaps = await Promise.all(
+    extratoIds.map((id) => db().collection(COLLECTIONS.extratos).doc(id).get()),
+  );
+  const extratoStatusMap = new Map<string, ExtratoStatus>();
+  for (const snap of extratoSnaps) {
+    if (snap.exists) {
+      extratoStatusMap.set(snap.id, (snap.data() as ExtratoDoc).status);
+    }
+  }
+
+  const rows: RepasseRow[] = [];
+
+  for (const repasse of sortByCreatedAtDesc(repasses)) {
+    const extratoStatus = extratoStatusMap.get(repasse.extratoOrigemId);
+    if (extratoStatus !== "RECEBIDO") continue;
+    if (!filters.incluirPagos && repasse.status === "PAGO") continue;
+
+    const venda = vendaMap.get(repasse.vendaId);
+    const plano = planoMap.get(repasse.planoId);
+
+    rows.push({
+      id: repasse.id,
+      extratoOrigemId: repasse.extratoOrigemId,
+      vendaId: repasse.vendaId,
+      numeroContrato: repasse.numeroContrato,
+      planoId: repasse.planoId,
+      planoNome: plano?.nome ?? "—",
+      parcelaNumero: repasse.parcelaNumero,
+      parcelaTotal: repasse.parcelaTotal,
+      parcelaLabel: repasse.parcelaLabel,
+      papel: repasse.papel,
+      beneficiarioId: repasse.beneficiarioId,
+      beneficiarioNome: repasse.beneficiarioNome,
+      vendedorNome: venda?.vendedor?.nome ?? null,
+      equipeNome: venda?.equipe?.nome ?? null,
+      consorciadoNome: venda?.consorciado?.nome ?? null,
+      valorCentavos: repasse.valorCentavos,
+      percentualPapel: repasse.percentualPapel,
+      status: repasse.status,
+      createdAt: repasse.createdAt,
+      updatedAt: repasse.updatedAt,
+    });
+  }
+
+  return rows.sort(
+    (a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt) ||
+      a.numeroContrato.localeCompare(b.numeroContrato) ||
+      a.papel.localeCompare(b.papel),
+  );
+}
+
+export async function marcarRepassePago(id: string): Promise<void> {
+  const ref = db().collection(COLLECTIONS.repasses).doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error("Repasse não encontrado.");
+
+  const current = snap.data() as RepasseDoc;
+  if (current.status === "PAGO") return;
+  if (current.status !== "PENDENTE") {
+    throw new Error(`Repasse em status ${current.status} não pode ser pago.`);
+  }
+
+  await ref.update({ status: "PAGO" satisfies RepasseStatus, updatedAt: nowIso() });
 }

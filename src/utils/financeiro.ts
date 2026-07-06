@@ -187,9 +187,11 @@ export function extratoDeveSerEstornado(
   vendaStatus: VendaStatusMotor,
   dataReferenciaIso: string | null,
   diasParaEstorno: number,
-  extratoStatus: "PENDENTE" | "LIBERADO" | "PAGO",
+  extratoStatus: "PENDENTE" | "RECEBIDO" | "LIBERADO" | "PAGO",
 ): boolean {
-  if (vendaStatus === "ATIVO" || extratoStatus === "PAGO") return false;
+  if (vendaStatus === "ATIVO" || extratoStatus === "PAGO" || extratoStatus === "RECEBIDO") {
+    return false;
+  }
   if (extratoStatus === "PENDENTE") return true;
   if (extratoStatus === "LIBERADO") {
     return vendaStatus === "CANCELADO" && isDentroPrazoEstorno(dataReferenciaIso, diasParaEstorno);

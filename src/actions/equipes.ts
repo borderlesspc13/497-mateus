@@ -14,6 +14,8 @@ import type { EquipeMini, EquipeRow } from "@/lib/types/domain";
 
 export type EquipeInput = {
   nome: string;
+  supervisorId?: string | null;
+  diretorId?: string | null;
 };
 
 function revalidateEquipes() {
@@ -39,7 +41,11 @@ export async function createEquipe(data: EquipeInput): Promise<EquipeRow> {
   await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   if (!nome) throw new Error("Informe o nome da equipe.");
-  const row = await createEquipeDoc({ nome });
+  const row = await createEquipeDoc({
+    nome,
+    supervisorId: data.supervisorId ?? null,
+    diretorId: data.diretorId ?? null,
+  });
   revalidateEquipes();
   return row;
 }
@@ -48,7 +54,11 @@ export async function updateEquipe(id: string, data: EquipeInput): Promise<Equip
   await requireGerenteOrAdmin();
   const nome = data.nome.trim();
   if (!nome) throw new Error("Informe o nome da equipe.");
-  const row = await updateEquipeDoc(id, { nome });
+  const row = await updateEquipeDoc(id, {
+    nome,
+    ...(data.supervisorId !== undefined ? { supervisorId: data.supervisorId } : {}),
+    ...(data.diretorId !== undefined ? { diretorId: data.diretorId } : {}),
+  });
   revalidateEquipes();
   return row;
 }
