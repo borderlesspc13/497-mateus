@@ -4,21 +4,20 @@ import { RankingCard } from "@/components/metas/RankingCard";
 import { ProgressoMetaCard } from "@/components/metas/ProgressoMetaCard";
 import { panelClass } from "@/components/ui/list-panel-classes";
 import { periodoLabel } from "@/lib/periodo";
-import type { UserRole } from "@/lib/auth/roles";
-import { canAccessConfiguracoes } from "@/lib/auth/roles";
+import { canAccessModule, type AppModule } from "@/lib/auth/modules";
 
 export type DashboardMetaWidgetProps = {
-  userRole: UserRole | null;
+  permissions: AppModule[];
 };
 
-export async function DashboardMetaWidget({ userRole }: DashboardMetaWidgetProps) {
+export async function DashboardMetaWidget({ permissions }: DashboardMetaWidgetProps) {
   const result = await getMetasDashboardWidgetData();
   if (!result.success) return null;
 
   const { periodo, minhaMeta, minhaRealizacao, rankingTop, conquistas, role } = result.data;
   const label = periodoLabel(periodo);
 
-  if (role === "vendedor") {
+  if (role === "vendedor" && canAccessModule(permissions, "metas-minhas")) {
     if (!minhaMeta && !minhaRealizacao) {
       return (
         <div className={`${panelClass()} p-6`}>
@@ -77,7 +76,7 @@ export async function DashboardMetaWidget({ userRole }: DashboardMetaWidgetProps
     );
   }
 
-  if (!userRole || !canAccessConfiguracoes(userRole)) return null;
+  if (!canAccessModule(permissions, "metas")) return null;
 
   return (
     <div className={`${panelClass()} p-6`}>

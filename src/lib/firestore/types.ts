@@ -71,6 +71,8 @@ export type UsuarioDoc = {
   email: string;
   displayName: string | null;
   role: UserRole;
+  /** Módulos habilitados — quando ausente, deriva do `role`. */
+  permissions?: string[];
   createdAt: string;
   updatedAt: string;
 };

@@ -6,6 +6,7 @@ import {
 } from "@/actions/metas";
 import { listVendedores } from "@/actions/vendedores";
 import { MetasClient } from "@/app/metas/ui/MetasClient";
+import { ModuleGuard } from "@/lib/auth/module-guard";
 import { getServerSessionUser } from "@/lib/auth/server";
 import { periodoAtual } from "@/lib/periodo";
 import type { MetaTipo } from "@/types/metas";
@@ -40,15 +41,17 @@ export default async function MetasPage({ searchParams }: PageProps) {
   }
 
   return (
-    <MetasClient
-      initialMetas={metasResult.data}
-      initialRanking={rankingResult.data}
-      conquistas={conquistasResult.data}
-      vendedores={vendedores.map((v) => ({ id: v.id, nome: v.nome }))}
-      equipes={equipes.map((e) => ({ id: e.id, nome: e.nome }))}
-      isAdmin={session?.role === "admin"}
-      periodoInicial={periodo}
-      tipoInicial={tipo}
-    />
+    <ModuleGuard module="metas">
+      <MetasClient
+        initialMetas={metasResult.data}
+        initialRanking={rankingResult.data}
+        conquistas={conquistasResult.data}
+        vendedores={vendedores.map((v) => ({ id: v.id, nome: v.nome }))}
+        equipes={equipes.map((e) => ({ id: e.id, nome: e.nome }))}
+        isAdmin={session?.role === "admin"}
+        periodoInicial={periodo}
+        tipoInicial={tipo}
+      />
+    </ModuleGuard>
   );
 }

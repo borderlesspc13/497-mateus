@@ -1,12 +1,6 @@
-import { redirect } from "next/navigation";
 import type { PropsWithChildren } from "react";
-import { canAccessConfiguracoes } from "@/lib/auth/roles";
-import { getServerSessionUser } from "@/lib/auth/server";
+import { ModuleGuard } from "@/lib/auth/module-guard";
 
-export default async function PlanosLayout({ children }: PropsWithChildren) {
-  const session = await getServerSessionUser();
-  if (!session || !canAccessConfiguracoes(session.role)) {
-    redirect("/");
-  }
-  return children;
+export default function PlanosLayout({ children }: PropsWithChildren) {
+  return <ModuleGuard module="planos">{children}</ModuleGuard>;
 }

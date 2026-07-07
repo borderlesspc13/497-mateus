@@ -229,7 +229,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
   }
 
   return (
-    <section className={`${panelClass()} mt-5`}>
+    <section className={panelClass()}>
       <PanelSectionHeader
         title="Históricos vinculados"
         description="Timeline consolidada de atendimentos, inconsistências e inadimplências das cotas deste consorciado."

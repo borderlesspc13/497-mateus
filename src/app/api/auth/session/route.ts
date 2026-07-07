@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE_NAME, SESSION_MAX_AGE_MS } from "@/lib/auth/constants";
+import { PERMISSIONS_COOKIE_NAME, SESSION_COOKIE_NAME, SESSION_MAX_AGE_MS } from "@/lib/auth/constants";
+import { resolveEffectivePermissions, serializePermissionsCookie, isAppModule } from "@/lib/auth/modules";
 import { getAdminAuth, mapFirebaseAdminAuthError } from "@/lib/firebase/admin";
-import { ensureUsuarioProfile } from "@/lib/firestore/usuarios";
+import { ensureUsuarioProfile, getUsuario } from "@/lib/firestore/usuarios";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,14 @@ export async function POST(request: Request) {
       displayName: (decoded.name as string | undefined) ?? null,
     });
 
+    const profile = await getUsuario(decoded.uid);
+    const permissions = profile
+      ? resolveEffectivePermissions({
+          role: profile.role,
+          permissions: profile.permissions.filter(isAppModule),
+        })
+      : [];
+
     const sessionCookie = await auth.createSessionCookie(idToken, {
       expiresIn: SESSION_MAX_AGE_MS,
     });
@@ -35,6 +44,15 @@ export async function POST(request: Request) {
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: sessionCookie,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: Math.floor(SESSION_MAX_AGE_MS / 1000),
+    });
+    response.cookies.set({
+      name: PERMISSIONS_COOKIE_NAME,
+      value: serializePermissionsCookie(permissions),
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -58,14 +76,16 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   const response = NextResponse.json({ ok: true });
-  response.cookies.set({
-    name: SESSION_COOKIE_NAME,
-    value: "",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+  for (const name of [SESSION_COOKIE_NAME, PERMISSIONS_COOKIE_NAME]) {
+    response.cookies.set({
+      name,
+      value: "",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+  }
   return response;
 }

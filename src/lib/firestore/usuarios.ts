@@ -1,14 +1,27 @@
 import { getAdminAuth } from "@/lib/firebase/admin";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import {
+  isAppModule,
+  resolveEffectivePermissions,
+  type AppModule,
+} from "@/lib/auth/modules";
 import { COLLECTIONS, nowIso, type UserRole, type UsuarioDoc } from "@/lib/firestore/types";
 import type { UsuarioRow } from "@/lib/types/domain";
 
+function normalizeStoredPermissions(raw: string[] | undefined): AppModule[] | undefined {
+  if (!raw?.length) return undefined;
+  const modules = raw.filter(isAppModule);
+  return modules.length > 0 ? modules : undefined;
+}
+
 function toUsuarioRow(id: string, doc: UsuarioDoc): UsuarioRow {
+  const explicit = normalizeStoredPermissions(doc.permissions);
   return {
     id,
     email: doc.email,
     displayName: doc.displayName,
     role: doc.role,
+    permissions: resolveEffectivePermissions({ role: doc.role, permissions: explicit }),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -41,17 +54,28 @@ async function countAdmins(): Promise<number> {
   return snap.data().count;
 }
 
+function sanitizePermissions(permissions: AppModule[]): AppModule[] {
+  const unique = [...new Set(permissions.filter(isAppModule))];
+  if (unique.length === 0) {
+    throw new Error("Selecione ao menos um módulo de acesso.");
+  }
+  return unique;
+}
+
 export async function createUsuarioProfile(input: {
   uid: string;
   email: string;
   displayName: string | null;
   role: UserRole;
+  permissions?: AppModule[];
 }): Promise<UsuarioRow> {
   const ts = nowIso();
+  const explicitPermissions = input.permissions ? sanitizePermissions(input.permissions) : undefined;
   const doc: UsuarioDoc = {
     email: input.email.trim().toLowerCase(),
     displayName: input.displayName?.trim() || null,
     role: input.role,
+    ...(explicitPermissions ? { permissions: explicitPermissions } : {}),
     createdAt: ts,
     updatedAt: ts,
   };
@@ -84,6 +108,7 @@ export async function createUsuarioWithAuth(input: {
   password: string;
   displayName: string;
   role: UserRole;
+  permissions?: AppModule[];
 }): Promise<UsuarioRow> {
   const email = input.email.trim().toLowerCase();
   const displayName = input.displayName.trim();
@@ -124,6 +149,7 @@ export async function createUsuarioWithAuth(input: {
       email,
       displayName,
       role: input.role,
+      permissions: input.permissions,
     });
   } catch (error) {
     await getAdminAuth().deleteUser(authUser.uid).catch(() => undefined);
@@ -161,5 +187,31 @@ export async function updateUsuarioRole(
     updatedAt,
   });
 
-  return { ...current, role, updatedAt };
+  return { ...(await getUsuario(uid))!, updatedAt };
+}
+
+export async function updateUsuarioPermissions(
+  uid: string,
+  permissions: AppModule[],
+  actorUid: string,
+): Promise<UsuarioRow> {
+  const current = await getUsuario(uid);
+  if (!current) throw new Error("Usuário não encontrado.");
+
+  const sanitized = sanitizePermissions(permissions);
+
+  if (uid === actorUid && current.role === "admin") {
+    const admins = await countAdmins();
+    if (admins <= 1 && !sanitized.includes("usuarios")) {
+      throw new Error("O único administrador não pode remover o acesso ao módulo de usuários.");
+    }
+  }
+
+  const updatedAt = nowIso();
+  await getAdminFirestore().collection(COLLECTIONS.usuarios).doc(uid).update({
+    permissions: sanitized,
+    updatedAt,
+  });
+
+  return (await getUsuario(uid))!;
 }

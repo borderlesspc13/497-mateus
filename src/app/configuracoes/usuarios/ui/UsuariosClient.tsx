@@ -1,8 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { changeUsuarioRole, createUsuario } from "@/actions/usuarios";
+import { Fragment, useMemo, useState } from "react";
+import {
+  changeUsuarioPermissions,
+  changeUsuarioRole,
+  createUsuario,
+} from "@/actions/usuarios";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
@@ -10,13 +14,19 @@ import {
   formControlClass,
   panelClass,
   primaryActionClass,
+  secondaryActionClass,
   tableCellClass,
   tableHeadCellClass,
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
+import type { AppModule } from "@/lib/auth/modules";
 import { USER_ROLES, roleLabel, type UserRole } from "@/lib/auth/roles";
 import type { UsuarioRow } from "@/lib/types/domain";
+import {
+  defaultPermissionsForRole,
+  ModulePermissionsEditor,
+} from "./ModulePermissionsEditor";
 
 type UsuariosClientProps = {
   initialItems: UsuarioRow[];
@@ -28,6 +38,7 @@ type CreateForm = {
   email: string;
   password: string;
   role: UserRole;
+  permissions: AppModule[];
 };
 
 const EMPTY_FORM: CreateForm = {
@@ -35,6 +46,7 @@ const EMPTY_FORM: CreateForm = {
   email: "",
   password: "",
   role: "vendedor",
+  permissions: defaultPermissionsForRole("vendedor"),
 };
 
 export default function UsuariosClient({ initialItems, currentUserId }: UsuariosClientProps) {
@@ -46,6 +58,9 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [roleUpdatingId, setRoleUpdatingId] = useState<string | null>(null);
+  const [permissionsEditingId, setPermissionsEditingId] = useState<string | null>(null);
+  const [permissionsDraft, setPermissionsDraft] = useState<AppModule[]>([]);
+  const [permissionsSavingId, setPermissionsSavingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,6 +81,7 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
         email: form.email,
         password: form.password,
         role: form.role,
+        permissions: form.permissions,
       });
       setItems((prev) => [...prev, row].sort((a, b) => a.email.localeCompare(b.email, "pt-BR")));
       setForm(EMPTY_FORM);
@@ -89,6 +105,26 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
       setError(e instanceof Error ? e.message : "Erro ao alterar perfil.");
     } finally {
       setRoleUpdatingId(null);
+    }
+  }
+
+  function openPermissionsEditor(item: UsuarioRow) {
+    setPermissionsEditingId(item.id);
+    setPermissionsDraft(item.permissions as AppModule[]);
+  }
+
+  async function savePermissions(uid: string) {
+    setError(null);
+    setPermissionsSavingId(uid);
+    try {
+      const row = await changeUsuarioPermissions(uid, permissionsDraft);
+      setItems((prev) => prev.map((item) => (item.id === uid ? row : item)));
+      setPermissionsEditingId(null);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar módulos.");
+    } finally {
+      setPermissionsSavingId(null);
     }
   }
 
@@ -139,11 +175,18 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
             </label>
             <label className="block">
               <div className="mb-1 text-xs font-medium text-zinc-600">
-                Perfil <span className="text-red-600">*</span>
+                Perfil base <span className="text-red-600">*</span>
               </div>
               <select
                 value={form.role}
-                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as UserRole }))}
+                onChange={(e) => {
+                  const role = e.target.value as UserRole;
+                  setForm((p) => ({
+                    ...p,
+                    role,
+                    permissions: defaultPermissionsForRole(role),
+                  }));
+                }}
                 className={formControlClass()}
               >
                 {USER_ROLES.map((role) => (
@@ -154,12 +197,22 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
               </select>
             </label>
           </div>
+
+          <div className="mt-6 border-t border-zinc-100 pt-4">
+            <p className="text-sm font-medium text-zinc-900">Módulos permitidos</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Defina quais áreas do sistema este usuário poderá acessar.
+            </p>
+            <div className="mt-4">
+              <ModulePermissionsEditor
+                value={form.permissions}
+                onChange={(permissions) => setForm((p) => ({ ...p, permissions }))}
+              />
+            </div>
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className={primaryActionClass()}
-            >
+            <button type="submit" disabled={saving} className={primaryActionClass()}>
               {saving ? "Criando..." : "Criar usuário"}
             </button>
             <button
@@ -169,7 +222,7 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
                 setShowForm(false);
                 setForm(EMPTY_FORM);
               }}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              className={secondaryActionClass()}
             >
               Cancelar
             </button>
@@ -231,39 +284,101 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
                   <th className={tableHeadCellClass()}>Nome</th>
                   <th className={tableHeadCellClass()}>E-mail</th>
                   <th className={tableHeadCellClass()}>Perfil</th>
+                  <th className={tableHeadCellClass()}>Módulos</th>
                   <th className={tableHeadCellClass()}>Cadastrado em</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((item, index) => (
-                  <tr key={item.id} className={tableRowClass(index)}>
-                    <td className={`${tableCellClass()} font-medium text-zinc-900`}>
-                      {item.displayName ?? "—"}
-                      {item.id === currentUserId ? (
-                        <span className="ml-2 text-xs font-normal text-zinc-500">(você)</span>
-                      ) : null}
-                    </td>
-                    <td className={tableCellClass()}>{item.email}</td>
-                    <td className={tableCellClass()}>
-                      <select
-                        value={item.role}
-                        disabled={roleUpdatingId === item.id}
-                        onChange={(e) =>
-                          void onRoleChange(item.id, e.target.value as UserRole)
-                        }
-                        className={formControlClass("sm")}
-                      >
-                        {USER_ROLES.map((role) => (
-                          <option key={role} value={role}>
-                            {roleLabel(role)}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className={`${tableCellClass()} whitespace-nowrap`}>
-                      {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                    </td>
-                  </tr>
+                  <Fragment key={item.id}>
+                    <tr className={tableRowClass(index)}>
+                      <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                        {item.displayName ?? "—"}
+                        {item.id === currentUserId ? (
+                          <span className="ml-2 text-xs font-normal text-zinc-500">(você)</span>
+                        ) : null}
+                      </td>
+                      <td className={tableCellClass()}>{item.email}</td>
+                      <td className={tableCellClass()}>
+                        <select
+                          value={item.role}
+                          disabled={roleUpdatingId === item.id}
+                          onChange={(e) =>
+                            void onRoleChange(item.id, e.target.value as UserRole)
+                          }
+                          className={formControlClass("sm")}
+                        >
+                          {USER_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {roleLabel(role)}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className={tableCellClass()}>
+                        <button
+                          type="button"
+                          className="text-sm font-semibold text-sky-700 hover:text-sky-800"
+                          onClick={() => openPermissionsEditor(item)}
+                        >
+                          {item.permissions.length} módulo(s)
+                        </button>
+                      </td>
+                      <td className={`${tableCellClass()} whitespace-nowrap`}>
+                        {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                      </td>
+                    </tr>
+                    {permissionsEditingId === item.id ? (
+                      <tr key={`${item.id}-permissions`} className="bg-zinc-50/80">
+                        <td colSpan={5} className={`${tableCellClass()} py-5`}>
+                          <div className="space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-zinc-900">
+                                  Módulos de {item.displayName ?? item.email}
+                                </p>
+                                <p className="text-xs text-zinc-500">
+                                  O menu lateral e as rotas respeitam apenas os módulos marcados.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                className={secondaryActionClass()}
+                                onClick={() =>
+                                  setPermissionsDraft(defaultPermissionsForRole(item.role))
+                                }
+                              >
+                                Usar padrão do perfil
+                              </button>
+                            </div>
+                            <ModulePermissionsEditor
+                              value={permissionsDraft}
+                              onChange={setPermissionsDraft}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                className={primaryActionClass()}
+                                disabled={permissionsSavingId === item.id}
+                                onClick={() => void savePermissions(item.id)}
+                              >
+                                {permissionsSavingId === item.id
+                                  ? "Salvando..."
+                                  : "Salvar módulos"}
+                              </button>
+                              <button
+                                type="button"
+                                className={secondaryActionClass()}
+                                onClick={() => setPermissionsEditingId(null)}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

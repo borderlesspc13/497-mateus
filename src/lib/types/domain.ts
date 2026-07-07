@@ -5,6 +5,7 @@ export type UsuarioRow = {
   email: string;
   displayName: string | null;
   role: UserRole;
+  permissions: string[];
   createdAt: string;
   updatedAt: string;
 };

@@ -10,6 +10,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { getMyProfile } from "@/actions/auth";
+import type { AppModule } from "@/lib/auth/modules";
 import type { UserRole } from "@/lib/auth/roles";
 import {
   establishServerSession,
@@ -20,6 +21,7 @@ import {
 
 export type AuthContextUser = AuthUser & {
   role: UserRole | null;
+  permissions: AppModule[];
 };
 
 type AuthContextValue = {
@@ -42,9 +44,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setUser({
         ...baseUser,
         role: profile?.role ?? null,
+        permissions: (profile?.permissions ?? []) as AppModule[],
       });
     } catch {
-      setUser({ ...baseUser, role: null });
+      setUser({ ...baseUser, role: null, permissions: [] });
     }
   }, []);
 
@@ -52,7 +55,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (!user) return;
     const profile = await getMyProfile();
     setUser((prev) =>
-      prev ? { ...prev, role: profile?.role ?? prev.role } : prev,
+      prev
+        ? {
+            ...prev,
+            role: profile?.role ?? prev.role,
+            permissions: (profile?.permissions ?? prev.permissions) as AppModule[],
+          }
+        : prev,
     );
   }, [user]);
 

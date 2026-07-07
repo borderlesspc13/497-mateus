@@ -1,10 +1,7 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { listExtratos, listRepassesMapaPagamento } from "@/actions/comissoes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { PageLoading } from "@/components/ui/PageLoading";
-import { canViewComissoes } from "@/lib/auth/roles";
-import { getServerSessionUser } from "@/lib/auth/server";
 import ComissoesClient from "./ui/ComissoesClient";
 
 async function ComissoesData() {
@@ -16,11 +13,6 @@ async function ComissoesData() {
 }
 
 export default async function ComissoesPage() {
-  const session = await getServerSessionUser();
-  if (!session || !canViewComissoes(session.role)) {
-    redirect("/");
-  }
-
   return (
     <>
       <PageFlowHeader

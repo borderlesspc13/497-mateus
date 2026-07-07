@@ -5,6 +5,7 @@ import { DashboardMetaWidget } from "@/components/metas/DashboardMetaWidget";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { KpiCardSkeleton } from "@/components/ui/Skeleton";
 import { panelClass } from "@/components/ui/list-panel-classes";
+import { ModuleGuard } from "@/lib/auth/module-guard";
 import { getServerSessionUser } from "@/lib/auth/server";
 
 function DashboardFallback() {
@@ -45,12 +46,16 @@ async function DashboardContent() {
     getServerSessionUser(),
   ]);
   return (
-    <>
+    <ModuleGuard module="dashboard">
       <div className="mb-6">
-        <DashboardMetaWidget userRole={session?.role ?? null} />
+        <DashboardMetaWidget permissions={session?.permissions ?? []} />
       </div>
-      <DashboardTabs stats={stats} ranking={ranking} userRole={session?.role ?? null} />
-    </>
+      <DashboardTabs
+        stats={stats}
+        ranking={ranking}
+        permissions={session?.permissions ?? []}
+      />
+    </ModuleGuard>
   );
 }
 

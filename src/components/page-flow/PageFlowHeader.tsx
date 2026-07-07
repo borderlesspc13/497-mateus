@@ -9,7 +9,7 @@ export type PageCrumb = { label: string; href?: string };
 type PageFlowHeaderProps = {
   crumbs: PageCrumb[];
   title: string;
-  description?: string;
+  description?: ReactNode;
   actions?: ReactNode;
 };
 
@@ -50,7 +50,7 @@ export function PageFlowHeader({
         <div className="space-y-2.5">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
           {description ? (
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
+            <div className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</div>
           ) : null}
         </div>
       </div>

@@ -1,12 +1,6 @@
-import { redirect } from "next/navigation";
 import type { PropsWithChildren } from "react";
-import { canManageUsuarios } from "@/lib/auth/roles";
-import { getServerSessionUser } from "@/lib/auth/server";
+import { ModuleGuard } from "@/lib/auth/module-guard";
 
-export default async function UsuariosLayout({ children }: PropsWithChildren) {
-  const session = await getServerSessionUser();
-  if (!session || !canManageUsuarios(session.role)) {
-    redirect("/configuracoes");
-  }
-  return children;
+export default function UsuariosLayout({ children }: PropsWithChildren) {
+  return <ModuleGuard module="usuarios">{children}</ModuleGuard>;
 }

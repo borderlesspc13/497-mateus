@@ -1,11 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth/server";
+import {
+  clearPermissionsCookie,
+  getServerSessionUser,
+  requireAdmin,
+  writePermissionsCookie,
+} from "@/lib/auth/server";
+import { isAppModule, type AppModule } from "@/lib/auth/modules";
 import { isUserRole, type UserRole } from "@/lib/auth/roles";
 import {
   createUsuarioWithAuth,
+  getUsuario,
   listUsuarios,
+  updateUsuarioPermissions,
   updateUsuarioRole,
 } from "@/lib/firestore/usuarios";
 import type { UsuarioRow } from "@/lib/types/domain";
@@ -20,6 +28,7 @@ export type CreateUsuarioInput = {
   email: string;
   password: string;
   role: UserRole;
+  permissions?: AppModule[];
 };
 
 export async function listUsuariosAdmin(): Promise<UsuarioRow[]> {
@@ -34,11 +43,14 @@ export async function createUsuario(data: CreateUsuarioInput): Promise<UsuarioRo
     throw new Error("Perfil inválido.");
   }
 
+  const permissions = data.permissions?.filter(isAppModule);
+
   const row = await createUsuarioWithAuth({
     email: data.email,
     password: data.password,
     displayName: data.nome,
     role: data.role,
+    permissions,
   });
 
   revalidateUsuarios();
@@ -55,4 +67,30 @@ export async function changeUsuarioRole(uid: string, role: UserRole): Promise<Us
   const row = await updateUsuarioRole(uid, role, actor.uid);
   revalidateUsuarios();
   return row;
+}
+
+export async function changeUsuarioPermissions(
+  uid: string,
+  permissions: AppModule[],
+): Promise<UsuarioRow> {
+  const actor = await requireAdmin();
+
+  const row = await updateUsuarioPermissions(uid, permissions, actor.uid);
+
+  const session = await getServerSessionUser();
+  if (session?.uid === uid) {
+    await writePermissionsCookie(row.permissions as AppModule[]);
+  }
+
+  revalidateUsuarios();
+  return row;
+}
+
+export async function syncMyPermissionsCookie(): Promise<void> {
+  const session = await getServerSessionUser();
+  if (!session) {
+    await clearPermissionsCookie();
+    return;
+  }
+  await writePermissionsCookie(session.permissions);
 }

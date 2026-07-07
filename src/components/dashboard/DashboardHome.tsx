@@ -10,13 +10,13 @@ import {
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
-import { canViewComissoes, type UserRole } from "@/lib/auth/roles";
+import { canAccessModule, type AppModule } from "@/lib/auth/modules";
 import type { DashboardStats } from "@/lib/types/domain";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 
 type DashboardHomeProps = {
   stats: DashboardStats;
-  userRole: UserRole | null;
+  permissions: AppModule[];
 };
 
 type KpiTone = "emerald" | "sky" | "violet" | "amber" | "rose" | "zinc";
@@ -237,10 +237,15 @@ function SectionTitle({ title, description }: { title: string; description: stri
   );
 }
 
-export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
+export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
   const maxMesValor = Math.max(...stats.vendasPorMes.map((m) => m.valorCentavos), 1);
   const maxMesQtd = Math.max(...stats.vendasPorMes.map((m) => m.quantidade), 1);
-  const showComissoes = userRole ? canViewComissoes(userRole) : false;
+  const showComissoes = canAccessModule(permissions, "comissoes");
+  const showInadimplencia = canAccessModule(permissions, "inadimplencia");
+  const showConsorciados = canAccessModule(permissions, "consorciados");
+  const showVendas = canAccessModule(permissions, "vendas");
+  const showAdministradoras = canAccessModule(permissions, "administradoras");
+  const showPlanos = canAccessModule(permissions, "planos");
   const mesAtual = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
   const statusRows = [
@@ -260,8 +265,8 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           value={String(stats.nVendasAtivas)}
           hint="Cotas com status operacional Ativo."
           icon={<IconCart />}
-          href="/vendas"
-          linkLabel="Ver vendas"
+          href={showVendas ? "/vendas" : undefined}
+          linkLabel={showVendas ? "Ver vendas" : undefined}
           tone="emerald"
         />
         <KpiCard
@@ -285,9 +290,10 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           value={String(stats.nVendasInadimplentes)}
           hint="Vendas com status Inadimplente."
           icon={<IconChart />}
-          href="/controle/inadimplencia"
-          linkLabel="Ver inadimplência"
+          href={showInadimplencia ? "/controle/inadimplencia" : undefined}
+          linkLabel={showInadimplencia ? "Ver inadimplência" : undefined}
           tone="amber"
+          muted={!showInadimplencia}
         />
       </div>
 
@@ -297,8 +303,8 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           value={String(stats.nConsorciados)}
           hint="Base cadastral do CRM operacional."
           icon={<IconUsers />}
-          href="/consorciados"
-          linkLabel="Ver cadastro"
+          href={showConsorciados ? "/consorciados" : undefined}
+          linkLabel={showConsorciados ? "Ver cadastro" : undefined}
           tone="zinc"
         />
         <KpiCard
@@ -306,8 +312,9 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           value={String(stats.nAdministradoras)}
           hint="Parceiros e regras por administradora."
           icon={<IconBuilding />}
-          href="/administradoras"
-          linkLabel="Ver cadastro"
+          href={showAdministradoras ? "/administradoras" : undefined}
+          linkLabel={showAdministradoras ? "Ver cadastro" : undefined}
+          muted={!showAdministradoras}
           tone="zinc"
         />
         <KpiCard
@@ -315,8 +322,9 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           value={String(stats.nPlanos)}
           hint="Produtos vinculados às administradoras."
           icon={<IconLayers />}
-          href="/planos"
-          linkLabel="Ver cadastro"
+          href={showPlanos ? "/planos" : undefined}
+          linkLabel={showPlanos ? "Ver cadastro" : undefined}
+          muted={!showPlanos}
           tone="zinc"
         />
         <KpiCard
@@ -324,8 +332,8 @@ export function DashboardHome({ stats, userRole }: DashboardHomeProps) {
           value={String(stats.nVendas)}
           hint={`${stats.nVendasAtivas} ativas · ${taxaAtivas}% da carteira`}
           icon={<IconCart />}
-          href="/vendas"
-          linkLabel="Ver todas"
+          href={showVendas ? "/vendas" : undefined}
+          linkLabel={showVendas ? "Ver todas" : undefined}
           tone="emerald"
         />
       </div>

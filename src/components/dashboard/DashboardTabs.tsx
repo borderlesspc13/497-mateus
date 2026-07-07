@@ -4,7 +4,8 @@ import { useState } from "react";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { DashboardHome } from "@/components/dashboard/DashboardHome";
 import { DashboardRankingPanel } from "@/components/dashboard/DashboardRankingPanel";
-import type { UserRole } from "@/lib/auth/roles";
+import type { AppModule } from "@/lib/auth/modules";
+import { canAccessModule } from "@/lib/auth/modules";
 import type { DashboardRanking, DashboardStats } from "@/lib/types/domain";
 
 type DashboardTab = "overview" | "ranking";
@@ -12,10 +13,10 @@ type DashboardTab = "overview" | "ranking";
 type DashboardTabsProps = {
   stats: DashboardStats;
   ranking: DashboardRanking;
-  userRole: UserRole | null;
+  permissions: AppModule[];
 };
 
-const TABS: { id: DashboardTab; label: string; description: string }[] = [
+const TABS: { id: DashboardTab; label: string; description: string; requiresMetas?: boolean }[] = [
   {
     id: "overview",
     label: "Visão Geral",
@@ -25,12 +26,19 @@ const TABS: { id: DashboardTab; label: string; description: string }[] = [
     id: "ranking",
     label: "Campanhas & Ranking",
     description: "Metas e desempenho comercial do mês — top vendedores e melhor equipe.",
+    requiresMetas: true,
   },
 ];
 
-export function DashboardTabs({ stats, ranking, userRole }: DashboardTabsProps) {
-  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
-  const current = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
+export function DashboardTabs({ stats, ranking, permissions }: DashboardTabsProps) {
+  const visibleTabs = TABS.filter(
+    (tab) =>
+      !tab.requiresMetas ||
+      canAccessModule(permissions, "metas") ||
+      canAccessModule(permissions, "metas-minhas"),
+  );
+  const [activeTab, setActiveTab] = useState<DashboardTab>(visibleTabs[0]?.id ?? "overview");
+  const current = visibleTabs.find((tab) => tab.id === activeTab) ?? visibleTabs[0];
 
   return (
     <>
@@ -44,7 +52,7 @@ export function DashboardTabs({ stats, ranking, userRole }: DashboardTabsProps) 
         className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-1.5"
         aria-label="Separadores do dashboard"
       >
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = tab.id === activeTab;
           return (
             <button
@@ -66,7 +74,7 @@ export function DashboardTabs({ stats, ranking, userRole }: DashboardTabsProps) 
       </nav>
 
       {activeTab === "overview" ? (
-        <DashboardHome stats={stats} userRole={userRole} />
+        <DashboardHome stats={stats} permissions={permissions} />
       ) : (
         <DashboardRankingPanel ranking={ranking} />
       )}

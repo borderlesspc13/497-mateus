@@ -62,7 +62,7 @@ export function ImportacaoReconciliationModal({
             Importação bloqueada — conciliação obrigatória
           </p>
           <h2 id="reconciliation-modal-title" className="mt-1 text-lg font-semibold text-zinc-900">
-            Cotas inadimplentes ausentes na planilha
+            Conciliação de Diferenças
           </h2>
           <p className="mt-2 text-sm leading-6 text-zinc-700">
             {describeInadimplenciaGap(reconciliation)} Para cada contrato listado abaixo, informe se

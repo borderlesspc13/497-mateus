@@ -370,6 +370,7 @@ export default function ImportacaoClient() {
           <ImportacaoReconciliationPanel
             reconciliation={preview.reconciliation}
             reconciliationGatePassed={reconciliationGatePassed}
+            onReopenConciliation={() => setReconciliationModalOpen(true)}
           />
 
           <div

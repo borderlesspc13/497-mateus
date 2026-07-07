@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ConsorciadoFichaResumo } from "@/components/consorciados/ConsorciadoFichaResumo";
+import { ConsorciadoFichaHero } from "@/components/consorciados/ConsorciadoFichaHero";
 import { ConsorciadoHistoricoTabs } from "@/components/consorciados/ConsorciadoHistoricoTabs";
 import { ConsorciadoProdutosTable } from "@/components/consorciados/ConsorciadoProdutosTable";
 import { VendaAtendimentoDrawer } from "@/components/vendas/VendaAtendimentoDrawer";
@@ -11,22 +11,11 @@ import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
-import { panelClass, panelInsetClass, secondaryActionClass } from "@/components/ui/list-panel-classes";
 import type { ConsorciadoRow, VendaRow } from "@/lib/types/domain";
-import { WhatsAppButton } from "@/components/whatsapp/WhatsAppButton";
 
 type FichaConsorciadoProps = {
   id: string;
 };
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-xs font-medium text-zinc-500">{label}</div>
-      <div className="mt-1 text-sm font-medium text-zinc-900">{value || "—"}</div>
-    </div>
-  );
-}
 
 export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
   const [consorciado, setConsorciado] = useState<ConsorciadoRow | null>(null);
@@ -70,7 +59,7 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
   }
 
   if (loading) {
-    return <DetailPageSkeleton sections={4} />;
+    return <DetailPageSkeleton sections={3} />;
   }
 
   if (notFound || !consorciado) {
@@ -93,58 +82,14 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
   }
 
   return (
-    <>
-      <PageFlowHeader
-        crumbs={[
-          { label: "Dashboard", href: "/" },
-          { label: "Consorciados", href: "/consorciados" },
-          { label: consorciado.nome },
-        ]}
-        title="Ficha completa"
-        description={`${consorciado.nome} — produtos contratados e históricos operacionais consolidados.`}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link href="/consorciados" className={backLinkClass()}>
-              Voltar à consulta
-            </Link>
-            <Link href={`/consorciados/${id}/editar`} className={secondaryActionClass()}>
-              Editar dados
-            </Link>
-          </div>
-        }
+    <div className="space-y-6">
+      <ConsorciadoFichaHero
+        consorciado={consorciado}
+        vendas={vendas}
+        editHref={`/consorciados/${id}/editar`}
       />
 
-      {error ? (
-        <AlertBanner tone="error" className="mb-4">
-          {error}
-        </AlertBanner>
-      ) : null}
-
-      <ConsorciadoFichaResumo consorciado={consorciado} vendas={vendas} />
-
-      <section className={`${panelClass()} mt-5`}>
-        <div className={`py-5 ${panelInsetClass()}`}>
-          <h2 className="text-base font-semibold text-zinc-900">Dados pessoais</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <DetailItem label="Nome" value={consorciado.nome} />
-            <DetailItem label="CPF / CNPJ" value={consorciado.cpf_cnpj} />
-            <div>
-              <div className="text-xs font-medium text-zinc-500">Telefone</div>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-900">
-                  {consorciado.telefone || "—"}
-                </span>
-                <WhatsAppButton telefone={consorciado.telefone} nomeCliente={consorciado.nome} />
-              </div>
-            </div>
-            <DetailItem label="E-mail" value={consorciado.email} />
-            <DetailItem
-              label="Cadastrado em"
-              value={new Date(consorciado.criadoEm).toLocaleDateString("pt-BR")}
-            />
-          </div>
-        </div>
-      </section>
+      {error ? <AlertBanner tone="error">{error}</AlertBanner> : null}
 
       <ConsorciadoProdutosTable
         consorciado={consorciado}
@@ -160,6 +105,6 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
         onClose={() => setDrawerOpen(false)}
         defaultTipoRegistro="POS_VENDA"
       />
-    </>
+    </div>
   );
 }

@@ -12,59 +12,96 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import type { UserRole } from "@/lib/auth/roles";
 import {
-  canAccessConfiguracoes,
-  canManageUsuarios,
-  canViewComissoes,
-} from "@/lib/auth/roles";
+  canAccessModule,
+  NAV_MODULE_BY_HREF,
+  type AppModule,
+} from "@/lib/auth/modules";
 
 export type NavLinkItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  module: AppModule;
 };
 
 const BASE_MAIN_NAV: NavLinkItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/consorciados", label: "Consorciados", icon: Users },
-  { href: "/vendas", label: "Vendas", icon: Wallet },
-  { href: "/importacao", label: "Importação", icon: Upload },
-  { href: "/controle/inadimplencia", label: "Inadimplência", icon: AlertTriangle },
-  { href: "/controle/inconsistencia", label: "Inconsistência", icon: AlertCircle },
-  { href: "/controle/pos-venda", label: "Pós-venda", icon: HeadphonesIcon },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
+  { href: "/consorciados", label: "Consorciados", icon: Users, module: "consorciados" },
+  { href: "/vendas", label: "Vendas", icon: Wallet, module: "vendas" },
+  { href: "/importacao", label: "Importação", icon: Upload, module: "importacao" },
+  {
+    href: "/controle/inadimplencia",
+    label: "Inadimplência",
+    icon: AlertTriangle,
+    module: "inadimplencia",
+  },
+  {
+    href: "/controle/inconsistencia",
+    label: "Inconsistência",
+    icon: AlertCircle,
+    module: "inconsistencia",
+  },
+  { href: "/controle/pos-venda", label: "Pós-venda", icon: HeadphonesIcon, module: "pos-venda" },
+];
+
+const OPTIONAL_MAIN_NAV: NavLinkItem[] = [
+  { href: "/comissoes", label: "Comissões", icon: DollarSign, module: "comissoes" },
+  { href: "/metas", label: "Metas", icon: Target, module: "metas" },
+  { href: "/metas/minhas", label: "Minhas Metas", icon: Target, module: "metas-minhas" },
 ];
 
 const BASE_CONFIG_NAV: NavLinkItem[] = [
-  { href: "/configuracoes", label: "Visão geral", icon: LayoutDashboard },
-  { href: "/administradoras", label: "Administradoras", icon: Building2 },
-  { href: "/planos", label: "Planos", icon: Wallet },
-  { href: "/configuracoes/equipes", label: "Equipes", icon: Users },
-  { href: "/configuracoes/vendedores", label: "Vendedores", icon: Users },
+  { href: "/configuracoes", label: "Visão geral", icon: LayoutDashboard, module: "configuracoes" },
+  { href: "/administradoras", label: "Administradoras", icon: Building2, module: "administradoras" },
+  { href: "/planos", label: "Planos", icon: Wallet, module: "planos" },
+  { href: "/configuracoes/equipes", label: "Equipes", icon: Users, module: "configuracoes" },
+  { href: "/configuracoes/vendedores", label: "Vendedores", icon: Users, module: "configuracoes" },
 ];
 
-export function buildMainNav(role: UserRole | null): NavLinkItem[] {
-  const items = [...BASE_MAIN_NAV];
-  if (role && canViewComissoes(role)) {
-    items.splice(3, 0, { href: "/comissoes", label: "Comissões", icon: DollarSign });
-  }
-  if (role && canAccessConfiguracoes(role)) {
-    items.splice(4, 0, { href: "/metas", label: "Metas", icon: Target });
-  } else if (role === "vendedor") {
-    items.splice(3, 0, { href: "/metas/minhas", label: "Minhas Metas", icon: Target });
-  }
-  if (!role || !canAccessConfiguracoes(role)) {
-    return items.filter((item) => item.href !== "/importacao");
-  }
-  return items;
+function filterNavByPermissions(
+  items: NavLinkItem[],
+  permissions: readonly AppModule[],
+): NavLinkItem[] {
+  return items.filter((item) => canAccessModule(permissions, item.module));
 }
 
-export function buildConfigNav(role: UserRole | null): NavLinkItem[] {
-  const items = [...BASE_CONFIG_NAV];
-  if (role && canManageUsuarios(role)) {
-    items.push({ href: "/configuracoes/usuarios", label: "Usuários", icon: Users });
+export function buildMainNav(permissions: readonly AppModule[]): NavLinkItem[] {
+  const items = [...BASE_MAIN_NAV];
+
+  for (const optional of OPTIONAL_MAIN_NAV) {
+    if (!canAccessModule(permissions, optional.module)) continue;
+    if (optional.module === "comissoes") {
+      items.splice(3, 0, optional);
+    } else if (optional.module === "metas" || optional.module === "metas-minhas") {
+      const insertAt = items.findIndex((item) => item.module === "comissoes");
+      items.splice(insertAt >= 0 ? insertAt + 1 : 3, 0, optional);
+    }
   }
-  return items;
+
+  return filterNavByPermissions(items, permissions);
+}
+
+export function buildConfigNav(permissions: readonly AppModule[]): NavLinkItem[] {
+  const items = [...BASE_CONFIG_NAV];
+  if (canAccessModule(permissions, "usuarios")) {
+    items.push({
+      href: "/configuracoes/usuarios",
+      label: "Usuários",
+      icon: Users,
+      module: "usuarios",
+    });
+  }
+  return filterNavByPermissions(items, permissions);
+}
+
+export function hasAnyAdminNavModule(permissions: readonly AppModule[]): boolean {
+  return (
+    canAccessModule(permissions, "configuracoes") ||
+    canAccessModule(permissions, "administradoras") ||
+    canAccessModule(permissions, "planos") ||
+    canAccessModule(permissions, "usuarios")
+  );
 }
 
 export function isNavActive(pathname: string, href: string) {
@@ -114,10 +151,11 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [{ label: "Dashboard", href: "/" }];
 
   let path = "";
-  for (const segment of segments) {
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
     path += `/${segment}`;
-    const label = ROUTE_LABELS[segment] ?? segment;
-    const isLast = segment === segments[segments.length - 1];
+    const label = resolveBreadcrumbLabel(segment, segments, index);
+    const isLast = index === segments.length - 1;
     items.push({
       label,
       href: isLast ? undefined : path,
@@ -127,6 +165,25 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
   return items;
 }
 
+function resolveBreadcrumbLabel(
+  segment: string,
+  segments: string[],
+  index: number,
+): string {
+  const known = ROUTE_LABELS[segment];
+  if (known) return known;
+
+  const parent = segments[index - 1];
+  const isConsorciadoRecord =
+    parent === "consorciados" &&
+    segment !== "nova" &&
+    (segments.length === index + 1 || segments[index + 1] === "editar");
+
+  if (isConsorciadoRecord) return "Ficha";
+
+  return segment;
+}
+
 export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "U";
@@ -134,4 +191,4 @@ export function getInitials(name: string): string {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-export { Settings };
+export { Settings, NAV_MODULE_BY_HREF };

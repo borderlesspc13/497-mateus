@@ -9,6 +9,7 @@ import {
   buildConfigNav,
   buildMainNav,
   getInitials,
+  hasAnyAdminNavModule,
   isConfigSectionActive,
   isNavActive,
   type NavLinkItem,
@@ -33,7 +34,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { canAccessConfiguracoes, roleLabel } from "@/lib/auth/roles";
+import { roleLabel } from "@/lib/auth/roles";
+import type { AppModule } from "@/lib/auth/modules";
 
 function NavItem({
   item,
@@ -77,15 +79,15 @@ function NavItem({
 
 function ConfigNavGroup({
   onNavigate,
-  role,
+  permissions,
 }: {
   onNavigate?: () => void;
-  role: Parameters<typeof buildConfigNav>[0];
+  permissions: AppModule[];
 }) {
   const pathname = usePathname();
   const sectionActive = isConfigSectionActive(pathname);
   const [open, setOpen] = useState(sectionActive);
-  const configNav = buildConfigNav(role);
+  const configNav = buildConfigNav(permissions);
 
   useEffect(() => {
     if (sectionActive) setOpen(true);
@@ -121,13 +123,13 @@ function ConfigNavGroup({
 
 function SidebarNav({
   onNavigate,
-  role,
+  permissions,
 }: {
   onNavigate?: () => void;
-  role: Parameters<typeof buildMainNav>[0];
+  permissions: AppModule[];
 }) {
-  const mainNav = buildMainNav(role);
-  const showConfig = role ? canAccessConfiguracoes(role) : false;
+  const mainNav = buildMainNav(permissions);
+  const showConfig = hasAnyAdminNavModule(permissions);
 
   return (
     <nav className="flex flex-col gap-1" aria-label="Menu principal">
@@ -143,7 +145,7 @@ function SidebarNav({
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
             Administração
           </p>
-          <ConfigNavGroup onNavigate={onNavigate} role={role} />
+          <ConfigNavGroup onNavigate={onNavigate} permissions={permissions} />
         </>
       ) : null}
     </nav>
@@ -228,6 +230,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const userLabel = user?.displayName?.trim() || user?.email || "Usuário";
   const userRoleLabel = user?.role ? roleLabel(user.role) : null;
+  const userPermissions = user?.permissions ?? [];
   const userInitials = getInitials(userLabel);
 
   useEffect(() => {
@@ -256,7 +259,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <AppLogo />
 
           <div className="mt-8 flex-1 overflow-y-auto">
-            <SidebarNav role={user?.role ?? null} />
+            <SidebarNav permissions={userPermissions} />
           </div>
 
           <div className="mt-6 rounded-2xl border border-sidebar-border bg-sidebar-accent/50 p-4">
@@ -362,7 +365,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 </div>
                 <div className="mt-6 flex-1 overflow-y-auto">
                   <SidebarNav
-                    role={user?.role ?? null}
+                    permissions={userPermissions}
                     onNavigate={() => setMobileOpen(false)}
                   />
                 </div>
