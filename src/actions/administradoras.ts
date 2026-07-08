@@ -10,6 +10,7 @@ import {
   findAdministradoraByCnpj,
   getAdministradora as getAdministradoraDoc,
   listAdministradoras as listAdministradorasDocs,
+  refreshDashboardReadModels,
   updateAdministradora as updateAdministradoraDoc,
 } from "@/lib/firestore/repository";
 import type { AdministradoraRow } from "@/lib/types/domain";
@@ -62,6 +63,7 @@ export async function createAdministradora(data: AdministradoraInput): Promise<A
   await assertCnpjAvailable(cnpj);
 
   const row = await createAdministradoraDoc({ ...data, nome, cnpj });
+  await refreshDashboardReadModels();
   revalidateAdministradoras();
   return row;
 }
@@ -87,6 +89,7 @@ export async function updateAdministradora(
   }
 
   const row = await updateAdministradoraDoc(id, data);
+  await refreshDashboardReadModels();
   revalidateAdministradoras();
   return row;
 }
@@ -102,5 +105,6 @@ export async function deleteAdministradora(id: string): Promise<void> {
   if (vendas > 0) throw new Error("Existem vendas vinculadas a esta administradora.");
 
   await deleteAdministradoraDoc(id);
+  await refreshDashboardReadModels();
   revalidateAdministradoras();
 }

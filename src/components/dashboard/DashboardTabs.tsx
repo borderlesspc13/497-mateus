@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getDashboardRanking } from "@/actions/dashboard";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { DashboardHome } from "@/components/dashboard/DashboardHome";
 import { DashboardRankingPanel } from "@/components/dashboard/DashboardRankingPanel";
@@ -12,7 +13,6 @@ type DashboardTab = "overview" | "ranking";
 
 type DashboardTabsProps = {
   stats: DashboardStats;
-  ranking: DashboardRanking;
   permissions: AppModule[];
 };
 
@@ -30,7 +30,19 @@ const TABS: { id: DashboardTab; label: string; description: string; requiresMeta
   },
 ];
 
-export function DashboardTabs({ stats, ranking, permissions }: DashboardTabsProps) {
+function RankingPanelSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="h-72 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-50 lg:col-span-1" />
+        <div className="h-72 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-50 lg:col-span-2" />
+      </div>
+      <div className="h-64 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-50" />
+    </div>
+  );
+}
+
+export function DashboardTabs({ stats, permissions }: DashboardTabsProps) {
   const visibleTabs = TABS.filter(
     (tab) =>
       !tab.requiresMetas ||
@@ -38,7 +50,26 @@ export function DashboardTabs({ stats, ranking, permissions }: DashboardTabsProp
       canAccessModule(permissions, "metas-minhas"),
   );
   const [activeTab, setActiveTab] = useState<DashboardTab>(visibleTabs[0]?.id ?? "overview");
+  const [ranking, setRanking] = useState<DashboardRanking | null>(null);
   const current = visibleTabs.find((tab) => tab.id === activeTab) ?? visibleTabs[0];
+
+  useEffect(() => {
+    if (activeTab !== "ranking" || ranking) return;
+
+    let cancelled = false;
+
+    void getDashboardRanking()
+      .then((nextRanking) => {
+        if (!cancelled) {
+          setRanking(nextRanking);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, ranking]);
 
   return (
     <>
@@ -59,7 +90,6 @@ export function DashboardTabs({ stats, ranking, permissions }: DashboardTabsProp
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              aria-selected={isActive}
               className={[
                 "inline-flex h-10 flex-1 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all sm:flex-none sm:min-w-[11rem]",
                 isActive
@@ -75,6 +105,8 @@ export function DashboardTabs({ stats, ranking, permissions }: DashboardTabsProp
 
       {activeTab === "overview" ? (
         <DashboardHome stats={stats} permissions={permissions} />
+      ) : !ranking ? (
+        <RankingPanelSkeleton />
       ) : (
         <DashboardRankingPanel ranking={ranking} />
       )}

@@ -158,12 +158,6 @@ export function DashboardRankingPanel({ ranking }: DashboardRankingPanelProps) {
                   {ranking.melhorEquipe.quantidadeVendas === 1 ? "" : "s"} ativa
                   {ranking.melhorEquipe.quantidadeVendas === 1 ? "" : "s"} no mês
                 </p>
-                <Link
-                  href="/configuracoes/equipes"
-                  className="mt-4 inline-flex text-xs font-semibold text-amber-800 underline-offset-4 hover:underline"
-                >
-                  Ver equipes →
-                </Link>
               </div>
             ) : (
               <div className="mt-6">

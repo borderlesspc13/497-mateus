@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { RootLayoutClient } from "@/components/layout/RootLayoutClient";
 import { ThemeScript } from "@/components/theme/ThemeScript";
+import { getServerSessionUser } from "@/lib/auth/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,14 +20,13 @@ export const metadata: Metadata = {
   description: "Sistema de gestão operacional para consórcios.",
 };
 
-/** App depende de Firebase Admin em runtime — evita prerender no build (Netlify/Vercel). */
-export const dynamic = "force-dynamic";
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const sessionUser = await getServerSessionUser();
+
   return (
     <html
       lang="pt-BR"
@@ -35,7 +35,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background font-sans text-foreground">
         <ThemeScript />
-        <RootLayoutClient>{children}</RootLayoutClient>
+        <RootLayoutClient initialUser={sessionUser}>{children}</RootLayoutClient>
       </body>
     </html>
   );

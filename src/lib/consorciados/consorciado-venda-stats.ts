@@ -1,4 +1,4 @@
-import type { VendaSearchIndexRow } from "@/lib/firestore/vendas-search-client";
+import type { ConsorciadoVendaSearchIndexRow } from "@/actions/consorciados";
 
 export type ConsorciadoVendaStats = {
   totalCotas: number;
@@ -7,7 +7,7 @@ export type ConsorciadoVendaStats = {
 };
 
 export function buildConsorciadoVendaStatsMap(
-  vendasIndex: VendaSearchIndexRow[],
+  vendasIndex: ConsorciadoVendaSearchIndexRow[],
 ): Map<string, ConsorciadoVendaStats> {
   const map = new Map<string, ConsorciadoVendaStats>();
 

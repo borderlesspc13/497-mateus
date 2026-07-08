@@ -1,12 +1,32 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
+import { listAdministradoras } from "@/actions/administradoras";
+import { listEquipesMini } from "@/actions/equipes";
 import { listVendasPaginated } from "@/actions/vendas";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { PageLoading } from "@/components/ui/PageLoading";
 import ControleCotasClient from "../ui/ControleCotasClient";
 
 async function InadimplenciaData() {
-  const page = await listVendasPaginated({ statusOperacional: "INADIMPLENTE" });
-  return <ControleCotasClient modo="inadimplencia" initialPage={page} />;
+  const [page, administradoras, equipes] = await Promise.all([
+    listVendasPaginated({ statusOperacional: "INADIMPLENTE" }),
+    listAdministradoras(),
+    listEquipesMini(),
+  ]);
+
+  return (
+    <ControleCotasClient
+      modo="inadimplencia"
+      initialPage={page}
+      filterOptions={{
+        administradoras: administradoras.map((item) => ({
+          id: item.id,
+          nome: item.nome,
+          cnpj: item.cnpj,
+        })),
+        equipes,
+      }}
+    />
+  );
 }
 
 export default function ControleInadimplenciaPage() {
@@ -20,7 +40,7 @@ export default function ControleInadimplenciaPage() {
         title="Controle de inadimplência"
         description="Monitore cotas por status operacional. Clique em uma linha para abrir a timeline de atendimento."
       />
-      <Suspense fallback={<PageLoading rows={8} columns={5} withHeader={false} />}>
+      <Suspense fallback={<PageLoading rows={8} columns={6} withHeader={false} />}>
         <InadimplenciaData />
       </Suspense>
     </>

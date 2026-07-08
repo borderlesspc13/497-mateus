@@ -1,5 +1,5 @@
+import type { ConsorciadoVendaSearchIndexRow } from "@/actions/consorciados";
 import type { ConsorciadoRow } from "@/lib/types/domain";
-import type { VendaSearchIndexRow } from "@/lib/firestore/vendas-search-client";
 
 export type ConsorciadoSearchFilters = {
   nome: string;
@@ -26,7 +26,7 @@ function includesIgnoreCase(haystack: string, needle: string) {
 }
 
 function resolveConsorciadoIdsFromVendas(
-  vendasIndex: VendaSearchIndexRow[],
+  vendasIndex: ConsorciadoVendaSearchIndexRow[],
   filters: ConsorciadoSearchFilters,
 ): Set<string> | null {
   const hasVendaFilter = Boolean(
@@ -57,7 +57,7 @@ export function hasActiveConsorciadoSearchFilters(filters: ConsorciadoSearchFilt
 
 export function filterConsorciados(
   consorciados: ConsorciadoRow[],
-  vendasIndex: VendaSearchIndexRow[],
+  vendasIndex: ConsorciadoVendaSearchIndexRow[],
   filters: ConsorciadoSearchFilters,
 ): ConsorciadoRow[] {
   const idsFromVendas = resolveConsorciadoIdsFromVendas(vendasIndex, filters);

@@ -10,6 +10,7 @@ import {
   getPlano as getPlanoDoc,
   listPlanos as listPlanosDocs,
   listPlanosMiniByAdministradora as listPlanosMiniByAdministradoraDocs,
+  refreshDashboardReadModels,
   updatePlano as updatePlanoDoc,
 } from "@/lib/firestore/repository";
 import type { PlanoMini, PlanoRow } from "@/lib/types/domain";
@@ -64,6 +65,14 @@ export async function listPlanos(): Promise<PlanoRow[]> {
   return listPlanosDocs();
 }
 
+
+export async function listPlanosMini(): Promise<PlanoMini[]> {
+  const planos = await listPlanosDocs();
+  return planos
+    .map((p) => ({ id: p.id, nome: p.nome, tipoBem: p.tipoBem }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
 export async function listPlanosMiniByAdministradora(
   administradoraId: string,
 ): Promise<PlanoMini[]> {
@@ -89,6 +98,7 @@ export async function createPlano(data: PlanoInput): Promise<PlanoRow> {
     tipoBem,
     regrasRepasseJson: data.regrasRepasseJson ?? null,
   });
+  await refreshDashboardReadModels();
   revalidatePlanos();
   return row;
 }
@@ -139,6 +149,7 @@ export async function updatePlano(id: string, patch: Partial<PlanoInput>): Promi
   assertRegrasFinanceiras(merged);
 
   const row = await updatePlanoDoc(id, data);
+  await refreshDashboardReadModels();
   revalidatePlanos();
   return row;
 }
@@ -149,5 +160,6 @@ export async function deletePlano(id: string): Promise<void> {
   if (vendas > 0) throw new Error("Existem vendas vinculadas a este plano.");
 
   await deletePlanoDoc(id);
+  await refreshDashboardReadModels();
   revalidatePlanos();
 }

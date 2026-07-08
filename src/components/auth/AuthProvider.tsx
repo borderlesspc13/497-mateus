@@ -10,6 +10,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { getMyProfile } from "@/actions/auth";
+import type { SessionUser } from "@/lib/auth/server";
 import type { AppModule } from "@/lib/auth/modules";
 import type { UserRole } from "@/lib/auth/roles";
 import {
@@ -33,9 +34,25 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: PropsWithChildren) {
-  const [user, setUser] = useState<AuthContextUser | null>(null);
-  const [loading, setLoading] = useState(true);
+type AuthProviderProps = PropsWithChildren<{
+  initialServerUser: SessionUser | null;
+}>;
+
+function toInitialAuthUser(user: SessionUser | null): AuthContextUser | null {
+  if (!user) return null;
+  return {
+    uid: user.uid,
+    email: user.email ?? "",
+    displayName: null,
+    role: user.role,
+    permissions: user.permissions,
+  };
+}
+
+export function AuthProvider({ children, initialServerUser }: AuthProviderProps) {
+  const initialUser = useMemo(() => toInitialAuthUser(initialServerUser), [initialServerUser]);
+  const [user, setUser] = useState<AuthContextUser | null>(initialUser);
+  const [loading, setLoading] = useState(!initialUser);
 
   const loadProfile = useCallback(async (baseUser: AuthUser) => {
     try {
@@ -73,11 +90,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      setUser((prev) => {
+        if (!prev || prev.uid !== nextUser.uid) return prev;
+        return {
+          ...prev,
+          displayName: nextUser.displayName,
+          email: nextUser.email,
+        };
+      });
+
+      if (initialUser?.uid === nextUser.uid) {
+        setLoading(false);
+        return;
+      }
+
       void loadProfile(nextUser).finally(() => setLoading(false));
     });
 
     return unsubscribe;
-  }, [loadProfile]);
+  }, [initialUser, loadProfile]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

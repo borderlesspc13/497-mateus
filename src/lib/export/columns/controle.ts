@@ -15,6 +15,7 @@ const CONTROLE_BASE_COLUMNS: ExportColumnDef<VendaRow>[] = [
   { header: "Vencimento (dia)", accessor: (row) => row.dataVencimento },
   { header: "Consorciado", accessor: (row) => row.consorciado?.nome },
   { header: "Telefone", accessor: (row) => row.consorciado?.telefone },
+  { header: "Administradora", accessor: (row) => row.administradora?.nome },
   {
     header: "Status",
     accessor: (row) => row.statusOperacional,

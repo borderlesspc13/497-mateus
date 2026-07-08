@@ -173,21 +173,6 @@ function IconUsers() {
   );
 }
 
-function IconBuilding() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01M9 13h.01M15 13h.01" />
-    </svg>
-  );
-}
-
-function IconLayers() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  );
-}
 
 function IconCart() {
   return (
@@ -244,8 +229,6 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
   const showInadimplencia = canAccessModule(permissions, "inadimplencia");
   const showConsorciados = canAccessModule(permissions, "consorciados");
   const showVendas = canAccessModule(permissions, "vendas");
-  const showAdministradoras = canAccessModule(permissions, "administradoras");
-  const showPlanos = canAccessModule(permissions, "planos");
   const mesAtual = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
   const statusRows = [
@@ -253,9 +236,6 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
     { label: "Inadimplentes", count: stats.nVendasInadimplentes, tone: "bg-amber-500" },
     { label: "Canceladas", count: stats.nVendasCanceladas, tone: "bg-red-400" },
   ];
-
-  const taxaAtivas =
-    stats.nVendas > 0 ? Math.round((stats.nVendasAtivas / stats.nVendas) * 100) : 0;
 
   return (
     <>
@@ -297,7 +277,7 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Consorciados"
           value={String(stats.nConsorciados)}
@@ -308,37 +288,14 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
           tone="zinc"
         />
         <KpiCard
-          label="Administradoras"
-          value={String(stats.nAdministradoras)}
-          hint="Parceiros e regras por administradora."
-          icon={<IconBuilding />}
-          href={showAdministradoras ? "/administradoras" : undefined}
-          linkLabel={showAdministradoras ? "Ver cadastro" : undefined}
-          muted={!showAdministradoras}
-          tone="zinc"
-        />
-        <KpiCard
-          label="Planos"
-          value={String(stats.nPlanos)}
-          hint="Produtos vinculados às administradoras."
-          icon={<IconLayers />}
-          href={showPlanos ? "/planos" : undefined}
-          linkLabel={showPlanos ? "Ver cadastro" : undefined}
-          muted={!showPlanos}
-          tone="zinc"
-        />
-        <KpiCard
           label="Vendas"
           value={String(stats.nVendas)}
-          hint={`${stats.nVendasAtivas} ativas · ${taxaAtivas}% da carteira`}
+          hint={`${stats.nVendasAtivas} ativas na carteira`}
           icon={<IconCart />}
           href={showVendas ? "/vendas" : undefined}
           linkLabel={showVendas ? "Ver todas" : undefined}
           tone="emerald"
         />
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard
           label="Valor total (carteira)"
           value={formatMoneyPtBrFromCentavos(stats.valorTotalCentavos)}
@@ -352,14 +309,6 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
           hint="Média das vendas com valor informado."
           icon={<IconChart />}
           tone="violet"
-        />
-        <KpiCard
-          label="Canceladas"
-          value={String(stats.nVendasCanceladas)}
-          hint={`${stats.nVendas} vendas no total`}
-          icon={<IconLayers />}
-          tone="rose"
-          muted={stats.nVendasCanceladas === 0}
         />
       </div>
 
@@ -444,139 +393,80 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
         </section>
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <section className={panelClass()}>
-          <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
-            <SectionTitle
-              title="Vendas recentes"
-              description="Últimas movimentações registradas."
-            />
+      <section className={`${panelClass()} mt-8`}>
+        <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
+          <SectionTitle
+            title="Vendas recentes"
+            description="Últimas movimentações registradas."
+          />
+          {showVendas ? (
             <Link
               href="/vendas"
               className="shrink-0 text-xs font-semibold text-zinc-900 underline-offset-4 hover:underline"
             >
               Ver todas
             </Link>
-          </div>
+          ) : null}
+        </div>
 
-          {stats.vendasRecentes.length === 0 ? (
-            <div className="px-5 pb-5 sm:px-6">
-              <EmptyState
-                title="Nenhuma venda cadastrada"
-                description="Registre a primeira venda para acompanhar o pipeline comercial."
-                action={
+        {stats.vendasRecentes.length === 0 ? (
+          <div className="px-5 pb-5 sm:px-6">
+            <EmptyState
+              title="Nenhuma venda cadastrada"
+              description="Registre a primeira venda para acompanhar o pipeline comercial."
+              action={
+                showVendas ? (
                   <Link
                     href="/vendas/nova"
                     className="inline-flex h-11 items-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800"
                   >
                     Nova venda
                   </Link>
-                }
-              />
-            </div>
-          ) : (
-            <div className={`${tableWrapClass()} pb-2`}>
-              <table className={dataTableClass()}>
-                <thead>
-                  <tr>
-                    <th className={tableHeadCellClass()}>Título</th>
-                    <th className={tableHeadCellClass()}>Status</th>
-                    <th className={tableHeadCellClass()}>Valor</th>
-                    <th className={tableHeadCellClass()}>Data</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.vendasRecentes.map((v, index) => (
-                    <tr key={v.id} className={tableRowClass(index)}>
-                      <td className={tableCellClass()}>
-                        <Link
-                          href={`/vendas/${v.id}`}
-                          className="font-semibold text-zinc-900 underline-offset-2 hover:underline"
-                        >
-                          {v.titulo}
-                        </Link>
-                        <div className="mt-0.5 text-xs text-zinc-500">
-                          {v.consorciadoNome ?? "Sem consorciado"} · {v.administradoraNome}
-                        </div>
-                      </td>
-                      <td className={tableCellClass()}>
-                        <StatusBadge status={v.statusOperacional} />
-                      </td>
-                      <td className={`${tableCellClass()} whitespace-nowrap tabular-nums font-medium`}>
-                        {formatMoneyPtBrFromCentavos(v.valorCentavos)}
-                      </td>
-                      <td className={`${tableCellClass()} whitespace-nowrap`}>
-                        {formatDate(v.dataVenda ?? null)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <section className={`${panelClass()} p-6`}>
-          <div className="flex items-start justify-between gap-4">
-            <SectionTitle
-              title="Top administradoras"
-              description="Ranking por volume e valor de vendas."
+                ) : undefined
+              }
             />
-            <Link
-              href="/administradoras"
-              className="shrink-0 text-xs font-semibold text-zinc-900 underline-offset-4 hover:underline"
-            >
-              Ver todas
-            </Link>
           </div>
-
-          {stats.vendasPorAdministradora.length === 0 ? (
-            <div className="mt-6">
-              <EmptyState
-                title="Sem dados de ranking"
-                description="Cadastre administradoras e vendas para ver o ranking por parceiro."
-              />
-            </div>
-          ) : (
-            <div className={`${tableWrapClass()} mt-6`}>
-              <table className={dataTableClass()}>
-                <thead>
-                  <tr>
-                    <th className={tableHeadCellClass()}>Administradora</th>
-                    <th className={tableHeadCellClass()}>Vendas</th>
-                    <th className={tableHeadCellClass()}>Valor</th>
+        ) : (
+          <div className={`${tableWrapClass()} pb-2`}>
+            <table className={dataTableClass()}>
+              <thead>
+                <tr>
+                  <th className={tableHeadCellClass()}>Título</th>
+                  <th className={tableHeadCellClass()}>Status</th>
+                  <th className={tableHeadCellClass()}>Valor</th>
+                  <th className={tableHeadCellClass()}>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.vendasRecentes.map((v, index) => (
+                  <tr key={v.id} className={tableRowClass(index)}>
+                    <td className={tableCellClass()}>
+                      <Link
+                        href={`/vendas/${v.id}`}
+                        className="font-semibold text-zinc-900 underline-offset-2 hover:underline"
+                      >
+                        {v.titulo}
+                      </Link>
+                      <div className="mt-0.5 text-xs text-zinc-500">
+                        {v.consorciadoNome ?? "Sem consorciado"} · {v.administradoraNome}
+                      </div>
+                    </td>
+                    <td className={tableCellClass()}>
+                      <StatusBadge status={v.statusOperacional} />
+                    </td>
+                    <td className={`${tableCellClass()} whitespace-nowrap tabular-nums font-medium`}>
+                      {formatMoneyPtBrFromCentavos(v.valorCentavos)}
+                    </td>
+                    <td className={`${tableCellClass()} whitespace-nowrap`}>
+                      {formatDate(v.dataVenda ?? null)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {stats.vendasPorAdministradora.map((adm, index) => (
-                    <tr key={adm.id} className={tableRowClass(index)}>
-                      <td className={tableCellClass()}>
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-xs font-bold text-zinc-700">
-                            {index + 1}
-                          </span>
-                          <Link
-                            href={`/administradoras/${adm.id}`}
-                            className="font-semibold text-zinc-900 underline-offset-2 hover:underline"
-                          >
-                            {adm.nome}
-                          </Link>
-                        </div>
-                      </td>
-                      <td className={`${tableCellClass()} tabular-nums font-medium`}>
-                        {adm.quantidade}
-                      </td>
-                      <td className={`${tableCellClass()} whitespace-nowrap tabular-nums font-medium`}>
-                        {formatMoneyPtBrFromCentavos(adm.valorCentavos)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </>
   );
 }

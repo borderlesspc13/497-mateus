@@ -15,8 +15,10 @@ import {
   listVendas as listVendasDocs,
   listVendasPaginated as listVendasPaginatedDocs,
   listVendasPosVendaControle as listVendasPosVendaControleDocs,
+  refreshDashboardReadModels,
   updateVenda as updateVendaDoc,
 } from "@/lib/firestore/repository";
+import { refreshMetasWidgetReadModels } from "@/actions/metas";
 import { aplicarEstornoCancelamentoVenda } from "@/lib/firestore/estorno-cancelamento";
 import {
   assertCotaIdentificacaoFields,
@@ -171,6 +173,7 @@ export async function createVenda(data: VendaInput): Promise<VendaRow> {
     statusInconsistencia: data.statusInconsistencia ?? "CONSISTENTE",
   });
 
+  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
   revalidateVendas();
   return row;
 }
@@ -317,11 +320,13 @@ export async function updateVenda(id: string, patch: Partial<VendaInput>): Promi
     }
   }
 
+  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
   revalidateVendas();
   return row;
 }
 
 export async function deleteVenda(id: string): Promise<void> {
   await deleteVendaDoc(id);
+  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
   revalidateVendas();
 }

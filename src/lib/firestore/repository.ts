@@ -60,6 +60,8 @@ import type {
   ChecklistAtivacao,
   ConsorciadoMini,
   ConsorciadoRow,
+  DashboardRanking,
+  DashboardStats,
   EquipeMini,
   EquipeRow,
   ExtratoRow,
@@ -76,6 +78,15 @@ import type {
 function db() {
   return getAdminFirestore();
 }
+
+const DASHBOARD_STATS_SNAPSHOT_ID = "home-stats-v1";
+const DASHBOARD_RANKING_SNAPSHOT_ID = "home-ranking-v1";
+
+type DashboardSnapshotEnvelope<T> = {
+  payload: T;
+  updatedAt: string;
+  version: 1;
+};
 
 async function getAdministradoraDoc(id: string): Promise<DocWithId<AdministradoraDoc> | null> {
   const snap = await db().collection(COLLECTIONS.administradoras).doc(id).get();
@@ -218,7 +229,9 @@ export async function updateAdministradora(
 ): Promise<AdministradoraRow> {
   const current = await getAdministradoraDoc(id);
   if (!current) throw new Error("Administradora não encontrada.");
-  const { id: _id, ...currentData } = current;
+  const currentData = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== "id"),
+  ) as Omit<typeof current, "id">;
   const next: AdministradoraDoc = {
     ...currentData,
     ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
@@ -295,7 +308,9 @@ export async function updatePlano(
   const nextAdmId = patch.administradoraId ?? current.administradoraId;
   const adm = await getAdministradoraDoc(nextAdmId);
   if (!adm) throw new Error("Administradora não encontrada.");
-  const { id: _id, ...currentData } = current;
+  const currentData = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== "id"),
+  ) as Omit<typeof current, "id">;
   const next: PlanoDoc = {
     ...currentData,
     ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
@@ -406,7 +421,9 @@ export async function updateEquipe(
 ): Promise<EquipeRow> {
   const current = await getEquipeDoc(id);
   if (!current) throw new Error("Equipe não encontrada.");
-  const { id: _id, ...currentData } = current;
+  const currentData = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== "id"),
+  ) as Omit<typeof current, "id">;
   const next: EquipeDoc = {
     ...currentData,
     ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
@@ -497,7 +514,9 @@ export async function updateVendedor(
   const nextEquipeId = patch.equipeId ?? current.equipeId;
   const equipe = await getEquipeDoc(nextEquipeId);
   if (!equipe) throw new Error("Equipe não encontrada.");
-  const { id: _id, ...currentData } = current;
+  const currentData = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== "id"),
+  ) as Omit<typeof current, "id">;
   const next: VendedorDoc = {
     ...currentData,
     ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
@@ -593,7 +612,31 @@ export type VendasListFilters = {
   statusOperacional?: StatusOperacionalCota;
   statusInconsistencia?: StatusInconsistencia;
   administradoraId?: string;
+  planoId?: string;
+  equipeId?: string;
+  vendedorId?: string;
+  /** Data inicial inclusiva (YYYY-MM-DD), baseada em dataVenda/dataContrato. */
+  dataVendaFrom?: string;
+  /** Data final inclusiva (YYYY-MM-DD), baseada em dataVenda/dataContrato. */
+  dataVendaTo?: string;
 };
+
+function hasRelationOrDateFilters(filters: VendasListFilters): boolean {
+  return Boolean(
+    filters.planoId ||
+      filters.equipeId ||
+      filters.vendedorId ||
+      filters.dataVendaFrom ||
+      filters.dataVendaTo,
+  );
+}
+
+function vendaListDateKey(venda: Pick<VendaDoc, "dataVenda" | "dataContrato">): string | null {
+  const iso = venda.dataVenda ?? venda.dataContrato;
+  if (!iso) return null;
+  const key = iso.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : null;
+}
 
 export type VendasListPage = {
   items: VendaRow[];
@@ -645,6 +688,15 @@ function buildVendasPaginatedQuery(filters: VendasListFilters) {
 
   if (filters.administradoraId) {
     q = q.where("administradoraId", "==", filters.administradoraId);
+  }
+  if (filters.planoId) {
+    q = q.where("planoId", "==", filters.planoId);
+  }
+  if (filters.equipeId) {
+    q = q.where("equipeId", "==", filters.equipeId);
+  }
+  if (filters.vendedorId) {
+    q = q.where("vendedorId", "==", filters.vendedorId);
   }
   if (filters.statusInconsistencia) {
     q = q.where("statusInconsistencia", "==", filters.statusInconsistencia);
@@ -703,12 +755,30 @@ function applyVendasListFiltersInMemory(
     if (filters.administradoraId && venda.administradoraId !== filters.administradoraId) {
       return false;
     }
+    if (filters.planoId && venda.planoId !== filters.planoId) {
+      return false;
+    }
+    if (filters.equipeId && venda.equipeId !== filters.equipeId) {
+      return false;
+    }
+    if (filters.vendedorId && venda.vendedorId !== filters.vendedorId) {
+      return false;
+    }
     if (
       filters.statusInconsistencia &&
       venda.statusInconsistencia !== filters.statusInconsistencia
     ) {
       return false;
     }
+
+    const dateKey = vendaListDateKey(venda);
+    if (filters.dataVendaFrom) {
+      if (!dateKey || dateKey < filters.dataVendaFrom) return false;
+    }
+    if (filters.dataVendaTo) {
+      if (!dateKey || dateKey > filters.dataVendaTo) return false;
+    }
+
     return true;
   });
 }
@@ -764,6 +834,55 @@ export async function listVendasPaginated(
   try {
     if (filters.statusOperacional) {
       return listVendasPaginatedByStatusOperacional(filters, cursorDocId);
+    }
+
+    // Filtros de data (e combinacoes sem indice composto) exigem materializacao + filtro em memoria.
+    if (filters.dataVendaFrom || filters.dataVendaTo) {
+      let q: FirebaseFirestore.Query = db().collection(COLLECTIONS.vendas);
+      if (filters.administradoraId) {
+        q = q.where("administradoraId", "==", filters.administradoraId);
+      }
+      if (filters.planoId) {
+        q = q.where("planoId", "==", filters.planoId);
+      }
+      if (filters.equipeId) {
+        q = q.where("equipeId", "==", filters.equipeId);
+      }
+      if (filters.vendedorId) {
+        q = q.where("vendedorId", "==", filters.vendedorId);
+      }
+      if (filters.statusInconsistencia) {
+        q = q.where("statusInconsistencia", "==", filters.statusInconsistencia);
+      }
+
+      const snap = await q.get();
+      const vendas = applyVendasListFiltersInMemory(
+        snap.docs.map((doc) => normalizeVendaDoc({ id: doc.id, ...(doc.data() as VendaDoc) })),
+        filters,
+      );
+      vendas.sort((a, b) => b.dataContrato.localeCompare(a.dataContrato));
+
+      let startIndex = 0;
+      if (cursorDocId) {
+        const cursorIndex = vendas.findIndex((venda) => venda.id === cursorDocId);
+        startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+      }
+
+      const page = vendas.slice(startIndex, startIndex + VENDAS_PAGE_SIZE);
+      if (page.length === 0) {
+        return { items: [], lastDocId: null, hasMore: false };
+      }
+
+      const maps = await buildRelationMapsForVendas(page);
+      const items = page
+        .map((venda) => resolveVendaRelations(venda, maps))
+        .filter((x): x is VendaRow => x !== null);
+      const lastDoc = page[page.length - 1];
+      return {
+        items,
+        lastDocId: lastDoc?.id ?? null,
+        hasMore: startIndex + VENDAS_PAGE_SIZE < vendas.length,
+      };
     }
 
     let q = buildVendasPaginatedQuery(filters);
@@ -960,7 +1079,9 @@ export async function updateVenda(
     throw new Error("O vendedor não pertence à equipe selecionada.");
   }
 
-  const { id: _id, ...currentData } = current;
+  const currentData = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== "id"),
+  ) as Omit<typeof current, "id">;
   const nextDataVenda =
     patch.dataVenda !== undefined ? patch.dataVenda : currentData.dataVenda;
   const patchEntries = Object.fromEntries(
@@ -1007,7 +1128,7 @@ export async function getDashboardCounts(): Promise<{
   };
 }
 
-export async function getDashboardStats(): Promise<import("@/lib/types/domain").DashboardStats> {
+async function buildDashboardStatsFromSource(): Promise<DashboardStats> {
   const [vendas, administradoras, planos, consorciados, extratos] = await Promise.all([
     listVendas(),
     listAdministradoraDocs(),
@@ -1022,6 +1143,30 @@ export async function getDashboardStats(): Promise<import("@/lib/types/domain").
     planos.length,
     extratos,
   );
+}
+
+async function getDashboardSnapshotDoc<T>(
+  snapshotId: string,
+): Promise<DashboardSnapshotEnvelope<T> | null> {
+  const snap = await db().collection(COLLECTIONS.dashboardSnapshots).doc(snapshotId).get();
+  if (!snap.exists) return null;
+  return snap.data() as DashboardSnapshotEnvelope<T>;
+}
+
+async function setDashboardSnapshotDoc<T>(snapshotId: string, payload: T): Promise<T> {
+  const doc: DashboardSnapshotEnvelope<T> = {
+    payload,
+    updatedAt: nowIso(),
+    version: 1,
+  };
+  await db().collection(COLLECTIONS.dashboardSnapshots).doc(snapshotId).set(doc);
+  return payload;
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const snapshot = await getDashboardSnapshotDoc<DashboardStats>(DASHBOARD_STATS_SNAPSHOT_ID);
+  if (snapshot?.payload) return snapshot.payload;
+  return setDashboardSnapshotDoc(DASHBOARD_STATS_SNAPSHOT_ID, await buildDashboardStatsFromSource());
 }
 
 export async function listVendaDocsByStatusOperacional(
@@ -1060,9 +1205,7 @@ async function listVendasAtivasNoMesAtual(): Promise<DocWithId<VendaDoc>[]> {
   );
 }
 
-export async function getDashboardRanking(): Promise<
-  import("@/lib/types/domain").DashboardRanking
-> {
+async function buildDashboardRankingFromSource(): Promise<DashboardRanking> {
   const [vendas, planos, vendedores, equipes] = await Promise.all([
     listVendasAtivasNoMesAtual(),
     listPlanoDocs(),
@@ -1077,6 +1220,26 @@ export async function getDashboardRanking(): Promise<
   const equipeNomes = new Map(equipes.map((e) => [e.id, e.nome]));
 
   return buildDashboardRanking(vendas, { planoMap, vendedorNomes, equipeNomes });
+}
+
+export async function getDashboardRanking(): Promise<DashboardRanking> {
+  const snapshot = await getDashboardSnapshotDoc<DashboardRanking>(DASHBOARD_RANKING_SNAPSHOT_ID);
+  if (snapshot?.payload) return snapshot.payload;
+  return setDashboardSnapshotDoc(
+    DASHBOARD_RANKING_SNAPSHOT_ID,
+    await buildDashboardRankingFromSource(),
+  );
+}
+
+export async function refreshDashboardReadModels(): Promise<void> {
+  const [stats, ranking] = await Promise.all([
+    buildDashboardStatsFromSource(),
+    buildDashboardRankingFromSource(),
+  ]);
+  await Promise.all([
+    setDashboardSnapshotDoc(DASHBOARD_STATS_SNAPSHOT_ID, stats),
+    setDashboardSnapshotDoc(DASHBOARD_RANKING_SNAPSHOT_ID, ranking),
+  ]);
 }
 
 async function listExtratoDocs(): Promise<DocWithId<ExtratoDoc>[]> {

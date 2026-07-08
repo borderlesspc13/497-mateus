@@ -2,18 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import type { ConsorciadoVendaSearchIndexRow } from "@/actions/consorciados";
 import { ConsorciadoAdvancedSearch } from "@/components/consorciados/ConsorciadoAdvancedSearch";
 import { ExportButton } from "@/components/export/ExportButton";
-import { AlertBanner } from "@/components/ui/AlertBanner";
 import { DataListPanel } from "@/components/ui/DataListPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PaginatedListFooter } from "@/components/ui/PaginatedListFooter";
 import { SummaryChip } from "@/components/ui/SummaryChip";
-import { TableSkeleton } from "@/components/ui/Skeleton";
 import {
   dataTableClass,
-  panelClass,
   secondaryActionClass,
   tableCellClass,
   tableHeadCellClass,
@@ -31,43 +29,29 @@ import {
   hasActiveConsorciadoSearchFilters,
   type ConsorciadoSearchFilters,
 } from "@/lib/consorciados/filter-consorciados";
-import { listConsorciados } from "@/lib/firestore/consorciados-client";
-import { listVendasSearchIndex } from "@/lib/firestore/vendas-search-client";
 import type { ConsorciadoRow } from "@/lib/types/domain";
 
 const CONSORCIADOS_PAGE_SIZE = 25;
 
-export default function ConsorciadosClient() {
+type ConsorciadosClientProps = {
+  initialItems: ConsorciadoRow[];
+  initialVendasIndex: ConsorciadoVendaSearchIndexRow[];
+};
+
+export default function ConsorciadosClient({
+  initialItems,
+  initialVendasIndex,
+}: ConsorciadosClientProps) {
   const router = useRouter();
-  const [items, setItems] = useState<ConsorciadoRow[]>([]);
-  const [vendasIndex, setVendasIndex] = useState<Awaited<ReturnType<typeof listVendasSearchIndex>>>([]);
-  const [loading, setLoading] = useState(true);
+  const [items] = useState<ConsorciadoRow[]>(initialItems);
+  const [vendasIndex] = useState<ConsorciadoVendaSearchIndexRow[]>(initialVendasIndex);
   const [filters, setFilters] = useState<ConsorciadoSearchFilters>(EMPTY_CONSORCIADO_SEARCH_FILTERS);
   const [visibleCount, setVisibleCount] = useState(CONSORCIADOS_PAGE_SIZE);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setError(null);
-    void Promise.all([listConsorciados(), listVendasSearchIndex()])
-      .then(([consorciados, vendas]) => {
-        if (!alive) return;
-        setItems(consorciados);
-        setVendasIndex(vendas);
-      })
-      .catch((e: unknown) => {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "Erro ao carregar consorciados.");
-      })
-      .finally(() => {
-        if (!alive) return;
-        setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  function handleFiltersChange(nextFilters: ConsorciadoSearchFilters) {
+    setFilters(nextFilters);
+    setVisibleCount(CONSORCIADOS_PAGE_SIZE);
+  }
 
   const vendaStatsMap = useMemo(
     () => buildConsorciadoVendaStatsMap(vendasIndex),
@@ -78,10 +62,6 @@ export default function ConsorciadosClient() {
     () => filterConsorciados(items, vendasIndex, filters),
     [items, vendasIndex, filters],
   );
-
-  useEffect(() => {
-    setVisibleCount(CONSORCIADOS_PAGE_SIZE);
-  }, [filters]);
 
   const visibleItems = useMemo(
     () => filtered.slice(0, visibleCount),
@@ -106,19 +86,11 @@ export default function ConsorciadosClient() {
     router.push(`/consorciados/${consorciadoId}`);
   }
 
-  if (loading) {
-    return (
-      <div className={`${panelClass()} p-6`}>
-        <TableSkeleton rows={6} columns={6} />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-5">
       <ConsorciadoAdvancedSearch
         filters={filters}
-        onChange={setFilters}
+        onChange={handleFiltersChange}
         resultCount={filtered.length}
         totalCount={items.length}
       />
@@ -139,7 +111,7 @@ export default function ConsorciadosClient() {
             partialExport={hasMore}
           />
         }
-        error={error ? <AlertBanner tone="error">{error}</AlertBanner> : null}
+        error={null}
       >
         {filtered.length === 0 ? (
           <EmptyState

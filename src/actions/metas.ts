@@ -51,6 +51,21 @@ function revalidateMetas() {
 type MetaDoc = Omit<Meta, "id">;
 type RealizacaoDoc = Omit<Realizacao, "id">;
 type ConquistaDoc = Conquista;
+type MetasWidgetGlobalSnapshotDoc = {
+  periodo: string;
+  rankingTop: RankingPeriodoItem[];
+  conquistas: Conquista[];
+  updatedAt: string;
+  version: 1;
+};
+type MetasWidgetVendedorSnapshotDoc = {
+  periodo: string;
+  vendedorId: string;
+  meta: Meta | null;
+  realizacao: Realizacao | null;
+  updatedAt: string;
+  version: 1;
+};
 
 function toMeta(id: string, doc: MetaDoc): Meta {
   return { id, ...doc };
@@ -117,14 +132,231 @@ async function fetchVendasForReferencia(
 }
 
 async function resolveVendedorIdForUser(uid: string, email: string | null): Promise<string | null> {
-  const snap = await db().collection(COLLECTIONS.vendedores).get();
   if (!email) return null;
   const normalizedEmail = email.trim().toLowerCase();
-  for (const doc of snap.docs) {
-    const data = doc.data() as { email?: string };
-    if (data.email?.trim().toLowerCase() === normalizedEmail) return doc.id;
+  const exactMatch = await db()
+    .collection(COLLECTIONS.vendedores)
+    .where("email", "==", normalizedEmail)
+    .limit(1)
+    .get();
+  const exactDoc = exactMatch.docs[0];
+  if (exactDoc) return exactDoc.id;
+
+  const snap = await db().collection(COLLECTIONS.vendedores).get();
+  for (const vendedorDoc of snap.docs) {
+    const data = vendedorDoc.data() as { email?: string };
+    if (data.email?.trim().toLowerCase() === normalizedEmail) return vendedorDoc.id;
   }
   return null;
+}
+
+function metasWidgetGlobalSnapshotId(periodo: string): string {
+  return `global:${periodo}`;
+}
+
+function metasWidgetVendedorSnapshotId(periodo: string, vendedorId: string): string {
+  return `vendedor:${periodo}:${vendedorId}`;
+}
+
+async function buildRankingPeriodoData(
+  periodo: string,
+  tipo: MetaTipo,
+): Promise<RankingPeriodoItem[]> {
+  if (!isPeriodoValido(periodo)) throw new Error("Período inválido.");
+
+  const [realizacoesSnap, metasSnap, agregados] = await Promise.all([
+    db()
+      .collection(COLLECTIONS.realizacoes)
+      .where("periodo", "==", periodo)
+      .where("tipo", "==", tipo)
+      .get(),
+    db()
+      .collection(COLLECTIONS.metas)
+      .where("periodo", "==", periodo)
+      .where("tipo", "==", tipo)
+      .get(),
+    aggregateVendasPeriodo(periodo, tipo),
+  ]);
+
+  const metaMap = new Map(
+    metasSnap.docs.map((doc) => {
+      const meta = toMeta(doc.id, doc.data() as MetaDoc);
+      return [meta.referenciaId, meta] as const;
+    }),
+  );
+
+  const realizacaoMap = new Map(
+    realizacoesSnap.docs.map((doc) => {
+      const r = toRealizacao(doc.id, doc.data() as RealizacaoDoc);
+      return [r.referenciaId, r] as const;
+    }),
+  );
+
+  const referenciaIds = new Set<string>([...metaMap.keys(), ...agregados.keys()]);
+  const items: RankingPeriodoItem[] = [];
+
+  for (const referenciaId of referenciaIds) {
+    const meta = metaMap.get(referenciaId);
+    const realizacao = realizacaoMap.get(referenciaId);
+    const agregado = agregados.get(referenciaId);
+
+    if (realizacao) {
+      items.push({
+        posicao: 0,
+        referenciaId,
+        referenciaNome: realizacao.referenciaNome,
+        realizadoVendas: realizacao.realizadoVendas,
+        realizadoCreditoCentavos: realizacao.realizadoCreditoCentavos,
+        percentualVendas: realizacao.percentualVendas,
+        percentualCredito: realizacao.percentualCredito,
+        percentualAtivacao: realizacao.percentualAtivacao,
+        metaVendas: meta?.metaVendas ?? null,
+        metaCreditoCentavos: meta?.metaCreditoCentavos ?? null,
+        metaAtivacao: meta?.metaAtivacao ?? null,
+        conquistasDesbloqueadas: realizacao.conquistasDesbloqueadas,
+        temMeta: Boolean(meta),
+      });
+      continue;
+    }
+
+    const vendas = agregado?.vendas ?? [];
+    const { realizadoVendas, realizadoCreditoCentavos, realizadoAtivacao } =
+      calcularRealizados(vendas);
+    const percentuais = meta
+      ? calcularPercentuais({
+          realizadoVendas,
+          realizadoCreditoCentavos,
+          realizadoAtivacao,
+          metaVendas: meta.metaVendas,
+          metaCreditoCentavos: meta.metaCreditoCentavos,
+          metaAtivacao: meta.metaAtivacao,
+        })
+      : { percentualVendas: 0, percentualCredito: 0, percentualAtivacao: 0 };
+
+    items.push({
+      posicao: 0,
+      referenciaId,
+      referenciaNome: agregado?.nome ?? meta?.referenciaNome ?? referenciaId,
+      realizadoVendas,
+      realizadoCreditoCentavos,
+      percentualVendas: percentuais.percentualVendas,
+      percentualCredito: percentuais.percentualCredito,
+      percentualAtivacao: realizadoAtivacao,
+      metaVendas: meta?.metaVendas ?? null,
+      metaCreditoCentavos: meta?.metaCreditoCentavos ?? null,
+      metaAtivacao: meta?.metaAtivacao ?? null,
+      conquistasDesbloqueadas: [],
+      temMeta: Boolean(meta),
+    });
+  }
+
+  items.sort((a, b) => {
+    const byPercent = b.percentualVendas - a.percentualVendas;
+    if (byPercent !== 0) return byPercent;
+    return b.realizadoCreditoCentavos - a.realizadoCreditoCentavos;
+  });
+
+  return items.map((item, index) => ({
+    ...item,
+    posicao: index + 1,
+  }));
+}
+
+async function buildMetasWidgetGlobalSnapshot(
+  periodo: string,
+): Promise<MetasWidgetGlobalSnapshotDoc> {
+  const [rankingTop, conquistas] = await Promise.all([
+    buildRankingPeriodoData(periodo, "VENDEDOR").then((items) => items.slice(0, 3)),
+    listConquistasAtivas(),
+  ]);
+
+  return {
+    periodo,
+    rankingTop,
+    conquistas,
+    updatedAt: nowIso(),
+    version: 1,
+  };
+}
+
+async function buildMetasWidgetVendedorSnapshot(
+  periodo: string,
+  vendedorId: string,
+): Promise<MetasWidgetVendedorSnapshotDoc> {
+  const [metaSnap, realizacaoSnap] = await Promise.all([
+    db()
+      .collection(COLLECTIONS.metas)
+      .where("periodo", "==", periodo)
+      .where("tipo", "==", "VENDEDOR")
+      .where("referenciaId", "==", vendedorId)
+      .limit(1)
+      .get(),
+    db().collection(COLLECTIONS.realizacoes).doc(buildRealizacaoId("VENDEDOR", vendedorId, periodo)).get(),
+  ]);
+
+  const metaDoc = metaSnap.docs[0];
+  return {
+    periodo,
+    vendedorId,
+    meta: metaDoc ? toMeta(metaDoc.id, metaDoc.data() as MetaDoc) : null,
+    realizacao: realizacaoSnap.exists
+      ? toRealizacao(realizacaoSnap.id, realizacaoSnap.data() as RealizacaoDoc)
+      : null,
+    updatedAt: nowIso(),
+    version: 1,
+  };
+}
+
+async function getMetasWidgetGlobalSnapshot(
+  periodo: string,
+): Promise<MetasWidgetGlobalSnapshotDoc> {
+  const ref = db().collection(COLLECTIONS.metasWidgetSnapshots).doc(metasWidgetGlobalSnapshotId(periodo));
+  const snap = await ref.get();
+  if (snap.exists) return snap.data() as MetasWidgetGlobalSnapshotDoc;
+  const built = await buildMetasWidgetGlobalSnapshot(periodo);
+  await ref.set(built);
+  return built;
+}
+
+async function getMetasWidgetVendedorSnapshot(
+  periodo: string,
+  vendedorId: string,
+): Promise<MetasWidgetVendedorSnapshotDoc> {
+  const ref = db()
+    .collection(COLLECTIONS.metasWidgetSnapshots)
+    .doc(metasWidgetVendedorSnapshotId(periodo, vendedorId));
+  const snap = await ref.get();
+  if (snap.exists) return snap.data() as MetasWidgetVendedorSnapshotDoc;
+  const built = await buildMetasWidgetVendedorSnapshot(periodo, vendedorId);
+  await ref.set(built);
+  return built;
+}
+
+export async function refreshMetasWidgetReadModels(periodo = periodoAtual()): Promise<void> {
+  const globalSnapshot = await buildMetasWidgetGlobalSnapshot(periodo);
+  const metasVendedorSnap = await db()
+    .collection(COLLECTIONS.metas)
+    .where("periodo", "==", periodo)
+    .where("tipo", "==", "VENDEDOR")
+    .get();
+
+  const vendedorIds = [...new Set(metasVendedorSnap.docs.map((doc) => (doc.data() as MetaDoc).referenciaId))];
+  const vendedorSnapshots = await Promise.all(
+    vendedorIds.map(async (vendedorId) => ({
+      id: metasWidgetVendedorSnapshotId(periodo, vendedorId),
+      payload: await buildMetasWidgetVendedorSnapshot(periodo, vendedorId),
+    })),
+  );
+
+  const batch = db().batch();
+  batch.set(
+    db().collection(COLLECTIONS.metasWidgetSnapshots).doc(metasWidgetGlobalSnapshotId(periodo)),
+    globalSnapshot,
+  );
+  for (const snapshot of vendedorSnapshots) {
+    batch.set(db().collection(COLLECTIONS.metasWidgetSnapshots).doc(snapshot.id), snapshot.payload);
+  }
+  await batch.commit();
 }
 
 export async function sincronizarRealizacao(metaId: string): Promise<ActionResult<Realizacao>> {
@@ -185,6 +417,7 @@ export async function sincronizarRealizacao(metaId: string): Promise<ActionResul
     };
 
     await db().collection(COLLECTIONS.realizacoes).doc(realizacaoId).set(doc);
+    await refreshMetasWidgetReadModels(meta.periodo);
     revalidateMetas();
     return ok(toRealizacao(realizacaoId, doc));
   } catch (e) {
@@ -229,6 +462,7 @@ export async function criarMeta(input: CriarMetaInput): Promise<ActionResult<Met
     await db().collection(COLLECTIONS.metas).doc(id).set(doc);
     const meta = toMeta(id, doc);
     await sincronizarRealizacao(id);
+    await refreshMetasWidgetReadModels(doc.periodo);
     revalidateMetas();
     return ok(meta);
   } catch (e) {
@@ -258,6 +492,7 @@ export async function editarMeta(
     };
     await db().collection(COLLECTIONS.metas).doc(metaId).set(next);
     await sincronizarRealizacao(metaId);
+    await refreshMetasWidgetReadModels(next.periodo);
     revalidateMetas();
     return ok(toMeta(metaId, next));
   } catch (e) {
@@ -276,6 +511,7 @@ export async function excluirMeta(metaId: string): Promise<ActionResult<void>> {
 
     await db().collection(COLLECTIONS.metas).doc(metaId).delete();
     await db().collection(COLLECTIONS.realizacoes).doc(realizacaoId).delete().catch(() => undefined);
+    await refreshMetasWidgetReadModels(meta.periodo);
     revalidateMetas();
     return ok(undefined);
   } catch (e) {
@@ -327,18 +563,24 @@ export async function listarMetasComRealizacao(filtros?: {
   const metasResult = await listarMetas(filtros);
   if (!metasResult.success) return metasResult;
 
-  const items: MetaComRealizacao[] = [];
-  for (const meta of metasResult.data) {
-    const realizacaoId = buildRealizacaoId(meta.tipo, meta.referenciaId, meta.periodo);
-    const snap = await db().collection(COLLECTIONS.realizacoes).doc(realizacaoId).get();
-    items.push({
+  const realizacaoIds = metasResult.data.map((meta) =>
+    buildRealizacaoId(meta.tipo, meta.referenciaId, meta.periodo),
+  );
+  const realizacaoSnaps = await Promise.all(
+    realizacaoIds.map((id) => db().collection(COLLECTIONS.realizacoes).doc(id).get()),
+  );
+  const realizacaoMap = new Map(
+    realizacaoSnaps
+      .filter((snap) => snap.exists)
+      .map((snap) => [snap.id, toRealizacao(snap.id, snap.data() as RealizacaoDoc)] as const),
+  );
+
+  return ok(
+    metasResult.data.map((meta) => ({
       ...meta,
-      realizacao: snap.exists
-        ? toRealizacao(snap.id, snap.data() as RealizacaoDoc)
-        : null,
-    });
-  }
-  return ok(items);
+      realizacao: realizacaoMap.get(buildRealizacaoId(meta.tipo, meta.referenciaId, meta.periodo)) ?? null,
+    })),
+  );
 }
 
 export async function sincronizarTodasRealizacoes(periodo: string): Promise<
@@ -367,6 +609,7 @@ export async function sincronizarTodasRealizacoes(periodo: string): Promise<
       if (!result.value.success) erros += 1;
     }
 
+    await refreshMetasWidgetReadModels(periodo);
     revalidateMetas();
     return ok({ processadas: metaIds.length - erros, erros });
   } catch (e) {
@@ -433,111 +676,7 @@ export async function getRankingPeriodo(
 ): Promise<ActionResult<RankingPeriodoItem[]>> {
   try {
     await requireServerSessionUser();
-    if (!isPeriodoValido(periodo)) return fail("Período inválido.");
-
-    const [realizacoesSnap, metasSnap, agregados] = await Promise.all([
-      db()
-        .collection(COLLECTIONS.realizacoes)
-        .where("periodo", "==", periodo)
-        .where("tipo", "==", tipo)
-        .get(),
-      db()
-        .collection(COLLECTIONS.metas)
-        .where("periodo", "==", periodo)
-        .where("tipo", "==", tipo)
-        .get(),
-      aggregateVendasPeriodo(periodo, tipo),
-    ]);
-
-    const metaMap = new Map(
-      metasSnap.docs.map((doc) => {
-        const meta = toMeta(doc.id, doc.data() as MetaDoc);
-        return [meta.referenciaId, meta] as const;
-      }),
-    );
-
-    const realizacaoMap = new Map(
-      realizacoesSnap.docs.map((doc) => {
-        const r = toRealizacao(doc.id, doc.data() as RealizacaoDoc);
-        return [r.referenciaId, r] as const;
-      }),
-    );
-
-    const referenciaIds = new Set<string>([
-      ...metaMap.keys(),
-      ...agregados.keys(),
-    ]);
-
-    const items: RankingPeriodoItem[] = [];
-
-    for (const referenciaId of referenciaIds) {
-      const meta = metaMap.get(referenciaId);
-      const realizacao = realizacaoMap.get(referenciaId);
-      const agregado = agregados.get(referenciaId);
-
-      if (realizacao) {
-        items.push({
-          posicao: 0,
-          referenciaId,
-          referenciaNome: realizacao.referenciaNome,
-          realizadoVendas: realizacao.realizadoVendas,
-          realizadoCreditoCentavos: realizacao.realizadoCreditoCentavos,
-          percentualVendas: realizacao.percentualVendas,
-          percentualCredito: realizacao.percentualCredito,
-          percentualAtivacao: realizacao.percentualAtivacao,
-          metaVendas: meta?.metaVendas ?? null,
-          metaCreditoCentavos: meta?.metaCreditoCentavos ?? null,
-          metaAtivacao: meta?.metaAtivacao ?? null,
-          conquistasDesbloqueadas: realizacao.conquistasDesbloqueadas,
-          temMeta: Boolean(meta),
-        });
-        continue;
-      }
-
-      const vendas = agregado?.vendas ?? [];
-      const { realizadoVendas, realizadoCreditoCentavos, realizadoAtivacao } =
-        calcularRealizados(vendas);
-      const percentuais = meta
-        ? calcularPercentuais({
-            realizadoVendas,
-            realizadoCreditoCentavos,
-            realizadoAtivacao,
-            metaVendas: meta.metaVendas,
-            metaCreditoCentavos: meta.metaCreditoCentavos,
-            metaAtivacao: meta.metaAtivacao,
-          })
-        : { percentualVendas: 0, percentualCredito: 0, percentualAtivacao: 0 };
-
-      items.push({
-        posicao: 0,
-        referenciaId,
-        referenciaNome:
-          agregado?.nome ?? meta?.referenciaNome ?? referenciaId,
-        realizadoVendas,
-        realizadoCreditoCentavos,
-        percentualVendas: percentuais.percentualVendas,
-        percentualCredito: percentuais.percentualCredito,
-        percentualAtivacao: realizadoAtivacao,
-        metaVendas: meta?.metaVendas ?? null,
-        metaCreditoCentavos: meta?.metaCreditoCentavos ?? null,
-        metaAtivacao: meta?.metaAtivacao ?? null,
-        conquistasDesbloqueadas: [],
-        temMeta: Boolean(meta),
-      });
-    }
-
-    items.sort((a, b) => {
-      const byPercent = b.percentualVendas - a.percentualVendas;
-      if (byPercent !== 0) return byPercent;
-      return b.realizadoCreditoCentavos - a.realizadoCreditoCentavos;
-    });
-
-    return ok(
-      items.map((item, index) => ({
-        ...item,
-        posicao: index + 1,
-      })),
-    );
+    return ok(await buildRankingPeriodoData(periodo, tipo));
   } catch (e) {
     return fail(e instanceof Error ? e.message : "Erro ao carregar ranking.");
   }
@@ -640,22 +779,17 @@ export async function getMetasDashboardWidgetData(): Promise<
   try {
     const user = await requireServerSessionUser();
     const periodo = periodoAtual();
-    const [rankingResult, conquistasResult] = await Promise.all([
-      getRankingPeriodo(periodo, "VENDEDOR"),
-      listarConquistas(),
-    ]);
-
-    if (!rankingResult.success) return fail(rankingResult.error);
-    if (!conquistasResult.success) return fail(conquistasResult.error);
+    const globalSnapshot = await getMetasWidgetGlobalSnapshot(periodo);
 
     let minhaMeta: Meta | null = null;
     let minhaRealizacao: Realizacao | null = null;
 
     if (user.role === "vendedor") {
-      const minha = await getMinhaMetaPeriodo(periodo);
-      if (minha.success) {
-        minhaMeta = minha.data.meta;
-        minhaRealizacao = minha.data.realizacao;
+      const vendedorId = await resolveVendedorIdForUser(user.uid, user.email);
+      if (vendedorId) {
+        const minha = await getMetasWidgetVendedorSnapshot(periodo, vendedorId);
+        minhaMeta = minha.meta;
+        minhaRealizacao = minha.realizacao;
       }
     }
 
@@ -664,8 +798,8 @@ export async function getMetasDashboardWidgetData(): Promise<
       role: user.role,
       minhaMeta,
       minhaRealizacao,
-      rankingTop: rankingResult.data.slice(0, 3),
-      conquistas: conquistasResult.data,
+      rankingTop: globalSnapshot.rankingTop,
+      conquistas: globalSnapshot.conquistas,
     });
   } catch (e) {
     return fail(e instanceof Error ? e.message : "Erro ao carregar widget.");

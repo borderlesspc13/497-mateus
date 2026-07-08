@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { refreshMetasWidgetReadModels } from "@/actions/metas";
+import { refreshDashboardReadModels } from "@/lib/firestore/repository";
 import { requireGerenteOrAdmin } from "@/lib/auth/server";
 import {
   batchUpdateVendaStatus,
@@ -11,9 +13,7 @@ import {
 } from "@/lib/firestore/vendas-import";
 import { newId } from "@/lib/firestore/types";
 import { buildInadimplenciaReconciliationSummary } from "@/lib/importacao/inadimplencia-reconciliation";
-import { buildSpreadsheetContractSet } from "@/lib/importacao/reconciliation";
 import type {
-  ImportConfirmItem,
   ImportConfirmPayload,
   ImportConfirmResult,
   ImportPreviewInvalid,
@@ -127,7 +127,6 @@ export async function previewImportacaoStatus(
     });
   }
 
-  const spreadsheetContractNumbers = [...buildSpreadsheetContractSet(rows)];
   const reconciliation = await preprocessInadimplenciaReconciliation(rows);
 
   const toUpdate = matched.filter((item) => item.willUpdate).length;
@@ -218,6 +217,7 @@ export async function confirmImportacaoStatus(
     });
   }
 
+  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
   revalidateImportacaoPaths();
   return result;
 }

@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import { getDashboardRanking, getDashboardStats } from "@/actions/dashboard";
+import { getDashboardStats } from "@/actions/dashboard";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { DashboardMetaWidget } from "@/components/metas/DashboardMetaWidget";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { KpiCardSkeleton } from "@/components/ui/Skeleton";
 import { panelClass } from "@/components/ui/list-panel-classes";
+import { canAccessModule } from "@/lib/auth/modules";
 import { ModuleGuard } from "@/lib/auth/module-guard";
 import { getServerSessionUser } from "@/lib/auth/server";
 
@@ -40,21 +41,21 @@ function DashboardFallback() {
 }
 
 async function DashboardContent() {
-  const [stats, ranking, session] = await Promise.all([
-    getDashboardStats(),
-    getDashboardRanking(),
-    getServerSessionUser(),
-  ]);
+  const [stats, session] = await Promise.all([getDashboardStats(), getServerSessionUser()]);
+  const permissions = session?.permissions ?? [];
+  const showMetaWidget =
+    canAccessModule(permissions, "metas") || canAccessModule(permissions, "metas-minhas");
+
   return (
     <ModuleGuard module="dashboard">
-      <div className="mb-6">
-        <DashboardMetaWidget permissions={session?.permissions ?? []} />
-      </div>
-      <DashboardTabs
-        stats={stats}
-        ranking={ranking}
-        permissions={session?.permissions ?? []}
-      />
+      {showMetaWidget ? (
+        <div className="mb-6">
+          <Suspense fallback={<div className={`${panelClass()} h-36 animate-pulse bg-zinc-50`} />}>
+            <DashboardMetaWidget permissions={permissions} />
+          </Suspense>
+        </div>
+      ) : null}
+      <DashboardTabs stats={stats} permissions={permissions} />
     </ModuleGuard>
   );
 }

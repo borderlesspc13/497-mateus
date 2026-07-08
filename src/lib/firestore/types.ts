@@ -20,6 +20,8 @@ export const COLLECTIONS = {
   metas: "metas",
   realizacoes: "realizacoes",
   conquistas: "conquistas",
+  dashboardSnapshots: "dashboard_snapshots",
+  metasWidgetSnapshots: "metas_widget_snapshots",
 } as const;
 
 export const VENDA_SUBCOLLECTIONS = {
