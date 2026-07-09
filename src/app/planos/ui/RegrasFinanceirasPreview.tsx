@@ -4,52 +4,85 @@ import { useMemo } from "react";
 import { panelClass } from "@/components/ui/list-panel-classes";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 import {
+  mapDistribuicaoToPayload,
+  parsePercentuaisRecebimentoJson,
+} from "@/lib/planos/distribuicao-comissao-mappers";
+import {
+  distribuicaoComissaoSchema,
+  parsePercentualInput,
+  type DistribuicaoComissaoFormValues,
+} from "@/lib/planos/distribuicao-comissao-schema";
+import {
   calcularDataLimiteEstorno,
   calcularParcelasComissao,
   calcularComissaoTotalCentavos,
+  type RegrasFinanceirasPlano,
 } from "@/utils/financeiro";
-import { parseRegrasFinanceirasForm, type RegrasFinanceirasFormState } from "./RegrasFinanceirasFields";
 
 type RegrasFinanceirasPreviewProps = {
-  form: RegrasFinanceirasFormState;
+  distribuicao: DistribuicaoComissaoFormValues;
   valorCreditoCentavos: number | null;
 };
 
 export function RegrasFinanceirasPreview({
-  form,
+  distribuicao,
   valorCreditoCentavos,
 }: RegrasFinanceirasPreviewProps) {
   const preview = useMemo(() => {
-    const parsed = parseRegrasFinanceirasForm(form);
-    if ("error" in parsed) return { error: parsed.error } as const;
+    const parsed = distribuicaoComissaoSchema.safeParse(distribuicao);
+    if (!parsed.success) {
+      return { error: "Preencha a distribuição de comissões para simular os valores." } as const;
+    }
+
     if (valorCreditoCentavos === null || valorCreditoCentavos <= 0) {
       return { error: "Informe o valor do crédito para simular a comissão." } as const;
     }
 
+    let payload;
+    try {
+      payload = mapDistribuicaoToPayload(parsed.data);
+    } catch {
+      return { error: "Distribuição de comissões inválida." } as const;
+    }
+
+    const percentuaisParcelas =
+      parsePercentuaisRecebimentoJson(payload.percentuaisRecebimentoJson) ?? undefined;
+
+    const regras: RegrasFinanceirasPlano = {
+      percentualComissao: payload.percentualComissao,
+      parcelasRecebimento: payload.parcelasRecebimento,
+      diasParaEstorno: payload.diasParaEstorno,
+      percentuaisParcelas,
+    };
+
     const total = calcularComissaoTotalCentavos(
       valorCreditoCentavos,
-      parsed.percentualComissao,
+      regras.percentualComissao,
     );
-    const parcelas = calcularParcelasComissao(valorCreditoCentavos, parsed);
+    const parcelas = calcularParcelasComissao(valorCreditoCentavos, regras);
     const exemploEstorno = calcularDataLimiteEstorno(
       new Date().toISOString(),
-      parsed.diasParaEstorno,
+      regras.diasParaEstorno,
+    );
+
+    const percentuaisEmpresa = parsed.data.empresa.parcelas.map((parcela) =>
+      parsePercentualInput(parcela.percentual),
     );
 
     return {
       total,
       parcelas,
-      regras: parsed,
+      regras,
       exemploEstorno,
+      percentuaisEmpresa,
     } as const;
-  }, [form, valorCreditoCentavos]);
+  }, [distribuicao, valorCreditoCentavos]);
 
   return (
     <div className={`${panelClass()} mt-6 border-dashed bg-zinc-50/80 p-5`}>
       <div className="text-sm font-medium text-zinc-900">Simulação do motor financeiro</div>
       <p className="mt-1 text-xs leading-5 text-zinc-500">
-        Prévia dos cálculos com base no crédito informado. Valores em centavos internamente — sem
-        arredondamento impreciso.
+        Prévia dos cálculos com base no crédito informado e na distribuição por parcela da empresa.
       </p>
 
       {"error" in preview ? (
@@ -72,7 +105,7 @@ export function RegrasFinanceirasPreview({
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {preview.parcelas.map((parcela) => (
+            {preview.parcelas.map((parcela, index) => (
               <div
                 key={parcela.label}
                 className="rounded-xl border border-zinc-200 bg-white px-4 py-3"
@@ -82,6 +115,9 @@ export function RegrasFinanceirasPreview({
                 </div>
                 <div className="mt-1 text-lg font-semibold tabular-nums text-zinc-900">
                   {formatMoneyPtBrFromCentavos(parcela.valorCentavos)}
+                </div>
+                <div className="mt-1 text-xs text-zinc-500">
+                  {preview.percentuaisEmpresa[index]?.toLocaleString("pt-BR") ?? "—"}% do crédito
                 </div>
               </div>
             ))}

@@ -14,8 +14,8 @@ type ThemeToggleProps = {
 };
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
-  const { resolvedTheme, toggleTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const { resolvedTheme, toggleTheme, isReady } = useTheme();
+  const isDark = isReady && resolvedTheme === "dark";
 
   return (
     <Tooltip>
@@ -26,13 +26,19 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
           size="icon"
           className={className}
           onClick={toggleTheme}
-          aria-label={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
+          aria-label={
+            isReady
+              ? isDark
+                ? "Ativar modo claro"
+                : "Ativar modo escuro"
+              : "Alternar tema"
+          }
         >
           {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        {isDark ? "Modo claro" : "Modo escuro"}
+        {isReady ? (isDark ? "Modo claro" : "Modo escuro") : "Alternar tema"}
       </TooltipContent>
     </Tooltip>
   );

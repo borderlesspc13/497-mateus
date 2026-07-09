@@ -55,6 +55,8 @@ export type PlanoDoc = {
   percentualComissao: number | null;
   parcelasRecebimento: number | null;
   diasParaEstorno: number | null;
+  /** Percentuais exatos por parcela de recebimento da empresa (JSON array). */
+  percentuaisRecebimentoJson: string | null;
   /** Regras de repasse interno (vendedor / supervisor / diretor) em JSON. */
   regrasRepasseJson: string | null;
   /** @deprecated Use percentualComissao. Mantido para documentos legados. */

@@ -2,24 +2,18 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPlano } from "@/actions/planos";
 import { CurrencyInput } from "@/components/form/MaskedInputs";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 import type { AdministradoraMini } from "@/lib/types/domain";
 import { parseCurrencyToCentavos } from "@/lib/validators/currency";
+import { EMPTY_DISTRIBUICAO_COMISSAO } from "@/lib/planos/distribuicao-comissao-mappers";
+import type { DistribuicaoComissaoFormValues } from "@/lib/planos/distribuicao-comissao-schema";
 import {
-  EMPTY_REGRAS_REPASSE_FORM,
-  parseRegrasRepasseForm,
-  regrasRepasseToForm,
-  serializeRegrasRepasse,
-} from "@/lib/comissoes/regras-repasse";
-import {
-  parseRegrasFinanceirasForm,
-  RegrasFinanceirasFields,
-  type RegrasFinanceirasFormState,
-} from "./RegrasFinanceirasFields";
-import { RegrasRepasseFields, type RegrasRepasseFormState } from "./RegrasRepasseFields";
+  DistribuicaoComissaoFields,
+  type DistribuicaoComissaoFormHandle,
+} from "./DistribuicaoComissaoFields";
 import { RegrasFinanceirasPreview } from "./RegrasFinanceirasPreview";
 
 type FormState = {
@@ -27,8 +21,7 @@ type FormState = {
   nome: string;
   tipoBem: string;
   valorCredito: string;
-  regrasRepasse: RegrasRepasseFormState;
-} & RegrasFinanceirasFormState;
+};
 
 type NovoPlanoFormProps = {
   administradoras: AdministradoraMini[];
@@ -66,16 +59,16 @@ function Field({
 export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const distribuicaoRef = useRef<DistribuicaoComissaoFormHandle>(null);
   const [form, setForm] = useState<FormState>({
     administradoraId: administradoras[0]?.id ?? "",
     nome: "",
     tipoBem: "",
     valorCredito: "",
-    percentualComissao: "",
-    parcelasRecebimento: "3",
-    diasParaEstorno: "90",
-    regrasRepasse: { ...EMPTY_REGRAS_REPASSE_FORM },
   });
+  const [distribuicao, setDistribuicao] = useState<DistribuicaoComissaoFormValues>(
+    EMPTY_DISTRIBUICAO_COMISSAO,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [valorTouched, setValorTouched] = useState(false);
@@ -117,15 +110,9 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
       return;
     }
 
-    const regras = parseRegrasFinanceirasForm(form);
-    if ("error" in regras) {
-      setError(regras.error);
-      return;
-    }
-
-    const regrasRepasse = parseRegrasRepasseForm(form.regrasRepasse);
-    if (regrasRepasse && "error" in regrasRepasse) {
-      setError(regrasRepasse.error);
+    const distribuicaoPayload = await distribuicaoRef.current?.validate();
+    if (!distribuicaoPayload) {
+      setError("Revise a distribuição de comissões. Há campos inválidos ou somas divergentes.");
       return;
     }
 
@@ -136,13 +123,11 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
         nome: form.nome.trim(),
         tipoBem: form.tipoBem.trim(),
         valorCreditoCentavos,
-        percentualComissao: regras.percentualComissao,
-        parcelasRecebimento: regras.parcelasRecebimento,
-        diasParaEstorno: regras.diasParaEstorno,
-        regrasRepasseJson:
-          regrasRepasse && !("error" in regrasRepasse)
-            ? serializeRegrasRepasse(regrasRepasse)
-            : null,
+        percentualComissao: distribuicaoPayload.percentualComissao,
+        parcelasRecebimento: distribuicaoPayload.parcelasRecebimento,
+        diasParaEstorno: distribuicaoPayload.diasParaEstorno,
+        percentuaisRecebimentoJson: distribuicaoPayload.percentuaisRecebimentoJson,
+        regrasRepasseJson: distribuicaoPayload.regrasRepasseJson,
       });
       router.push("/planos");
       router.refresh();
@@ -211,23 +196,14 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
         </div>
       </div>
 
-      <RegrasFinanceirasFields
-        form={form}
-        onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
-      />
-
-      <RegrasRepasseFields
-        form={form.regrasRepasse}
-        onChange={(patch) =>
-          setForm((p) => ({
-            ...p,
-            regrasRepasse: { ...p.regrasRepasse, ...patch },
-          }))
-        }
+      <DistribuicaoComissaoFields
+        ref={distribuicaoRef}
+        defaultValues={EMPTY_DISTRIBUICAO_COMISSAO}
+        onValuesChange={setDistribuicao}
       />
 
       <RegrasFinanceirasPreview
-        form={form}
+        distribuicao={distribuicao}
         valorCreditoCentavos={
           form.valorCredito.trim()
             ? (() => {

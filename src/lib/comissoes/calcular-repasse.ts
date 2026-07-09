@@ -23,6 +23,12 @@ function calcularValorParcelaRepasse(
 ): number {
   if (parcelaNumero < 1 || parcelaNumero > regra.parcelasTotal) return 0;
 
+  if (regra.percentuaisParcelas && regra.percentuaisParcelas.length === regra.parcelasTotal) {
+    const percentualParcela = regra.percentuaisParcelas[parcelaNumero - 1] ?? 0;
+    if (percentualParcela <= 0) return 0;
+    return calcularComissaoTotalCentavos(creditoCentavos, percentualParcela);
+  }
+
   const totalPapelCentavos = calcularComissaoTotalCentavos(
     creditoCentavos,
     regra.percentualSobreCredito,

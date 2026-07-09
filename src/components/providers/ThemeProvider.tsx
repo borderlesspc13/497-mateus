@@ -22,6 +22,7 @@ import {
 type ThemeContextValue = {
   theme: ThemePreference;
   resolvedTheme: ResolvedTheme;
+  isReady: boolean;
   setTheme: (theme: ThemePreference) => void;
   toggleTheme: () => void;
 };
@@ -39,8 +40,15 @@ function readInitialPreference(): ThemePreference {
 }
 
 export function ThemeProvider({ children }: PropsWithChildren) {
-  const [theme, setThemeState] = useState<ThemePreference>(readInitialPreference);
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(readResolvedFromDom);
+  const [theme, setThemeState] = useState<ThemePreference>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    setThemeState(readInitialPreference());
+    setResolvedTheme(readResolvedFromDom());
+    setIsReady(true);
+  }, []);
 
   const setTheme = useCallback((preference: ThemePreference) => {
     const prefersDark = getSystemPrefersDark();
@@ -81,8 +89,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   }, [theme]);
 
   const value = useMemo(
-    () => ({ theme, resolvedTheme, setTheme, toggleTheme }),
-    [theme, resolvedTheme, setTheme, toggleTheme],
+    () => ({ theme, resolvedTheme, isReady, setTheme, toggleTheme }),
+    [theme, resolvedTheme, isReady, setTheme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

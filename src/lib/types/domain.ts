@@ -91,6 +91,7 @@ export type PlanoRow = {
   percentualComissao: number | null;
   parcelasRecebimento: number | null;
   diasParaEstorno: number | null;
+  percentuaisRecebimentoJson: string | null;
   regrasRepasseJson: string | null;
   createdAt: string;
   updatedAt: string;

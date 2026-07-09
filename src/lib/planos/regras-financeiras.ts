@@ -1,4 +1,5 @@
 import type { PlanoDoc } from "@/lib/firestore/types";
+import { parsePercentuaisRecebimentoJson } from "@/lib/planos/distribuicao-comissao-mappers";
 import type { RegrasFinanceirasPlano } from "@/utils/financeiro";
 
 function parseLegacyJson<T extends Record<string, unknown>>(json: string | null): T | null {
@@ -48,6 +49,7 @@ export function resolvePlanoRegrasFinanceiras(
     | "percentualComissao"
     | "parcelasRecebimento"
     | "diasParaEstorno"
+    | "percentuaisRecebimentoJson"
     | "regrasComissaoJson"
     | "regrasRecebimentoJson"
     | "regrasEstornoJson"
@@ -68,5 +70,14 @@ export function resolvePlanoRegrasFinanceiras(
     return null;
   }
 
-  return { percentualComissao, parcelasRecebimento, diasParaEstorno };
+  const percentuaisParcelas = parsePercentuaisRecebimentoJson(plano.percentuaisRecebimentoJson);
+
+  return {
+    percentualComissao,
+    parcelasRecebimento,
+    diasParaEstorno,
+    ...(percentuaisParcelas?.length === parcelasRecebimento
+      ? { percentuaisParcelas }
+      : {}),
+  };
 }

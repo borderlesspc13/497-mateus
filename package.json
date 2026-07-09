@@ -13,6 +13,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.4.0",
     "@mui/material": "^9.1.1",
     "@mui/x-data-grid": "^9.6.0",
     "@radix-ui/react-avatar": "^1.2.0",
@@ -33,6 +34,7 @@
     "papaparse": "^5.5.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-hook-form": "^7.81.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
     "xlsx": "^0.18.5",

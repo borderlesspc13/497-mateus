@@ -69,6 +69,7 @@ export function toPlanoRow(
     percentualComissao: plano.percentualComissao ?? regras?.percentualComissao ?? null,
     parcelasRecebimento: plano.parcelasRecebimento ?? regras?.parcelasRecebimento ?? null,
     diasParaEstorno: plano.diasParaEstorno ?? regras?.diasParaEstorno ?? null,
+    percentuaisRecebimentoJson: plano.percentuaisRecebimentoJson ?? null,
     regrasRepasseJson: plano.regrasRepasseJson ?? null,
     createdAt: plano.createdAt,
     updatedAt: plano.updatedAt,

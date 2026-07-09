@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { updatePlano } from "@/actions/planos";
 import { CurrencyInput } from "@/components/form/MaskedInputs";
 import { backLinkClass } from "@/components/page-flow/button-classes";
@@ -13,17 +13,12 @@ import {
   formatCentavosToCurrencyInput,
   parseCurrencyToCentavos,
 } from "@/lib/validators/currency";
+import { distribuicaoFromPlano } from "@/lib/planos/distribuicao-comissao-mappers";
+import type { DistribuicaoComissaoFormValues } from "@/lib/planos/distribuicao-comissao-schema";
 import {
-  parseRegrasRepasseForm,
-  regrasRepasseToForm,
-  serializeRegrasRepasse,
-  parseRegrasRepasseJson,
-} from "@/lib/comissoes/regras-repasse";
-import {
-  parseRegrasFinanceirasForm,
-  RegrasFinanceirasFields,
-} from "./RegrasFinanceirasFields";
-import { RegrasRepasseFields } from "./RegrasRepasseFields";
+  DistribuicaoComissaoFields,
+  type DistribuicaoComissaoFormHandle,
+} from "./DistribuicaoComissaoFields";
 import { RegrasFinanceirasPreview } from "./RegrasFinanceirasPreview";
 
 type EditarPlanoFormProps = {
@@ -33,19 +28,19 @@ type EditarPlanoFormProps = {
 
 export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFormProps) {
   const router = useRouter();
+  const distribuicaoRef = useRef<DistribuicaoComissaoFormHandle>(null);
+  const initialDistribuicao = useMemo(() => distribuicaoFromPlano(item), [item]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [valorTouched, setValorTouched] = useState(false);
+  const [distribuicao, setDistribuicao] =
+    useState<DistribuicaoComissaoFormValues>(initialDistribuicao);
 
   const [form, setForm] = useState({
     administradoraId: item.administradoraId,
     nome: item.nome,
     tipoBem: item.tipoBem,
     valorCredito: formatCentavosToCurrencyInput(item.valorCreditoCentavos),
-    percentualComissao: item.percentualComissao?.toString() ?? "",
-    parcelasRecebimento: item.parcelasRecebimento?.toString() ?? "3",
-    diasParaEstorno: item.diasParaEstorno?.toString() ?? "90",
-    regrasRepasse: regrasRepasseToForm(parseRegrasRepasseJson(item.regrasRepasseJson)),
   });
 
   const valorError = useMemo(() => {
@@ -82,16 +77,9 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
       return;
     }
 
-    const regras = parseRegrasFinanceirasForm(form);
-    if ("error" in regras) {
-      setError(regras.error);
-      setSaving(false);
-      return;
-    }
-
-    const regrasRepasse = parseRegrasRepasseForm(form.regrasRepasse);
-    if (regrasRepasse && "error" in regrasRepasse) {
-      setError(regrasRepasse.error);
+    const distribuicaoPayload = await distribuicaoRef.current?.validate();
+    if (!distribuicaoPayload) {
+      setError("Revise a distribuição de comissões. Há campos inválidos ou somas divergentes.");
       setSaving(false);
       return;
     }
@@ -102,13 +90,11 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
         nome: form.nome.trim(),
         tipoBem: form.tipoBem.trim(),
         valorCreditoCentavos,
-        percentualComissao: regras.percentualComissao,
-        parcelasRecebimento: regras.parcelasRecebimento,
-        diasParaEstorno: regras.diasParaEstorno,
-        regrasRepasseJson:
-          regrasRepasse && !("error" in regrasRepasse)
-            ? serializeRegrasRepasse(regrasRepasse)
-            : null,
+        percentualComissao: distribuicaoPayload.percentualComissao,
+        parcelasRecebimento: distribuicaoPayload.parcelasRecebimento,
+        diasParaEstorno: distribuicaoPayload.diasParaEstorno,
+        percentuaisRecebimentoJson: distribuicaoPayload.percentuaisRecebimentoJson,
+        regrasRepasseJson: distribuicaoPayload.regrasRepasseJson,
       });
       router.push("/planos");
       router.refresh();
@@ -185,23 +171,15 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
           </div>
         </div>
 
-        <RegrasFinanceirasFields
-          form={form}
-          onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
-        />
-
-        <RegrasRepasseFields
-          form={form.regrasRepasse}
-          onChange={(patch) =>
-            setForm((p) => ({
-              ...p,
-              regrasRepasse: { ...p.regrasRepasse, ...patch },
-            }))
-          }
+        <DistribuicaoComissaoFields
+          key={item.id}
+          ref={distribuicaoRef}
+          defaultValues={initialDistribuicao}
+          onValuesChange={setDistribuicao}
         />
 
         <RegrasFinanceirasPreview
-          form={form}
+          distribuicao={distribuicao}
           valorCreditoCentavos={
             form.valorCredito.trim()
               ? (() => {

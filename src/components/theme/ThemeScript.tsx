@@ -1,21 +1,13 @@
-import { THEME_STORAGE_KEY } from "@/lib/theme/constants";
+"use client";
 
-/** Script inline executado antes da hidratação para evitar flash de tema incorreto. */
+import { useServerInsertedHTML } from "next/navigation";
+import { getThemeInitScript } from "@/lib/theme/constants";
+
+/** Injeta o script de tema no HTML do SSR, fora da árvore hidratada pelo React. */
 export function ThemeScript() {
-  const script = `
-(function () {
-  try {
-    var key = ${JSON.stringify(THEME_STORAGE_KEY)};
-    var stored = localStorage.getItem(key);
-    var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    var resolved =
-      stored === "light" ? "light" : stored === "dark" ? "dark" : prefersDark ? "dark" : "light";
-    var root = document.documentElement;
-    root.setAttribute("data-theme", resolved);
-    root.style.colorScheme = resolved;
-  } catch (e) {}
-})();
-`.trim();
+  useServerInsertedHTML(() => (
+    <script dangerouslySetInnerHTML={{ __html: getThemeInitScript() }} />
+  ));
 
-  return <script dangerouslySetInnerHTML={{ __html: script }} />;
+  return null;
 }

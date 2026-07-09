@@ -23,6 +23,7 @@ export type PlanoInput = {
   percentualComissao: number | null;
   parcelasRecebimento: number | null;
   diasParaEstorno: number | null;
+  percentuaisRecebimentoJson: string | null;
   regrasRepasseJson: string | null;
 };
 
@@ -96,6 +97,7 @@ export async function createPlano(data: PlanoInput): Promise<PlanoRow> {
     ...data,
     nome,
     tipoBem,
+    percentuaisRecebimentoJson: data.percentuaisRecebimentoJson ?? null,
     regrasRepasseJson: data.regrasRepasseJson ?? null,
   });
   await refreshDashboardReadModels();
@@ -141,6 +143,10 @@ export async function updatePlano(id: string, patch: Partial<PlanoInput>): Promi
         : current.parcelasRecebimento,
     diasParaEstorno:
       data.diasParaEstorno !== undefined ? data.diasParaEstorno : current.diasParaEstorno,
+    percentuaisRecebimentoJson:
+      data.percentuaisRecebimentoJson !== undefined
+        ? data.percentuaisRecebimentoJson
+        : current.percentuaisRecebimentoJson,
     regrasRepasseJson:
       data.regrasRepasseJson !== undefined
         ? data.regrasRepasseJson

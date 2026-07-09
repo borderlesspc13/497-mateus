@@ -16,8 +16,10 @@ export type RegraRepassePapel = {
   percentualSobreCredito: number;
   /** Quantidade de parcelas do repasse deste papel. */
   parcelasTotal: number;
+  /** Percentual exato de cada parcela (índice 0 = P1). Soma deve igualar percentualSobreCredito. */
+  percentuaisParcelas?: number[];
   /**
-   * Pesos por parcela (índice 0 = P1). Zero desativa a parcela (ex.: diretor só P1 e P3).
+   * @deprecated Use percentuaisParcelas. Pesos relativos por parcela.
    * Se omitido, divide igualmente entre todas as parcelas.
    */
   pesosParcelas?: number[];
@@ -32,7 +34,9 @@ export type RegrasRepassePlano = {
 export type RegrasRepasseFormPapel = {
   percentualSobreCredito: string;
   parcelasTotal: string;
+  /** @deprecated Mantido para compatibilidade com formulários legados. */
   pesosParcelas: string;
+  percentuaisParcelas: string;
 };
 
 export type RegrasRepasseFormState = {
@@ -42,10 +46,37 @@ export type RegrasRepasseFormState = {
 };
 
 export const EMPTY_REGRAS_REPASSE_FORM: RegrasRepasseFormState = {
-  vendedor: { percentualSobreCredito: "", parcelasTotal: "3", pesosParcelas: "" },
-  supervisor: { percentualSobreCredito: "", parcelasTotal: "3", pesosParcelas: "" },
-  diretor: { percentualSobreCredito: "", parcelasTotal: "3", pesosParcelas: "1,0,1" },
+  vendedor: { percentualSobreCredito: "", parcelasTotal: "3", pesosParcelas: "", percentuaisParcelas: "" },
+  supervisor: { percentualSobreCredito: "", parcelasTotal: "3", pesosParcelas: "", percentuaisParcelas: "" },
+  diretor: { percentualSobreCredito: "", parcelasTotal: "3", pesosParcelas: "1,0,1", percentuaisParcelas: "" },
 };
+
+function parsePercentuaisParcelas(
+  raw: string,
+  parcelasTotal: number,
+  percentualTotal: number,
+): number[] | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+
+  const parts = trimmed.split(/[,;\s]+/).map((p) => Number(p.replace(",", ".")));
+  if (parts.length !== parcelasTotal) {
+    throw new Error(`Informe ${parcelasTotal} percentual(is) de parcela separados por vírgula.`);
+  }
+  if (parts.some((p) => !Number.isFinite(p) || p < 0)) {
+    throw new Error("Os percentuais das parcelas devem ser números maiores ou iguais a zero.");
+  }
+  if (parts.every((p) => p === 0)) {
+    throw new Error("Ao menos uma parcela deve ter percentual maior que zero.");
+  }
+
+  const soma = parts.reduce((acc, valor) => acc + valor, 0);
+  if (Math.abs(soma - percentualTotal) > 0.01) {
+    throw new Error("A soma dos percentuais das parcelas deve ser igual ao percentual total.");
+  }
+
+  return parts;
+}
 
 function parsePesosParcelas(raw: string, parcelasTotal: number): number[] | undefined {
   const trimmed = raw.trim();
@@ -70,7 +101,9 @@ function parsePapelForm(
 ): RegraRepassePapel | null {
   const percentualRaw = form.percentualSobreCredito.trim();
   const parcelasRaw = form.parcelasTotal.trim();
-  if (!percentualRaw && !parcelasRaw && !form.pesosParcelas.trim()) return null;
+  if (!percentualRaw && !parcelasRaw && !form.pesosParcelas.trim() && !form.percentuaisParcelas.trim()) {
+    return null;
+  }
   if (!percentualRaw) {
     throw new Error(`Informe o percentual de repasse do ${PAPEL_REPASSE_LABELS[papel]}.`);
   }
@@ -85,9 +118,19 @@ function parsePapelForm(
     throw new Error(`Parcelas inválidas para ${PAPEL_REPASSE_LABELS[papel]} (use 1 a 24).`);
   }
 
-  const pesosParcelas = parsePesosParcelas(form.pesosParcelas, parcelasTotal);
+  const percentuaisParcelas =
+    parsePercentuaisParcelas(form.percentuaisParcelas, parcelasTotal, percentualSobreCredito) ??
+    undefined;
+  const pesosParcelas = percentuaisParcelas
+    ? undefined
+    : parsePesosParcelas(form.pesosParcelas, parcelasTotal);
 
-  return { percentualSobreCredito, parcelasTotal, ...(pesosParcelas ? { pesosParcelas } : {}) };
+  return {
+    percentualSobreCredito,
+    parcelasTotal,
+    ...(percentuaisParcelas ? { percentuaisParcelas } : {}),
+    ...(pesosParcelas ? { pesosParcelas } : {}),
+  };
 }
 
 export function parseRegrasRepasseForm(
@@ -118,6 +161,7 @@ export function regrasRepasseToForm(regras: RegrasRepassePlano | null): RegrasRe
     return {
       percentualSobreCredito: papel.percentualSobreCredito.toString(),
       parcelasTotal: papel.parcelasTotal.toString(),
+      percentuaisParcelas: papel.percentuaisParcelas?.join(",") ?? "",
       pesosParcelas: papel.pesosParcelas?.join(",") ?? "",
     };
   }

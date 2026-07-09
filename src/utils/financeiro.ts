@@ -3,6 +3,8 @@ export type RegrasFinanceirasPlano = {
   percentualComissao: number;
   parcelasRecebimento: number;
   diasParaEstorno: number;
+  /** Percentual exato de cada parcela de recebimento (índice 0 = P1). */
+  percentuaisParcelas?: number[];
 };
 
 /** Converte percentual humano (ex.: 2.5) para basis points inteiros (250). */
@@ -50,6 +52,17 @@ export function calcularParcelasComissao(
   creditoCentavos: number,
   regras: RegrasFinanceirasPlano,
 ): ParcelaComissaoCalculada[] {
+  if (
+    regras.percentuaisParcelas &&
+    regras.percentuaisParcelas.length === regras.parcelasRecebimento
+  ) {
+    return regras.percentuaisParcelas.map((percentual, idx) => ({
+      numero: idx + 1,
+      label: `P${idx + 1}`,
+      valorCentavos: calcularComissaoTotalCentavos(creditoCentavos, percentual),
+    }));
+  }
+
   const total = calcularComissaoTotalCentavos(creditoCentavos, regras.percentualComissao);
   const valores = dividirComissaoEmParcelas(total, regras.parcelasRecebimento);
 
