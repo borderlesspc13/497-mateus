@@ -90,6 +90,15 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
     }
   }, [form.valorCredito, valorTouched]);
 
+  const valorCreditoCentavos = useMemo(() => {
+    if (!form.valorCredito.trim()) return null;
+    try {
+      return parseCurrencyToCentavos(form.valorCredito);
+    } catch {
+      return null;
+    }
+  }, [form.valorCredito]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setValorTouched(true);
@@ -199,22 +208,13 @@ export default function NovoPlanoForm({ administradoras }: NovoPlanoFormProps) {
       <DistribuicaoComissaoFields
         ref={distribuicaoRef}
         defaultValues={EMPTY_DISTRIBUICAO_COMISSAO}
+        valorCreditoCentavos={valorCreditoCentavos}
         onValuesChange={setDistribuicao}
       />
 
       <RegrasFinanceirasPreview
         distribuicao={distribuicao}
-        valorCreditoCentavos={
-          form.valorCredito.trim()
-            ? (() => {
-                try {
-                  return parseCurrencyToCentavos(form.valorCredito);
-                } catch {
-                  return null;
-                }
-              })()
-            : null
-        }
+        valorCreditoCentavos={valorCreditoCentavos}
       />
 
       {error ? (

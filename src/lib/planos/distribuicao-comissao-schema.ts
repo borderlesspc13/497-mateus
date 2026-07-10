@@ -105,7 +105,7 @@ export const distribuicaoComissaoSchema = z
     validarNivel(data.empresa, ctx, "empresa", false);
     validarNivel(data.vendedor, ctx, "vendedor", false);
     validarNivel(data.supervisor, ctx, "supervisor", false);
-    validarNivel(data.diretor, ctx, "diretor", true);
+    validarNivel(data.diretor, ctx, "diretor", false);
 
     const dias = Number.parseInt(data.diasParaEstorno, 10);
     if (!Number.isInteger(dias) || dias < 1) {

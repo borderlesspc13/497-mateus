@@ -54,6 +54,15 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
     }
   }, [form.valorCredito, valorTouched]);
 
+  const valorCreditoCentavos = useMemo(() => {
+    if (!form.valorCredito.trim()) return null;
+    try {
+      return parseCurrencyToCentavos(form.valorCredito);
+    } catch {
+      return null;
+    }
+  }, [form.valorCredito]);
+
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     setValorTouched(true);
@@ -175,22 +184,13 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
           key={item.id}
           ref={distribuicaoRef}
           defaultValues={initialDistribuicao}
+          valorCreditoCentavos={valorCreditoCentavos ?? item.valorCreditoCentavos}
           onValuesChange={setDistribuicao}
         />
 
         <RegrasFinanceirasPreview
           distribuicao={distribuicao}
-          valorCreditoCentavos={
-            form.valorCredito.trim()
-              ? (() => {
-                  try {
-                    return parseCurrencyToCentavos(form.valorCredito);
-                  } catch {
-                    return null;
-                  }
-                })()
-              : item.valorCreditoCentavos
-          }
+          valorCreditoCentavos={valorCreditoCentavos ?? item.valorCreditoCentavos}
         />
 
         {error ? (
