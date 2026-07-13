@@ -120,7 +120,7 @@ export default function EditarPlanoForm({ item, administradoras }: EditarPlanoFo
         crumbs={[
           { label: "Dashboard", href: "/" },
           { label: "Planos", href: "/planos" },
-          { label: "Editar" },
+          { label: item.nome },
         ]}
         title={item.nome}
         description="Ajuste dados do plano e regras financeiras de comissão."

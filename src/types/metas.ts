@@ -84,6 +84,15 @@ export type CriarMetaInput = {
   metaAtivacao: number;
 };
 
+export type CriarMetasEmLoteInput = {
+  periodo: string;
+  tipo: MetaTipo;
+  referenciaIds: string[];
+  metaVendas: number;
+  metaCreditoCentavos: number;
+  metaAtivacao: number;
+};
+
 export type EditarMetaInput = {
   metaVendas: number;
   metaCreditoCentavos: number;

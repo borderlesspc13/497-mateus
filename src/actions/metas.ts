@@ -16,12 +16,13 @@ import {
   CONQUISTAS_SEED_WITH_IDS,
   filtrarVendasPeriodo,
 } from "@/lib/metas/conquistas";
-import { criarMetaSchema, editarMetaSchema } from "@/lib/metas/schemas";
+import { criarMetaSchema, editarMetaSchema, criarMetasEmLoteSchema } from "@/lib/metas/schemas";
 import { parsePeriodo, periodoAtual, isPeriodoValido } from "@/lib/periodo";
 import type {
   ActionResult,
   Conquista,
   CriarMetaInput,
+  CriarMetasEmLoteInput,
   EditarMetaInput,
   Meta,
   MetaComRealizacao,
@@ -467,6 +468,58 @@ export async function criarMeta(input: CriarMetaInput): Promise<ActionResult<Met
     return ok(meta);
   } catch (e) {
     return fail(e instanceof Error ? e.message : "Erro ao criar meta.");
+  }
+}
+
+export async function criarMetasEmLote(
+  input: CriarMetasEmLoteInput,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await requireGerenteOrAdmin();
+    const parsed = criarMetasEmLoteSchema.safeParse(input);
+    if (!parsed.success) {
+      return fail(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+    }
+
+    const data = parsed.data;
+    const ts = nowIso();
+    let metasCriadas = 0;
+
+    for (const refId of data.referenciaIds) {
+      const duplicada = await findMetaDuplicada(data.periodo, data.tipo, refId);
+      if (duplicada) continue;
+
+      const referenciaNome = await resolveReferenciaNome(data.tipo, refId);
+      if (!referenciaNome) continue;
+
+      const id = db().collection(COLLECTIONS.metas).doc().id;
+      const doc: MetaDoc = {
+        periodo: data.periodo,
+        tipo: data.tipo,
+        referenciaId: refId,
+        referenciaNome,
+        metaVendas: data.metaVendas,
+        metaCreditoCentavos: data.metaCreditoCentavos,
+        metaAtivacao: data.metaAtivacao,
+        criadoPor: user.uid,
+        criadoEm: ts,
+        atualizadoEm: ts,
+      };
+
+      await db().collection(COLLECTIONS.metas).doc(id).set(doc);
+      await sincronizarRealizacao(id);
+      metasCriadas++;
+    }
+
+    if (metasCriadas > 0) {
+      await refreshMetasWidgetReadModels(data.periodo);
+      revalidateMetas();
+      return ok(undefined);
+    } else {
+      return fail("Nenhuma meta foi criada. Talvez todos já possuam meta neste período.");
+    }
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : "Erro ao criar metas em lote.");
   }
 }
 

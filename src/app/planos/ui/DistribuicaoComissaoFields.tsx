@@ -6,6 +6,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -205,16 +206,36 @@ function NivelDistribuicaoFields({
     name: `${nivelName}.parcelas`,
   });
 
+  const prevDeps = useRef({ percentualTotal, numeroParcelas });
+
   useEffect(() => {
     const quantidade = Math.min(24, Math.max(1, Number(numeroParcelas) || 1));
-    if (fields.length === quantidade) return;
+    const total = parsePercentualInput(percentualTotal ?? "");
+    
+    const prev = prevDeps.current;
+    const changed = prev.percentualTotal !== percentualTotal || prev.numeroParcelas !== numeroParcelas;
+    prevDeps.current = { percentualTotal, numeroParcelas };
 
-    const atuais = getValues(`${nivelName}.parcelas`) ?? [];
-    const proximas = Array.from({ length: quantidade }, (_, index) => ({
-      percentual: atuais[index]?.percentual ?? "",
-    }));
-    replace(proximas);
-  }, [fields.length, getValues, nivelName, numeroParcelas, replace]);
+    if (changed) {
+      if (Number.isFinite(total) && total > 0) {
+        replace(distribuirPercentualIgualmente(total, quantidade));
+      } else {
+        if (fields.length === quantidade) return;
+        const atuais = getValues(`${nivelName}.parcelas`) ?? [];
+        const proximas = Array.from({ length: quantidade }, (_, index) => ({
+          percentual: atuais[index]?.percentual ?? "",
+        }));
+        replace(proximas);
+      }
+    } else {
+      if (fields.length === quantidade) return;
+      const atuais = getValues(`${nivelName}.parcelas`) ?? [];
+      const proximas = Array.from({ length: quantidade }, (_, index) => ({
+        percentual: atuais[index]?.percentual ?? "",
+      }));
+      replace(proximas);
+    }
+  }, [percentualTotal, numeroParcelas, replace, nivelName, getValues, fields.length]);
 
   const nivelErrors = errors[nivelName];
   const somaParcelas = (parcelas ?? []).reduce((acc, parcela) => {

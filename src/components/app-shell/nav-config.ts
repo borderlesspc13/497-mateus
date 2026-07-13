@@ -71,6 +71,11 @@ export function buildMainNav(permissions: readonly AppModule[]): NavLinkItem[] {
 
   for (const optional of OPTIONAL_MAIN_NAV) {
     if (!canAccessModule(permissions, optional.module)) continue;
+
+    if (optional.module === "metas-minhas" && canAccessModule(permissions, "metas")) {
+      continue;
+    }
+
     if (optional.module === "comissoes") {
       items.splice(3, 0, optional);
     } else if (optional.module === "metas" || optional.module === "metas-minhas") {
@@ -180,6 +185,12 @@ function resolveBreadcrumbLabel(
     (segments.length === index + 1 || segments[index + 1] === "editar");
 
   if (isConsorciadoRecord) return "Ficha";
+
+  // Se for um UUID (ID longo), não mostramos ele cru na tela
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(segment)) {
+    return "Detalhes";
+  }
 
   return segment;
 }

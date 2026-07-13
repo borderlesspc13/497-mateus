@@ -13,6 +13,15 @@ export const criarMetaSchema = z.object({
   metaAtivacao: z.number().min(0).max(100, "Meta de ativação deve estar entre 0 e 100."),
 });
 
+export const criarMetasEmLoteSchema = z.object({
+  periodo: periodoSchema,
+  tipo: z.enum(["VENDEDOR", "EQUIPE"]),
+  referenciaIds: z.array(z.string()).min(1, "Selecione pelo menos uma referência."),
+  metaVendas: z.number().int().positive("Meta de vendas deve ser maior que zero."),
+  metaCreditoCentavos: z.number().int().positive("Meta de crédito deve ser maior que zero."),
+  metaAtivacao: z.number().min(0).max(100, "Meta de ativação deve estar entre 0 e 100."),
+});
+
 export const editarMetaSchema = z.object({
   metaVendas: z.number().int().positive("Meta de vendas deve ser maior que zero."),
   metaCreditoCentavos: z.number().int().positive("Meta de crédito deve ser maior que zero."),

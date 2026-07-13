@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { criarMeta, editarMeta } from "@/actions/metas";
+import { criarMeta, editarMeta, criarMetasEmLote } from "@/actions/metas";
 import { criarMetaSchema } from "@/lib/metas/schemas";
 import type { Meta, MetaTipo } from "@/types/metas";
 import {
@@ -99,6 +99,26 @@ export function MetaFormDialog({
         return;
       }
 
+      if (!isEdit && referenciaId === "TODOS") {
+        const payload = {
+          periodo,
+          tipo,
+          referenciaIds: referencias.map((r) => r.id),
+          metaVendas: Number(metaVendas),
+          metaCreditoCentavos: creditoCentavos,
+          metaAtivacao: Number(metaAtivacao),
+        };
+        const result = await criarMetasEmLote(payload);
+        if (!result.success) {
+          setError(result.error);
+          return;
+        }
+        setSuccess("Metas criadas com sucesso para todos.");
+        router.refresh();
+        setTimeout(() => onOpenChange(false), 600);
+        return;
+      }
+
       const payload = {
         periodo,
         tipo,
@@ -166,7 +186,9 @@ export function MetaFormDialog({
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Referência</span>
+                <span className="mb-1 block text-xs font-medium text-zinc-600">
+                  {tipo === "VENDEDOR" ? "Vendedor" : "Equipe"}
+                </span>
                 <select
                   value={referenciaId}
                   onChange={(e) => setReferenciaId(e.target.value)}
@@ -174,6 +196,7 @@ export function MetaFormDialog({
                   required
                 >
                   <option value="">Selecione...</option>
+                  <option value="TODOS">Todos</option>
                   {referencias.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.nome}
