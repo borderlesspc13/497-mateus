@@ -54,7 +54,7 @@ function loadServiceAccountFromFile(): ServiceAccount | null {
   if (!relativePath) return null;
 
   try {
-    const absolutePath = resolve(process.cwd(), relativePath);
+    const absolutePath = resolve(/*turbopackIgnore: true*/ process.cwd(), relativePath);
     const raw = readFileSync(absolutePath, "utf8");
     const parsed = JSON.parse(raw) as ServiceAccountPayload;
     return normalizeServiceAccount(parsed);
