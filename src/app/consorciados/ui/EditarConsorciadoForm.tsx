@@ -7,7 +7,7 @@ import {
   getConsorciado,
   updateConsorciado,
   type ConsorciadoInput,
-} from "@/lib/firestore/consorciados-client";
+} from "@/actions/consorciados";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";

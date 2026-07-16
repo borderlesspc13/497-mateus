@@ -4,16 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { listPlanosMiniByAdministradora } from "@/actions/planos";
-import { findConsorciadoByCpfCnpj } from "@/actions/consorciados";
+import { findConsorciadoByCpfCnpj, createConsorciado, type ConsorciadoInput } from "@/actions/consorciados";
 import { listVendedoresMiniByEquipe } from "@/actions/vendedores";
 import { createVenda } from "@/actions/vendas";
 import { ConsorciadoAutocomplete } from "@/components/form/ConsorciadoAutocomplete";
 import { CurrencyInput } from "@/components/form/MaskedInputs";
 import { primaryCtaClass } from "@/components/page-flow/button-classes";
-import {
-  createConsorciado,
-  type ConsorciadoInput,
-} from "@/lib/firestore/consorciados-client";
 import { formControlClass, formSectionClass } from "@/components/ui/list-panel-classes";
 import type {
   AdministradoraMini,

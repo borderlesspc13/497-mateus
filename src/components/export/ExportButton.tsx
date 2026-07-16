@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { exportToXlsx, type ExportColumnDef } from "@/lib/export/export-to-xlsx";
+import type { ExportColumnDef } from "@/lib/export/types";
 import { buildExportFileName } from "@/lib/export/filename";
 import { cn } from "@/lib/utils";
 
@@ -43,16 +43,18 @@ export function ExportButton<T>({
   const onExport = useCallback(() => {
     if (isDisabled) return;
     setExporting(true);
-    try {
-      exportToXlsx({
-        fileName: buildExportFileName(fileNameBase),
-        sheetName,
-        rows,
-        columns,
+    void import("@/lib/export/export-to-xlsx")
+      .then(({ exportToXlsx }) => {
+        exportToXlsx({
+          fileName: buildExportFileName(fileNameBase),
+          sheetName,
+          rows,
+          columns,
+        });
+      })
+      .finally(() => {
+        setExporting(false);
       });
-    } finally {
-      setExporting(false);
-    }
   }, [columns, fileNameBase, isDisabled, rows, sheetName]);
 
   return (

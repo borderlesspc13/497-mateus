@@ -1,5 +1,3 @@
-import Papa from "papaparse";
-import * as XLSX from "xlsx";
 import type { ImportRowInput } from "@/lib/importacao/types";
 import {
   CONTRATO_COLUMN_CANDIDATES,
@@ -92,7 +90,8 @@ function parseRawRows(rawRows: RawRow[]): ParseImportFileResult {
   return { rows, errors, warnings };
 }
 
-function rowsFromCsvText(text: string): Promise<RawRow[]> {
+async function rowsFromCsvText(text: string): Promise<RawRow[]> {
+  const Papa = (await import("papaparse")).default;
   return new Promise((resolve, reject) => {
     Papa.parse<RawRow>(text, {
       header: true,
@@ -111,7 +110,8 @@ function rowsFromCsvText(text: string): Promise<RawRow[]> {
   });
 }
 
-function rowsFromXlsxBuffer(buffer: ArrayBuffer): RawRow[] {
+async function rowsFromXlsxBuffer(buffer: ArrayBuffer): Promise<RawRow[]> {
+  const XLSX = await import("xlsx");
   const workbook = XLSX.read(buffer, { type: "array" });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) return [];
@@ -143,7 +143,7 @@ export async function parseImportFile(file: File): Promise<ParseImportFileResult
 
   if (isXlsxFile(file)) {
     const buffer = await file.arrayBuffer();
-    const rawRows = rowsFromXlsxBuffer(buffer);
+    const rawRows = await rowsFromXlsxBuffer(buffer);
     return parseRawRows(rawRows);
   }
 

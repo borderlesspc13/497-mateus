@@ -15,7 +15,6 @@ import { VendaPosVendaPanel } from "@/components/vendas/VendaPosVendaPanel";
 import { CancelamentoEstornoModal } from "@/components/vendas/CancelamentoEstornoModal";
 import type {
   AdministradoraMini,
-  ConsorciadoMini,
   EquipeMini,
   PlanoMini,
   VendaRow,
@@ -30,7 +29,6 @@ type EditarVendaFormProps = {
   item: VendaRow;
   administradoras: AdministradoraMini[];
   initialPlanos: PlanoMini[];
-  consorciados: ConsorciadoMini[];
   equipes: EquipeMini[];
   vendedores: VendedorMini[];
 };
@@ -49,7 +47,6 @@ export default function EditarVendaForm({
   item,
   administradoras,
   initialPlanos,
-  consorciados,
   equipes,
 }: EditarVendaFormProps) {
   const router = useRouter();
@@ -284,23 +281,20 @@ export default function EditarVendaForm({
               Consorciado <span className="text-red-600"> *</span>
             </div>
             <ConsorciadoAutocomplete
-              consorciados={consorciados}
               value={form.consorciadoId}
               onChange={(consorciadoId) => setForm((p) => ({ ...p, consorciadoId }))}
-              disabled={consorciados.length === 0}
+              remoteSearch
               required
             />
-            {consorciados.length === 0 ? (
-              <div className="mt-2 text-xs text-zinc-500">
-                Nenhum consorciado cadastrado.{" "}
-                <Link
-                  href="/consorciados/nova"
-                  className="font-medium text-zinc-800 underline-offset-2 hover:underline"
-                >
-                  Novo consorciado
-                </Link>
-              </div>
-            ) : null}
+            <div className="mt-2 text-xs text-zinc-500">
+              Não encontrou?{" "}
+              <Link
+                href="/consorciados/nova"
+                className="font-medium text-zinc-800 underline-offset-2 hover:underline"
+              >
+                Novo consorciado
+              </Link>
+            </div>
           </label>
 
           <label className="block">
@@ -507,7 +501,7 @@ export default function EditarVendaForm({
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-            disabled={saving || consorciados.length === 0 || equipes.length === 0}
+            disabled={saving || equipes.length === 0}
           >
             {saving ? "Salvando..." : "Salvar alterações"}
           </button>

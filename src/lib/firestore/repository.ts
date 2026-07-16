@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { handleFirestoreIndexError } from "@/lib/firestore/firestore-errors";
 import {
@@ -105,10 +106,10 @@ async function listAdministradoraDocs(): Promise<DocWithId<AdministradoraDoc>[]>
   return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as AdministradoraDoc) }));
 }
 
-async function listPlanoDocs(): Promise<DocWithId<PlanoDoc>[]> {
+const listPlanoDocs = cache(async (): Promise<DocWithId<PlanoDoc>[]> => {
   const snap = await db().collection(COLLECTIONS.planos).get();
   return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as PlanoDoc) }));
-}
+});
 
 async function getConsorciadoDoc(id: string): Promise<DocWithId<ConsorciadoDoc> | null> {
   const snap = await db().collection(COLLECTIONS.consorciados).doc(id).get();
@@ -116,10 +117,10 @@ async function getConsorciadoDoc(id: string): Promise<DocWithId<ConsorciadoDoc> 
   return { id: snap.id, ...(snap.data() as ConsorciadoDoc) };
 }
 
-async function listConsorciadoDocs(): Promise<DocWithId<ConsorciadoDoc>[]> {
+const listConsorciadoDocs = cache(async (): Promise<DocWithId<ConsorciadoDoc>[]> => {
   const snap = await db().collection(COLLECTIONS.consorciados).get();
   return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as ConsorciadoDoc) }));
-}
+});
 
 async function getEquipeDoc(id: string): Promise<DocWithId<EquipeDoc> | null> {
   const snap = await db().collection(COLLECTIONS.equipes).doc(id).get();
@@ -384,6 +385,51 @@ export async function findConsorciadoMiniByCpfCnpj(
 export async function getConsorciado(id: string): Promise<ConsorciadoRow | null> {
   const doc = await getConsorciadoDoc(id);
   return doc ? toConsorciadoRow(doc) : null;
+}
+
+export type ConsorciadoWriteInput = {
+  nome: string;
+  cpf_cnpj: string;
+  telefone: string;
+  email: string;
+};
+
+export async function createConsorciado(
+  data: ConsorciadoWriteInput,
+): Promise<ConsorciadoRow> {
+  const id = newId();
+  const docData: ConsorciadoDoc = {
+    nome: data.nome,
+    cpf_cnpj: data.cpf_cnpj,
+    telefone: data.telefone,
+    email: data.email,
+    criadoEm: nowIso(),
+  };
+  await db().collection(COLLECTIONS.consorciados).doc(id).set(docData);
+  return toConsorciadoRow({ id, ...docData });
+}
+
+export async function updateConsorciado(
+  id: string,
+  data: ConsorciadoWriteInput,
+): Promise<ConsorciadoRow> {
+  const current = await getConsorciadoDoc(id);
+  if (!current) throw new Error("Consorciado não encontrado.");
+  const next: ConsorciadoDoc = {
+    nome: data.nome,
+    cpf_cnpj: data.cpf_cnpj,
+    telefone: data.telefone,
+    email: data.email,
+    criadoEm: current.criadoEm,
+  };
+  await db().collection(COLLECTIONS.consorciados).doc(id).set(next);
+  return toConsorciadoRow({ id, ...next });
+}
+
+export async function deleteConsorciado(id: string): Promise<void> {
+  const current = await getConsorciadoDoc(id);
+  if (!current) throw new Error("Consorciado não encontrado.");
+  await db().collection(COLLECTIONS.consorciados).doc(id).delete();
 }
 
 export async function listEquipes(): Promise<EquipeRow[]> {
@@ -919,7 +965,7 @@ export async function listVendasPaginated(
   }
 }
 
-export async function listVendas(): Promise<VendaRow[]> {
+export const listVendas = cache(async (): Promise<VendaRow[]> => {
   const [vendas, administradoras, planos, consorciados, equipes, vendedores] =
     await Promise.all([
       listVendaDocs(),
@@ -940,7 +986,7 @@ export async function listVendas(): Promise<VendaRow[]> {
   return sortByCreatedAtDesc(vendas)
     .map((raw) => resolveVendaRelations(normalizeVendaDoc(raw), maps))
     .filter((x): x is VendaRow => x !== null);
-}
+});
 
 const POS_VENDA_RECENT_DAYS = 30;
 

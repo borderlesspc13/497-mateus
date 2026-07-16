@@ -6,14 +6,20 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { normalizeVendaFields } from "@/lib/firestore/legacy";
 import { COLLECTIONS, type VendaDoc } from "@/lib/firestore/types";
 import {
+  createConsorciado as createConsorciadoDoc,
+  deleteConsorciado as deleteConsorciadoDoc,
   findConsorciadoMiniByCpfCnpj,
   getConsorciado as getConsorciadoDoc,
   listConsorciados as listConsorciadosDocs,
   listConsorciadosMini as listConsorciadosMiniDocs,
   listVendasByConsorciado as listVendasByConsorciadoDocs,
   searchConsorciadosMini as searchConsorciadosMiniDocs,
+  updateConsorciado as updateConsorciadoDoc,
+  type ConsorciadoWriteInput,
 } from "@/lib/firestore/repository";
 import type { ConsorciadoMini, ConsorciadoRow, VendaRow } from "@/lib/types/domain";
+
+export type ConsorciadoInput = ConsorciadoWriteInput;
 
 export type ConsorciadoVendaSearchIndexRow = {
   id: string;
@@ -43,6 +49,24 @@ export async function getConsorciado(id: string): Promise<ConsorciadoRow | null>
   return getConsorciadoDoc(id);
 }
 
+export async function createConsorciado(data: ConsorciadoInput): Promise<ConsorciadoRow> {
+  await requireServerSessionUser();
+  return createConsorciadoDoc(data);
+}
+
+export async function updateConsorciado(
+  id: string,
+  data: ConsorciadoInput,
+): Promise<ConsorciadoRow> {
+  await requireServerSessionUser();
+  return updateConsorciadoDoc(id, data);
+}
+
+export async function deleteConsorciado(id: string): Promise<void> {
+  await requireServerSessionUser();
+  return deleteConsorciadoDoc(id);
+}
+
 export async function getConsorciadosPageData(): Promise<{
   items: ConsorciadoRow[];
   vendasIndex: ConsorciadoVendaSearchIndexRow[];
@@ -50,7 +74,20 @@ export async function getConsorciadosPageData(): Promise<{
   await requireServerSessionUser();
   const [items, vendasSnap] = await Promise.all([
     listConsorciadosDocs(),
-    getAdminFirestore().collection(COLLECTIONS.vendas).get(),
+    getAdminFirestore()
+      .collection(COLLECTIONS.vendas)
+      .select(
+        "consorciadoId",
+        "numeroContrato",
+        "contrato",
+        "titulo",
+        "grupo",
+        "cota",
+        "statusOperacional",
+        "status",
+        "statusInconsistencia",
+      )
+      .get(),
   ]);
 
   return {

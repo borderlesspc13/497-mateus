@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import {
   createConsorciado,
   type ConsorciadoInput,
-} from "@/lib/firestore/consorciados-client";
+} from "@/actions/consorciados";
 import { formControlClass, panelClass } from "@/components/ui/list-panel-classes";
 
 type FormState = {
