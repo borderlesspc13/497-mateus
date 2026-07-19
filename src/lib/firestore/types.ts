@@ -69,7 +69,8 @@ export type PlanoDoc = {
   updatedAt: string;
 };
 
-export type UserRole = "admin" | "gerente" | "vendedor";
+export type { UserRole } from "@/lib/auth/roles";
+import type { UserRole } from "@/lib/auth/roles";
 
 export type UsuarioDoc = {
   email: string;

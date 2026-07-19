@@ -5,8 +5,10 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/auth/constants";
 import {
+  canAccessAnyControle,
   canAccessModule,
   findFirstAccessibleRoute,
+  findFirstControleRoute,
   parsePermissionsCookie,
   resolveModuleFromPath,
 } from "@/lib/auth/modules";
@@ -45,14 +47,27 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const permissions = parsePermissionsCookie(
+    request.cookies.get(PERMISSIONS_COOKIE_NAME)?.value,
+  );
+
+  // Hub `/controle`: exige ao menos um módulo de fila; redireciona para a primeira fila acessível.
+  if (pathname === "/controle" || pathname === "/controle/") {
+    if (permissions.length > 0 && !canAccessAnyControle(permissions)) {
+      const fallback = findFirstAccessibleRoute(permissions);
+      return NextResponse.redirect(new URL(fallback, request.url));
+    }
+    const firstControle = findFirstControleRoute(permissions);
+    if (firstControle) {
+      return NextResponse.redirect(new URL(firstControle, request.url));
+    }
+    return NextResponse.next();
+  }
+
   const requiredModule = resolveModuleFromPath(pathname);
   if (!requiredModule) {
     return NextResponse.next();
   }
-
-  const permissions = parsePermissionsCookie(
-    request.cookies.get(PERMISSIONS_COOKIE_NAME)?.value,
-  );
 
   if (permissions.length === 0) {
     return NextResponse.next();

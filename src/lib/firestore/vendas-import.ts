@@ -6,7 +6,11 @@ import {
 } from "@/lib/firestore/contrato-matriz";
 import { aplicarEstornoCancelamentoVenda } from "@/lib/firestore/estorno-cancelamento";
 import { normalizeVendaFields } from "@/lib/firestore/legacy";
-import { resolveVendaIdByNumeroContrato, listVendaDocsByStatusOperacional, syncExtratosComissaoForVenda } from "@/lib/firestore/repository";
+import {
+  resolveVendaIdByNumeroContrato,
+  listVendaDocsByStatusOperacional,
+  syncExtratosComissaoForVenda,
+} from "@/lib/firestore/repository";
 import { COLLECTIONS, nowIso, type ConsorciadoDoc, type VendaDoc } from "@/lib/firestore/types";
 import type {
   ImportConfirmItem,
@@ -19,6 +23,8 @@ import { buildSpreadsheetContractSet } from "@/lib/importacao/reconciliation";
 import { buildInadimplenciaReconciliationSummary } from "@/lib/importacao/inadimplencia-reconciliation";
 
 export type { VendaContratoLookup };
+
+const FIRESTORE_BATCH_LIMIT = 400;
 
 export async function buildVendaContratoLookupMap(): Promise<Map<string, VendaContratoLookup>> {
   const snap = await getAdminFirestore().collection(COLLECTIONS.vendas).get();
@@ -83,14 +89,17 @@ export async function listInadimplentesMissingFromSpreadsheet(
   ];
 
   const consorciadoNomeMap = new Map<string, string>();
-  await Promise.all(
-    consorciadoIds.map(async (id) => {
-      const consorciadoSnap = await db.collection(COLLECTIONS.consorciados).doc(id).get();
-      if (!consorciadoSnap.exists) return;
+  const CHUNK = 100;
+  for (let i = 0; i < consorciadoIds.length; i += CHUNK) {
+    const chunk = consorciadoIds.slice(i, i + CHUNK);
+    const refs = chunk.map((id) => db.collection(COLLECTIONS.consorciados).doc(id));
+    const snaps = await db.getAll(...refs);
+    for (const consorciadoSnap of snaps) {
+      if (!consorciadoSnap.exists) continue;
       const consorciado = consorciadoSnap.data() as ConsorciadoDoc;
-      consorciadoNomeMap.set(id, consorciado.nome);
-    }),
-  );
+      consorciadoNomeMap.set(consorciadoSnap.id, consorciado.nome);
+    }
+  }
 
   const missingFromSpreadsheet = inadimplentes
     .map((item) => ({
@@ -135,9 +144,21 @@ export async function batchUpdateVendaStatus(
   }
 
   const db = getAdminFirestore();
+  const lookup = await buildVendaContratoLookupMap();
   let updated = 0;
   let skipped = 0;
   const ts = nowIso();
+
+  type PendingUpdate = {
+    vendaId: string;
+    statusOperacional: ImportConfirmItem["statusOperacional"];
+    isNovoCancelamento: boolean;
+    parcelasPagasCancelamento?: number | null;
+  };
+
+  const pending: PendingUpdate[] = [];
+  const postSyncAtivo: string[] = [];
+  const postEstorno: Array<{ vendaId: string; parcelas: number }> = [];
 
   for (const item of updates) {
     const numeroContrato = normalizeNumeroContrato(item.numeroContrato);
@@ -146,7 +167,8 @@ export async function batchUpdateVendaStatus(
       continue;
     }
 
-    const vendaId = await resolveVendaIdByNumeroContrato(numeroContrato);
+    const fromLookup = lookup.get(numeroContrato);
+    const vendaId = fromLookup?.id ?? (await resolveVendaIdByNumeroContrato(numeroContrato));
     if (!vendaId) {
       skipped += 1;
       continue;
@@ -186,24 +208,52 @@ export async function batchUpdateVendaStatus(
       }
     }
 
-    await ref.update({
+    pending.push({
+      vendaId,
       statusOperacional: item.statusOperacional,
-      status: item.statusOperacional,
-      updatedAt: ts,
-      ...(isNovoCancelamento
-        ? { parcelasPagasCancelamento: item.parcelasPagasCancelamento }
-        : {}),
+      isNovoCancelamento,
+      parcelasPagasCancelamento: item.parcelasPagasCancelamento,
     });
-    updated += 1;
+  }
 
-    if (item.statusOperacional === "ATIVO") {
-      await syncExtratosComissaoForVenda(vendaId);
+  for (let i = 0; i < pending.length; i += FIRESTORE_BATCH_LIMIT) {
+    const chunk = pending.slice(i, i + FIRESTORE_BATCH_LIMIT);
+    const batch = db.batch();
+    for (const item of chunk) {
+      const ref = db.collection(COLLECTIONS.vendas).doc(item.vendaId);
+      batch.update(ref, {
+        statusOperacional: item.statusOperacional,
+        status: item.statusOperacional,
+        updatedAt: ts,
+        ...(item.isNovoCancelamento
+          ? { parcelasPagasCancelamento: item.parcelasPagasCancelamento }
+          : {}),
+      });
     }
+    await batch.commit();
+    updated += chunk.length;
 
-    if (isNovoCancelamento && item.parcelasPagasCancelamento !== undefined) {
-      await aplicarEstornoCancelamentoVenda(vendaId, item.parcelasPagasCancelamento);
+    for (const item of chunk) {
+      if (item.statusOperacional === "ATIVO") {
+        postSyncAtivo.push(item.vendaId);
+      }
+      if (
+        item.isNovoCancelamento &&
+        item.parcelasPagasCancelamento !== undefined &&
+        item.parcelasPagasCancelamento !== null
+      ) {
+        postEstorno.push({
+          vendaId: item.vendaId,
+          parcelas: item.parcelasPagasCancelamento,
+        });
+      }
     }
   }
+
+  await Promise.all(postSyncAtivo.map((vendaId) => syncExtratosComissaoForVenda(vendaId)));
+  await Promise.all(
+    postEstorno.map(({ vendaId, parcelas }) => aplicarEstornoCancelamentoVenda(vendaId, parcelas)),
+  );
 
   return { updated, skipped };
 }

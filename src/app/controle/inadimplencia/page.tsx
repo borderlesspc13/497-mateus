@@ -2,7 +2,6 @@
 import { listAdministradoras } from "@/actions/administradoras";
 import { listEquipesMini } from "@/actions/equipes";
 import { listVendasPaginated } from "@/actions/vendas";
-import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { PageLoading } from "@/components/ui/PageLoading";
 import ControleCotasClient from "../ui/ControleCotasClient";
 
@@ -31,18 +30,8 @@ async function InadimplenciaData() {
 
 export default function ControleInadimplenciaPage() {
   return (
-    <>
-      <PageFlowHeader
-        crumbs={[
-          { label: "Dashboard", href: "/" },
-          { label: "Inadimplência" },
-        ]}
-        title="Controle de inadimplência"
-        description="Monitore cotas por status operacional. Clique em uma linha para abrir a timeline de atendimento."
-      />
-      <Suspense fallback={<PageLoading rows={8} columns={6} withHeader={false} />}>
-        <InadimplenciaData />
-      </Suspense>
-    </>
+    <Suspense fallback={<PageLoading rows={8} columns={6} withHeader={false} />}>
+      <InadimplenciaData />
+    </Suspense>
   );
 }

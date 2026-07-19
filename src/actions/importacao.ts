@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
-import { refreshMetasWidgetReadModels } from "@/actions/metas";
-import { refreshDashboardReadModels } from "@/lib/firestore/repository";
+import { scheduleDashboardAndMetasRefresh } from "@/lib/firestore/schedule-read-model-refresh";
 import { requireGerenteOrAdmin } from "@/lib/auth/server";
 import {
   batchUpdateVendaStatus,
@@ -28,10 +27,11 @@ import type { StatusOperacionalCota } from "@/lib/types/domain";
 const MAX_IMPORT_ROWS = 10_000;
 
 function revalidateImportacaoPaths() {
-  revalidatePath("/");
   revalidatePath("/vendas");
+  revalidatePath("/controle");
   revalidatePath("/controle/inadimplencia");
   revalidatePath("/controle/inconsistencia");
+  revalidatePath("/controle/pos-venda");
   revalidatePath("/importacao");
   revalidatePath("/comissoes");
 }
@@ -217,7 +217,7 @@ export async function confirmImportacaoStatus(
     });
   }
 
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateImportacaoPaths();
   return result;
 }

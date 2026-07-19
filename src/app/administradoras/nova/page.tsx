@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
-import NovaAdministradoraForm from "../ui/NovaAdministradoraForm";
+import AdministradoraForm from "../ui/AdministradoraForm";
 
 export default function NovaAdministradoraPage() {
   return (
@@ -21,7 +21,7 @@ export default function NovaAdministradoraPage() {
         }
       />
 
-      <NovaAdministradoraForm />
+      <AdministradoraForm mode="create" />
     </div>
   );
 }

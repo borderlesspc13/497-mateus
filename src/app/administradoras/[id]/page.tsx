@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAdministradora } from "@/actions/administradoras";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
-import EditarAdministradoraForm from "../ui/EditarAdministradoraForm";
+import AdministradoraForm from "../ui/AdministradoraForm";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -33,5 +33,5 @@ export default async function EditarAdministradoraPage({ params }: PageProps) {
     );
   }
 
-  return <EditarAdministradoraForm item={item} />;
+  return <AdministradoraForm mode="edit" item={item} />;
 }

@@ -17,3 +17,17 @@ export async function ModuleGuard({
   }
   return children;
 }
+
+/** Permite acesso se o usuário tiver ao menos um dos módulos listados. */
+export async function AnyModuleGuard({
+  modules,
+  children,
+}: PropsWithChildren<{ modules: readonly AppModule[] }>) {
+  const session = await getServerSessionUser();
+  const permissions = session?.permissions ?? [];
+  const allowed = modules.some((module) => canAccessModule(permissions, module));
+  if (!session || !allowed) {
+    redirect(findFirstAccessibleRoute(permissions));
+  }
+  return children;
+}

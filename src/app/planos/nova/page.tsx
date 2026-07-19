@@ -4,7 +4,7 @@ import { listAdministradoras } from "@/actions/administradoras";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
 import { panelClass } from "@/components/ui/list-panel-classes";
-import NovoPlanoForm from "../ui/NovoPlanoForm";
+import PlanoForm from "../ui/PlanoForm";
 
 function NovoPlanoFallback() {
   return (
@@ -35,7 +35,8 @@ export default async function NovoPlanoPage() {
       />
 
       <Suspense fallback={<NovoPlanoFallback />}>
-        <NovoPlanoForm
+        <PlanoForm
+          mode="create"
           administradoras={administradoras.map((a) => ({
             id: a.id,
             nome: a.nome,

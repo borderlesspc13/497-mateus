@@ -20,6 +20,9 @@ export const APP_MODULES = [
 
 export type AppModule = (typeof APP_MODULES)[number];
 
+export const CONTROLE_MODULES = ["inadimplencia", "inconsistencia", "pos-venda"] as const;
+export type ControleModule = (typeof CONTROLE_MODULES)[number];
+
 export const MODULE_LABELS: Record<AppModule, string> = {
   dashboard: "Dashboard",
   consorciados: "Consorciados",
@@ -98,6 +101,25 @@ export function canAccessModule(
   return permissions.includes(module);
 }
 
+export function canAccessAnyControle(permissions: readonly AppModule[]): boolean {
+  return CONTROLE_MODULES.some((module) => canAccessModule(permissions, module));
+}
+
+const CONTROLE_ROUTE_BY_MODULE: Record<ControleModule, string> = {
+  inadimplencia: "/controle/inadimplencia",
+  inconsistencia: "/controle/inconsistencia",
+  "pos-venda": "/controle/pos-venda",
+};
+
+export function findFirstControleRoute(permissions: readonly AppModule[]): string | null {
+  for (const module of CONTROLE_MODULES) {
+    if (canAccessModule(permissions, module)) {
+      return CONTROLE_ROUTE_BY_MODULE[module];
+    }
+  }
+  return null;
+}
+
 /** Prefixos de rota → módulo exigido (ordem: rotas mais específicas primeiro). */
 const ROUTE_MODULE_RULES: Array<{ prefix: string; module: AppModule }> = [
   { prefix: "/metas/minhas", module: "metas-minhas" },
@@ -117,6 +139,11 @@ const ROUTE_MODULE_RULES: Array<{ prefix: string; module: AppModule }> = [
 ];
 
 export function resolveModuleFromPath(pathname: string): AppModule | null {
+  // Hub `/controle` é tratado no proxy (qualquer módulo de fila).
+  if (pathname === "/controle" || pathname === "/controle/") {
+    return null;
+  }
+
   for (const rule of ROUTE_MODULE_RULES) {
     if (rule.prefix === "/") {
       if (pathname === "/") return rule.module;
@@ -176,16 +203,12 @@ export const NAV_MODULE_BY_HREF: Record<string, AppModule> = {
 
 export const MODULE_GROUPS: Array<{ label: string; modules: AppModule[] }> = [
   {
-    label: "Operacional",
-    modules: [
-      "dashboard",
-      "consorciados",
-      "vendas",
-      "importacao",
-      "inadimplencia",
-      "inconsistencia",
-      "pos-venda",
-    ],
+    label: "Operação",
+    modules: ["dashboard", "consorciados", "vendas", "importacao"],
+  },
+  {
+    label: "Filas (Controle)",
+    modules: ["inadimplencia", "inconsistencia", "pos-venda"],
   },
   {
     label: "Financeiro & Metas",

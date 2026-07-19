@@ -15,10 +15,9 @@ import {
   listVendas as listVendasDocs,
   listVendasPaginated as listVendasPaginatedDocs,
   listVendasPosVendaControle as listVendasPosVendaControleDocs,
-  refreshDashboardReadModels,
   updateVenda as updateVendaDoc,
 } from "@/lib/firestore/repository";
-import { refreshMetasWidgetReadModels } from "@/actions/metas";
+import { scheduleDashboardAndMetasRefresh } from "@/lib/firestore/schedule-read-model-refresh";
 import { aplicarEstornoCancelamentoVenda } from "@/lib/firestore/estorno-cancelamento";
 import {
   assertCotaIdentificacaoFields,
@@ -76,12 +75,18 @@ function assertVendaContratoFields(data: {
 }
 
 function revalidateVendas() {
-  revalidatePath("/");
   revalidatePath("/vendas");
+  revalidatePath("/controle");
   revalidatePath("/controle/inadimplencia");
   revalidatePath("/controle/inconsistencia");
   revalidatePath("/controle/pos-venda");
   revalidatePath("/comissoes");
+}
+
+function revalidatePosVenda() {
+  revalidatePath("/vendas");
+  revalidatePath("/controle");
+  revalidatePath("/controle/pos-venda");
 }
 
 async function assertAdministradoraExists(administradoraId: string): Promise<void> {
@@ -173,7 +178,7 @@ export async function createVenda(data: VendaInput): Promise<VendaRow> {
     statusInconsistencia: data.statusInconsistencia ?? "CONSISTENTE",
   });
 
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateVendas();
   return row;
 }
@@ -203,7 +208,7 @@ export async function updateVendaStatusPosVenda(
     });
   }
 
-  revalidateVendas();
+  revalidatePosVenda();
   return row;
 }
 
@@ -320,13 +325,13 @@ export async function updateVenda(id: string, patch: Partial<VendaInput>): Promi
     }
   }
 
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateVendas();
   return row;
 }
 
 export async function deleteVenda(id: string): Promise<void> {
   await deleteVendaDoc(id);
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateVendas();
 }

@@ -7,7 +7,7 @@ import { PropsWithChildren, useEffect, useState } from "react";
 import {
   buildBreadcrumbs,
   buildConfigNav,
-  buildMainNav,
+  buildNavGroups,
   getInitials,
   hasAnyAdminNavModule,
   isConfigSectionActive,
@@ -128,16 +128,22 @@ function SidebarNav({
   onNavigate?: () => void;
   permissions: AppModule[];
 }) {
-  const mainNav = buildMainNav(permissions);
+  const navGroups = buildNavGroups(permissions);
   const showConfig = hasAnyAdminNavModule(permissions);
 
   return (
     <nav className="flex flex-col gap-1" aria-label="Menu principal">
-      <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
-        Operacional
-      </p>
-      {mainNav.map((item) => (
-        <NavItem key={item.href} item={item} onNavigate={onNavigate} />
+      {navGroups.map((group, index) => (
+        <div key={group.id} className={index > 0 ? "mt-4" : undefined}>
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
+            {group.label}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {group.items.map((item) => (
+              <NavItem key={item.href} item={item} onNavigate={onNavigate} />
+            ))}
+          </div>
+        </div>
       ))}
       {showConfig ? (
         <>

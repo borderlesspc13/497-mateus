@@ -1,4 +1,5 @@
-export type UserRole = "admin" | "gerente" | "vendedor";
+export type { UserRole } from "@/lib/auth/roles";
+import type { UserRole } from "@/lib/auth/roles";
 
 export type UsuarioRow = {
   id: string;

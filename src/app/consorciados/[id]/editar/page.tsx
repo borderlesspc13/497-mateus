@@ -1,4 +1,4 @@
-import EditarConsorciadoForm from "../../ui/EditarConsorciadoForm";
+import ConsorciadoForm from "../../ui/ConsorciadoForm";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -6,5 +6,5 @@ type PageProps = {
 
 export default async function EditarConsorciadoPage({ params }: PageProps) {
   const { id } = await params;
-  return <EditarConsorciadoForm id={id} />;
+  return <ConsorciadoForm mode="edit" id={id} />;
 }

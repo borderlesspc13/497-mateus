@@ -19,7 +19,6 @@ import {
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
-import { parseImportFile } from "@/lib/importacao/parse-import-file";
 import {
   buildSpreadsheetContractSet,
   isReconciliationComplete,
@@ -136,6 +135,7 @@ export default function ImportacaoClient() {
     setPhase("parsing");
 
     try {
+      const { parseImportFile } = await import("@/lib/importacao/parse-import-file");
       const parsed = await parseImportFile(file);
       setParseWarnings(parsed.warnings);
 

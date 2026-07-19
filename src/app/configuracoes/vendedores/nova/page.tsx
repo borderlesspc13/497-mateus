@@ -2,7 +2,7 @@ import Link from "next/link";
 import { listEquipesMini } from "@/actions/equipes";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
-import NovaVendedorForm from "../ui/NovaVendedorForm";
+import VendedorForm from "../ui/VendedorForm";
 
 export default async function NovaVendedorPage() {
   const equipes = await listEquipesMini();
@@ -24,7 +24,7 @@ export default async function NovaVendedorPage() {
           </Link>
         }
       />
-      <NovaVendedorForm equipes={equipes} />
+      <VendedorForm mode="create" equipes={equipes} />
     </>
   );
 }

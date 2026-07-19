@@ -97,6 +97,60 @@ export const STATUS_OPERACIONAL_FIELD = "statusOperacional" as const;
 /** Campo legado espelhado — mantido para documentos que ainda não foram regravados. */
 export const STATUS_OPERACIONAL_LEGACY_FIELD = "status" as const;
 
+/**
+ * Conta vendas que ainda dependem do campo legado `status` (sem `statusOperacional`).
+ * Use para decidir quando é seguro dropar a dual-query em `listVendaDocsByStatusOperacional`.
+ */
+export async function countVendasMissingStatusOperacional(): Promise<number> {
+  const { getAdminFirestore } = await import("@/lib/firebase/admin");
+  const { COLLECTIONS } = await import("@/lib/firestore/types");
+  const snap = await getAdminFirestore().collection(COLLECTIONS.vendas).select("statusOperacional", "status").get();
+  let missing = 0;
+  for (const doc of snap.docs) {
+    const data = doc.data() as { statusOperacional?: string; status?: string };
+    if (!data.statusOperacional && data.status) missing += 1;
+  }
+  return missing;
+}
+
+/**
+ * Backfill idempotente: espelha `status` → `statusOperacional` (e dual-write) em docs legados.
+ * Retorna quantos documentos foram atualizados.
+ */
+export async function backfillVendasStatusOperacional(batchSize = 400): Promise<number> {
+  const { getAdminFirestore } = await import("@/lib/firebase/admin");
+  const { COLLECTIONS, nowIso } = await import("@/lib/firestore/types");
+  const db = getAdminFirestore();
+  const snap = await db.collection(COLLECTIONS.vendas).select("statusOperacional", "status").get();
+
+  const pending: Array<{ id: string; statusOperacional: StatusOperacionalCota }> = [];
+  for (const doc of snap.docs) {
+    const data = doc.data() as { statusOperacional?: string; status?: string };
+    if (data.statusOperacional) continue;
+    if (!data.status) continue;
+    pending.push({
+      id: doc.id,
+      statusOperacional: normalizeStatusOperacional(data.status),
+    });
+  }
+
+  let updated = 0;
+  const ts = nowIso();
+  for (let i = 0; i < pending.length; i += batchSize) {
+    const chunk = pending.slice(i, i + batchSize);
+    const batch = db.batch();
+    for (const item of chunk) {
+      batch.update(db.collection(COLLECTIONS.vendas).doc(item.id), {
+        ...withStatusOperacionalFields(item.statusOperacional),
+        updatedAt: ts,
+      });
+    }
+    await batch.commit();
+    updated += chunk.length;
+  }
+  return updated;
+}
+
 export function normalizeVendaFields(raw: LegacyVendaDoc): Pick<
   VendaDoc,
   | "statusOperacional"

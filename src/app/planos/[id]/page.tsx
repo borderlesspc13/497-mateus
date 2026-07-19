@@ -3,7 +3,7 @@ import { getPlano } from "@/actions/planos";
 import { listAdministradoras } from "@/actions/administradoras";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
-import EditarPlanoForm from "../ui/EditarPlanoForm";
+import PlanoForm from "../ui/PlanoForm";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -35,7 +35,8 @@ export default async function EditarPlanoPage({ params }: PageProps) {
   }
 
   return (
-    <EditarPlanoForm
+    <PlanoForm
+      mode="edit"
       item={plano}
       administradoras={administradoras.map((a) => ({
         id: a.id,

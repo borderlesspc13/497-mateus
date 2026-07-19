@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { backLinkClass } from "@/components/page-flow/button-classes";
 import { PageFlowHeader } from "@/components/page-flow/PageFlowHeader";
-import NovaConsorciadoForm from "../ui/NovaConsorciadoForm";
+import ConsorciadoForm from "../ui/ConsorciadoForm";
 
 export default function NovaConsorciadoPage() {
   return (
@@ -21,7 +21,7 @@ export default function NovaConsorciadoPage() {
         }
       />
 
-      <NovaConsorciadoForm />
+      <ConsorciadoForm mode="create" />
     </>
   );
 }

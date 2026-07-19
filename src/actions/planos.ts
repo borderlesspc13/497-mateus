@@ -10,9 +10,9 @@ import {
   getPlano as getPlanoDoc,
   listPlanos as listPlanosDocs,
   listPlanosMiniByAdministradora as listPlanosMiniByAdministradoraDocs,
-  refreshDashboardReadModels,
   updatePlano as updatePlanoDoc,
 } from "@/lib/firestore/repository";
+import { scheduleDashboardRefresh } from "@/lib/firestore/schedule-read-model-refresh";
 import type { PlanoMini, PlanoRow } from "@/lib/types/domain";
 
 export type PlanoInput = {
@@ -49,7 +49,6 @@ function assertRegrasFinanceiras(data: PlanoInput): void {
 }
 
 function revalidatePlanos() {
-  revalidatePath("/");
   revalidatePath("/configuracoes");
   revalidatePath("/planos");
   revalidatePath("/vendas");
@@ -100,7 +99,7 @@ export async function createPlano(data: PlanoInput): Promise<PlanoRow> {
     percentuaisRecebimentoJson: data.percentuaisRecebimentoJson ?? null,
     regrasRepasseJson: data.regrasRepasseJson ?? null,
   });
-  await refreshDashboardReadModels();
+  scheduleDashboardRefresh();
   revalidatePlanos();
   return row;
 }
@@ -155,7 +154,7 @@ export async function updatePlano(id: string, patch: Partial<PlanoInput>): Promi
   assertRegrasFinanceiras(merged);
 
   const row = await updatePlanoDoc(id, data);
-  await refreshDashboardReadModels();
+  scheduleDashboardRefresh();
   revalidatePlanos();
   return row;
 }
@@ -166,6 +165,6 @@ export async function deletePlano(id: string): Promise<void> {
   if (vendas > 0) throw new Error("Existem vendas vinculadas a este plano.");
 
   await deletePlanoDoc(id);
-  await refreshDashboardReadModels();
+  scheduleDashboardRefresh();
   revalidatePlanos();
 }

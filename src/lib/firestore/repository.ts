@@ -187,21 +187,27 @@ export async function countPlanosByAdministradora(administradoraId: string): Pro
   const snap = await db()
     .collection(COLLECTIONS.planos)
     .where("administradoraId", "==", administradoraId)
+    .count()
     .get();
-  return snap.size;
+  return snap.data().count;
 }
 
 export async function countVendasByAdministradora(administradoraId: string): Promise<number> {
   const snap = await db()
     .collection(COLLECTIONS.vendas)
     .where("administradoraId", "==", administradoraId)
+    .count()
     .get();
-  return snap.size;
+  return snap.data().count;
 }
 
 export async function countVendasByPlano(planoId: string): Promise<number> {
-  const snap = await db().collection(COLLECTIONS.vendas).where("planoId", "==", planoId).get();
-  return snap.size;
+  const snap = await db()
+    .collection(COLLECTIONS.vendas)
+    .where("planoId", "==", planoId)
+    .count()
+    .get();
+  return snap.data().count;
 }
 
 export async function listAdministradoras(): Promise<AdministradoraRow[]> {
@@ -577,8 +583,9 @@ export async function countVendasByVendedor(vendedorId: string): Promise<number>
   const snap = await db()
     .collection(COLLECTIONS.vendas)
     .where("vendedorId", "==", vendedorId)
+    .count()
     .get();
-  return snap.size;
+  return snap.data().count;
 }
 
 export async function deleteVendedor(id: string): Promise<void> {
@@ -599,22 +606,7 @@ export async function listVendasByConsorciado(consorciadoId: string): Promise<Ve
   );
   if (vendas.length === 0) return [];
 
-  const [administradoras, planos, equipes, vendedores] = await Promise.all([
-    listAdministradoraDocs(),
-    listPlanoDocs(),
-    listEquipeDocs(),
-    listVendedorDocs(),
-  ]);
-  const maps = {
-    admMap: new Map(administradoras.map((a) => [a.id, a])),
-    planoMap: new Map(planos.map((p) => [p.id, p])),
-    consorciadoMap: new Map(
-      (await listConsorciadoDocs()).map((c) => [c.id, c] as const),
-    ),
-    equipeMap: new Map(equipes.map((e) => [e.id, e])),
-    vendedorMap: new Map(vendedores.map((v) => [v.id, v])),
-  };
-
+  const maps = await buildRelationMapsForVendas(vendas);
   return sortByCreatedAtDesc(vendas)
     .map((v) => resolveVendaRelations(v, maps))
     .filter((x): x is VendaRow => x !== null);
@@ -667,16 +659,6 @@ export type VendasListFilters = {
   dataVendaTo?: string;
 };
 
-function hasRelationOrDateFilters(filters: VendasListFilters): boolean {
-  return Boolean(
-    filters.planoId ||
-      filters.equipeId ||
-      filters.vendedorId ||
-      filters.dataVendaFrom ||
-      filters.dataVendaTo,
-  );
-}
-
 function vendaListDateKey(venda: Pick<VendaDoc, "dataVenda" | "dataContrato">): string | null {
   const iso = venda.dataVenda ?? venda.dataContrato;
   if (!iso) return null;
@@ -690,6 +672,8 @@ export type VendasListPage = {
   hasMore: boolean;
 };
 
+const FETCH_DOCS_CHUNK_SIZE = 100;
+
 async function fetchDocsByIds<T>(
   collectionName: string,
   ids: string[],
@@ -698,12 +682,15 @@ async function fetchDocsByIds<T>(
   const map = new Map<string, DocWithId<T>>();
   if (uniqueIds.length === 0) return map;
 
-  const snaps = await Promise.all(
-    uniqueIds.map((id) => db().collection(collectionName).doc(id).get()),
-  );
-  for (const snap of snaps) {
-    if (snap.exists) {
-      map.set(snap.id, { id: snap.id, ...(snap.data() as T) });
+  const firestore = db();
+  for (let i = 0; i < uniqueIds.length; i += FETCH_DOCS_CHUNK_SIZE) {
+    const chunk = uniqueIds.slice(i, i + FETCH_DOCS_CHUNK_SIZE);
+    const refs = chunk.map((id) => firestore.collection(collectionName).doc(id));
+    const snaps = await firestore.getAll(...refs);
+    for (const snap of snaps) {
+      if (snap.exists) {
+        map.set(snap.id, { id: snap.id, ...(snap.data() as T) });
+      }
     }
   }
   return map;
@@ -998,10 +985,31 @@ function isVendaRecentForPosVenda(createdAt: string): boolean {
 }
 
 export async function listVendasPosVendaControle(): Promise<VendaRow[]> {
-  const all = await listVendas();
-  return all.filter(
-    (v) => v.statusPosVenda === "PENDENTE" || isVendaRecentForPosVenda(v.createdAt),
-  );
+  const cutoff = new Date(
+    Date.now() - POS_VENDA_RECENT_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const [pendenteSnap, recentSnap] = await Promise.all([
+    db().collection(COLLECTIONS.vendas).where("statusPosVenda", "==", "PENDENTE").get(),
+    db().collection(COLLECTIONS.vendas).where("createdAt", ">=", cutoff).get(),
+  ]);
+
+  const merged = new Map<string, DocWithId<VendaDoc>>();
+  for (const doc of [...pendenteSnap.docs, ...recentSnap.docs]) {
+    if (merged.has(doc.id)) continue;
+    const venda = normalizeVendaDoc({ id: doc.id, ...(doc.data() as VendaDoc) });
+    if (venda.statusPosVenda === "PENDENTE" || isVendaRecentForPosVenda(venda.createdAt)) {
+      merged.set(doc.id, venda);
+    }
+  }
+
+  const vendas = [...merged.values()];
+  if (vendas.length === 0) return [];
+
+  const maps = await buildRelationMapsForVendas(vendas);
+  return sortByCreatedAtDesc(vendas)
+    .map((v) => resolveVendaRelations(v, maps))
+    .filter((x): x is VendaRow => x !== null);
 }
 
 export async function getVendaByNumeroContrato(numeroContrato: string): Promise<VendaRow | null> {
@@ -1014,12 +1022,14 @@ export async function getVenda(id: string): Promise<VendaRow | null> {
   const snap = await db().collection(COLLECTIONS.vendas).doc(id).get();
   if (!snap.exists) return null;
   const venda = normalizeVendaDoc({ id: snap.id, ...(snap.data() as VendaDoc) });
-  const adm = await getAdministradoraDoc(venda.administradoraId);
+  const [adm, plano, consorciado, equipe, vendedor] = await Promise.all([
+    getAdministradoraDoc(venda.administradoraId),
+    venda.planoId ? getPlanoDoc(venda.planoId) : Promise.resolve(null),
+    venda.consorciadoId ? getConsorciadoDoc(venda.consorciadoId) : Promise.resolve(null),
+    venda.equipeId ? getEquipeDoc(venda.equipeId) : Promise.resolve(null),
+    venda.vendedorId ? getVendedorDoc(venda.vendedorId) : Promise.resolve(null),
+  ]);
   if (!adm) return null;
-  const plano = venda.planoId ? await getPlanoDoc(venda.planoId) : null;
-  const consorciado = venda.consorciadoId ? await getConsorciadoDoc(venda.consorciadoId) : null;
-  const equipe = venda.equipeId ? await getEquipeDoc(venda.equipeId) : null;
-  const vendedor = venda.vendedorId ? await getVendedorDoc(venda.vendedorId) : null;
   return toVendaRow(venda, adm, plano, consorciado, equipe, vendedor);
 }
 
@@ -1044,24 +1054,25 @@ export type VendaCreateInput = Omit<
 export async function createVenda(
   data: VendaCreateInput,
 ): Promise<VendaRow> {
-  const adm = await getAdministradoraDoc(data.administradoraId);
+  const [adm, plano, consorciado, equipe, vendedor] = await Promise.all([
+    getAdministradoraDoc(data.administradoraId),
+    data.planoId ? getPlanoDoc(data.planoId) : Promise.resolve(null),
+    data.consorciadoId ? getConsorciadoDoc(data.consorciadoId) : Promise.resolve(null),
+    getEquipeDoc(data.equipeId),
+    getVendedorDoc(data.vendedorId),
+  ]);
+
   if (!adm) throw new Error("Administradora não encontrada.");
-  let plano: DocWithId<PlanoDoc> | null = null;
   if (data.planoId) {
-    plano = await getPlanoDoc(data.planoId);
     if (!plano) throw new Error("Plano não encontrado.");
     if (plano.administradoraId !== data.administradoraId) {
       throw new Error("O plano não pertence à administradora selecionada.");
     }
   }
-  let consorciado: DocWithId<ConsorciadoDoc> | null = null;
-  if (data.consorciadoId) {
-    consorciado = await getConsorciadoDoc(data.consorciadoId);
-    if (!consorciado) throw new Error("Consorciado não encontrado.");
+  if (data.consorciadoId && !consorciado) {
+    throw new Error("Consorciado não encontrado.");
   }
-  const equipe = await getEquipeDoc(data.equipeId);
   if (!equipe) throw new Error("Equipe não encontrada.");
-  const vendedor = await getVendedorDoc(data.vendedorId);
   if (!vendedor) throw new Error("Vendedor não encontrado.");
   if (vendedor.equipeId !== data.equipeId) {
     throw new Error("O vendedor não pertence à equipe selecionada.");
@@ -1099,27 +1110,25 @@ export async function updateVenda(
   const nextEquipeId = patch.equipeId ?? current.equipeId;
   const nextVendedorId = patch.vendedorId ?? current.vendedorId;
 
-  const adm = await getAdministradoraDoc(nextAdmId);
-  if (!adm) throw new Error("Administradora não encontrada.");
+  const [adm, plano, consorciado, equipe, vendedor] = await Promise.all([
+    getAdministradoraDoc(nextAdmId),
+    nextPlanoId ? getPlanoDoc(nextPlanoId) : Promise.resolve(null),
+    nextConsorciadoId ? getConsorciadoDoc(nextConsorciadoId) : Promise.resolve(null),
+    getEquipeDoc(nextEquipeId),
+    getVendedorDoc(nextVendedorId),
+  ]);
 
-  let plano: DocWithId<PlanoDoc> | null = null;
+  if (!adm) throw new Error("Administradora não encontrada.");
   if (nextPlanoId) {
-    plano = await getPlanoDoc(nextPlanoId);
     if (!plano) throw new Error("Plano não encontrado.");
     if (plano.administradoraId !== nextAdmId) {
       throw new Error("O plano não pertence à administradora selecionada.");
     }
   }
-
-  let consorciado: DocWithId<ConsorciadoDoc> | null = null;
-  if (nextConsorciadoId) {
-    consorciado = await getConsorciadoDoc(nextConsorciadoId);
-    if (!consorciado) throw new Error("Consorciado não encontrado.");
+  if (nextConsorciadoId && !consorciado) {
+    throw new Error("Consorciado não encontrado.");
   }
-
-  const equipe = await getEquipeDoc(nextEquipeId);
   if (!equipe) throw new Error("Equipe não encontrada.");
-  const vendedor = await getVendedorDoc(nextVendedorId);
   if (!vendedor) throw new Error("Vendedor não encontrado.");
   if (vendedor.equipeId !== nextEquipeId) {
     throw new Error("O vendedor não pertence à equipe selecionada.");
@@ -1436,14 +1445,25 @@ export async function syncExtratosComissao(): Promise<number> {
 }
 
 export async function listExtratosComissao(): Promise<ExtratoRow[]> {
-  const [extratos, vendas, planos] = await Promise.all([
-    listExtratoDocs(),
-    listVendas(),
-    listPlanoDocs(),
+  const extratos = await listExtratoDocs();
+  if (extratos.length === 0) return [];
+
+  const vendaIds = [...new Set(extratos.map((e) => e.vendaId))];
+  const planoIds = [...new Set(extratos.map((e) => e.planoId))];
+
+  const [vendaDocs, planoMap] = await Promise.all([
+    fetchDocsByIds<VendaDoc>(COLLECTIONS.vendas, vendaIds),
+    fetchDocsByIds<PlanoDoc>(COLLECTIONS.planos, planoIds),
   ]);
 
-  const vendaMap = new Map(vendas.map((v) => [v.id, v]));
-  const planoMap = new Map(planos.map((p) => [p.id, p]));
+  const vendas = [...vendaDocs.values()].map(normalizeVendaDoc);
+  const maps = await buildRelationMapsForVendas(vendas);
+  const vendaMap = new Map(
+    vendas
+      .map((v) => resolveVendaRelations(v, maps))
+      .filter((x): x is VendaRow => x !== null)
+      .map((v) => [v.id, v] as const),
+  );
 
   const rows: ExtratoRow[] = [];
 
@@ -1558,23 +1578,31 @@ export type MapaPagamentoFilters = {
 export async function listMapaPagamento(
   filters: MapaPagamentoFilters = {},
 ): Promise<RepasseRow[]> {
-  const [repasses, vendas, planos] = await Promise.all([
-    listRepasseDocs(),
-    listVendas(),
-    listPlanoDocs(),
+  const repasses = await listRepasseDocs();
+  if (repasses.length === 0) return [];
+
+  const vendaIds = [...new Set(repasses.map((r) => r.vendaId))];
+  const planoIds = [...new Set(repasses.map((r) => r.planoId))];
+  const extratoIds = [...new Set(repasses.map((r) => r.extratoOrigemId))];
+
+  const [vendaDocs, planoMap, extratoDocs] = await Promise.all([
+    fetchDocsByIds<VendaDoc>(COLLECTIONS.vendas, vendaIds),
+    fetchDocsByIds<PlanoDoc>(COLLECTIONS.planos, planoIds),
+    fetchDocsByIds<ExtratoDoc>(COLLECTIONS.extratos, extratoIds),
   ]);
 
-  const vendaMap = new Map(vendas.map((v) => [v.id, v]));
-  const planoMap = new Map(planos.map((p) => [p.id, p]));
-  const extratoIds = [...new Set(repasses.map((r) => r.extratoOrigemId))];
-  const extratoSnaps = await Promise.all(
-    extratoIds.map((id) => db().collection(COLLECTIONS.extratos).doc(id).get()),
+  const vendas = [...vendaDocs.values()].map(normalizeVendaDoc);
+  const maps = await buildRelationMapsForVendas(vendas);
+  const vendaMap = new Map(
+    vendas
+      .map((v) => resolveVendaRelations(v, maps))
+      .filter((x): x is VendaRow => x !== null)
+      .map((v) => [v.id, v] as const),
   );
+
   const extratoStatusMap = new Map<string, ExtratoStatus>();
-  for (const snap of extratoSnaps) {
-    if (snap.exists) {
-      extratoStatusMap.set(snap.id, (snap.data() as ExtratoDoc).status);
-    }
+  for (const [id, extrato] of extratoDocs) {
+    extratoStatusMap.set(id, extrato.status);
   }
 
   const rows: RepasseRow[] = [];

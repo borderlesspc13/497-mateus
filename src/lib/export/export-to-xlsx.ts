@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import { formatExportCellValue } from "@/lib/export/formatters";
 import type { ExportColumnDef, ExportToXlsxOptions } from "@/lib/export/types";
 
@@ -9,15 +8,17 @@ function sanitizeSheetName(name: string): string {
   return cleaned.slice(0, 31) || "Dados";
 }
 
-export function exportToXlsx<T>({
+export async function exportToXlsx<T>({
   fileName,
   sheetName,
   rows,
   columns,
-}: ExportToXlsxOptions<T>): void {
+}: ExportToXlsxOptions<T>): Promise<void> {
   if (columns.length === 0) {
     throw new Error("Informe ao menos uma coluna para exportação.");
   }
+
+  const XLSX = await import("xlsx");
 
   const headerRow = columns.map((column) => column.header);
   const dataRows = rows.map((row) =>

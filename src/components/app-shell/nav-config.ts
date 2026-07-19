@@ -1,10 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  AlertCircle,
-  AlertTriangle,
   Building2,
+  ClipboardList,
   DollarSign,
-  HeadphonesIcon,
   LayoutDashboard,
   Settings,
   Target,
@@ -13,7 +11,9 @@ import {
   Wallet,
 } from "lucide-react";
 import {
+  canAccessAnyControle,
   canAccessModule,
+  findFirstControleRoute,
   NAV_MODULE_BY_HREF,
   type AppModule,
 } from "@/lib/auth/modules";
@@ -22,33 +22,32 @@ export type NavLinkItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  module: AppModule;
+  module: AppModule | "controle";
 };
 
-const BASE_MAIN_NAV: NavLinkItem[] = [
+export type NavGroup = {
+  id: string;
+  label: string;
+  items: NavLinkItem[];
+};
+
+const OPERATION_NAV: NavLinkItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
   { href: "/consorciados", label: "Consorciados", icon: Users, module: "consorciados" },
   { href: "/vendas", label: "Vendas", icon: Wallet, module: "vendas" },
-  { href: "/importacao", label: "Importação", icon: Upload, module: "importacao" },
-  {
-    href: "/controle/inadimplencia",
-    label: "Inadimplência",
-    icon: AlertTriangle,
-    module: "inadimplencia",
-  },
-  {
-    href: "/controle/inconsistencia",
-    label: "Inconsistência",
-    icon: AlertCircle,
-    module: "inconsistencia",
-  },
-  { href: "/controle/pos-venda", label: "Pós-venda", icon: HeadphonesIcon, module: "pos-venda" },
 ];
 
-const OPTIONAL_MAIN_NAV: NavLinkItem[] = [
-  { href: "/comissoes", label: "Comissões", icon: DollarSign, module: "comissoes" },
+const METAS_NAV: NavLinkItem[] = [
   { href: "/metas", label: "Metas", icon: Target, module: "metas" },
   { href: "/metas/minhas", label: "Minhas Metas", icon: Target, module: "metas-minhas" },
+];
+
+const FINANCEIRO_NAV: NavLinkItem[] = [
+  { href: "/comissoes", label: "Comissões", icon: DollarSign, module: "comissoes" },
+];
+
+const DADOS_NAV: NavLinkItem[] = [
+  { href: "/importacao", label: "Importação", icon: Upload, module: "importacao" },
 ];
 
 const BASE_CONFIG_NAV: NavLinkItem[] = [
@@ -63,28 +62,66 @@ function filterNavByPermissions(
   items: NavLinkItem[],
   permissions: readonly AppModule[],
 ): NavLinkItem[] {
-  return items.filter((item) => canAccessModule(permissions, item.module));
+  return items.filter((item) => {
+    if (item.module === "controle") {
+      return canAccessAnyControle(permissions);
+    }
+    return canAccessModule(permissions, item.module);
+  });
 }
 
-export function buildMainNav(permissions: readonly AppModule[]): NavLinkItem[] {
-  const items = [...BASE_MAIN_NAV];
-
-  for (const optional of OPTIONAL_MAIN_NAV) {
-    if (!canAccessModule(permissions, optional.module)) continue;
-
-    if (optional.module === "metas-minhas" && canAccessModule(permissions, "metas")) {
-      continue;
-    }
-
-    if (optional.module === "comissoes") {
-      items.splice(3, 0, optional);
-    } else if (optional.module === "metas" || optional.module === "metas-minhas") {
-      const insertAt = items.findIndex((item) => item.module === "comissoes");
-      items.splice(insertAt >= 0 ? insertAt + 1 : 3, 0, optional);
-    }
+function resolveMetasNav(permissions: readonly AppModule[]): NavLinkItem[] {
+  const hasGestao = canAccessModule(permissions, "metas");
+  const hasMinhas = canAccessModule(permissions, "metas-minhas");
+  if (hasGestao) {
+    return METAS_NAV.filter((item) => item.module === "metas");
   }
+  if (hasMinhas) {
+    return METAS_NAV.filter((item) => item.module === "metas-minhas");
+  }
+  return [];
+}
 
-  return filterNavByPermissions(items, permissions);
+/** Navegação principal agrupada por tarefa (Operação / Filas / Financeiro / Dados). */
+export function buildNavGroups(permissions: readonly AppModule[]): NavGroup[] {
+  const controleHref = findFirstControleRoute(permissions) ?? "/controle";
+  const filasItems: NavLinkItem[] = filterNavByPermissions(
+    [{ href: controleHref, label: "Controle", icon: ClipboardList, module: "controle" }],
+    permissions,
+  );
+
+  const groups: NavGroup[] = [
+    {
+      id: "operacao",
+      label: "Operação",
+      items: [
+        ...filterNavByPermissions(OPERATION_NAV, permissions),
+        ...resolveMetasNav(permissions),
+      ],
+    },
+    {
+      id: "filas",
+      label: "Filas",
+      items: filasItems,
+    },
+    {
+      id: "financeiro",
+      label: "Financeiro",
+      items: filterNavByPermissions(FINANCEIRO_NAV, permissions),
+    },
+    {
+      id: "dados",
+      label: "Dados",
+      items: filterNavByPermissions(DADOS_NAV, permissions),
+    },
+  ];
+
+  return groups.filter((group) => group.items.length > 0);
+}
+
+/** @deprecated Prefer buildNavGroups. Mantido para compatibilidade pontual. */
+export function buildMainNav(permissions: readonly AppModule[]): NavLinkItem[] {
+  return buildNavGroups(permissions).flatMap((group) => group.items);
 }
 
 export function buildConfigNav(permissions: readonly AppModule[]): NavLinkItem[] {
@@ -110,9 +147,14 @@ export function hasAnyAdminNavModule(permissions: readonly AppModule[]): boolean
 }
 
 export function isNavActive(pathname: string, href: string) {
-  return href === "/"
-    ? pathname === "/"
-    : pathname === href || pathname.startsWith(`${href}/`);
+  if (href === "/") return pathname === "/";
+
+  // Hub de controle: qualquer sub-rota marca o item "Controle" como ativo.
+  if (href === "/controle" || href.startsWith("/controle/")) {
+    return pathname === "/controle" || pathname.startsWith("/controle/");
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function isConfigSectionActive(pathname: string) {
@@ -186,7 +228,6 @@ function resolveBreadcrumbLabel(
 
   if (isConsorciadoRecord) return "Ficha";
 
-  // Se for um UUID (ID longo), não mostramos ele cru na tela
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(segment)) {
     return "Detalhes";

@@ -8,11 +8,10 @@ import {
   listMapaPagamento,
   marcarExtratoRecebido,
   marcarRepassePago,
-  refreshDashboardReadModels,
   syncExtratosComissao,
   updateExtratoStatus,
 } from "@/lib/firestore/repository";
-import { refreshMetasWidgetReadModels } from "@/actions/metas";
+import { scheduleDashboardAndMetasRefresh } from "@/lib/firestore/schedule-read-model-refresh";
 import type { MapaPagamentoFilters } from "@/lib/firestore/repository";
 import { batchMarcarExtratosRecebidos } from "@/lib/importacao/comissao-recebimento";
 import type { ComissaoRecebimentoInput } from "@/lib/importacao/comissao-recebimento";
@@ -20,7 +19,6 @@ import type { ExtratoRow, RepasseRow } from "@/lib/types/domain";
 
 function revalidateComissoes() {
   revalidatePath("/comissoes");
-  revalidatePath("/");
 }
 
 export async function listExtratos(): Promise<ExtratoRow[]> {
@@ -38,7 +36,7 @@ export async function listRepassesMapaPagamento(
 export async function sincronizarExtratos(): Promise<{ gerados: number }> {
   await requireComissoesManager();
   const gerados = await syncExtratosComissao();
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateComissoes();
   return { gerados };
 }
@@ -58,7 +56,7 @@ export async function marcarExtratoRecebidoAction(
     acao: "comissao.recebida",
     documentoId: id,
   });
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateComissoes();
   return result;
 }
@@ -75,7 +73,7 @@ export async function importarComissoesRecebidas(
       documentoId: "batch",
     });
   }
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateComissoes();
   return result;
 }
@@ -88,7 +86,7 @@ export async function marcarExtratoPago(id: string): Promise<void> {
     acao: "comissao.paga",
     documentoId: id,
   });
-  await Promise.all([refreshDashboardReadModels(), refreshMetasWidgetReadModels()]);
+  scheduleDashboardAndMetasRefresh();
   revalidateComissoes();
 }
 

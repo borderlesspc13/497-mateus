@@ -10,9 +10,9 @@ import {
   findAdministradoraByCnpj,
   getAdministradora as getAdministradoraDoc,
   listAdministradoras as listAdministradorasDocs,
-  refreshDashboardReadModels,
   updateAdministradora as updateAdministradoraDoc,
 } from "@/lib/firestore/repository";
+import { scheduleDashboardRefresh } from "@/lib/firestore/schedule-read-model-refresh";
 import type { AdministradoraRow } from "@/lib/types/domain";
 import { validateCnpjOrThrow } from "@/lib/validators/cnpj";
 
@@ -33,7 +33,6 @@ export type AdministradoraInput = {
 };
 
 function revalidateAdministradoras() {
-  revalidatePath("/");
   revalidatePath("/configuracoes");
   revalidatePath("/administradoras");
   revalidatePath("/planos");
@@ -63,7 +62,7 @@ export async function createAdministradora(data: AdministradoraInput): Promise<A
   await assertCnpjAvailable(cnpj);
 
   const row = await createAdministradoraDoc({ ...data, nome, cnpj });
-  await refreshDashboardReadModels();
+  scheduleDashboardRefresh();
   revalidateAdministradoras();
   return row;
 }
@@ -89,7 +88,7 @@ export async function updateAdministradora(
   }
 
   const row = await updateAdministradoraDoc(id, data);
-  await refreshDashboardReadModels();
+  scheduleDashboardRefresh();
   revalidateAdministradoras();
   return row;
 }
@@ -105,6 +104,6 @@ export async function deleteAdministradora(id: string): Promise<void> {
   if (vendas > 0) throw new Error("Existem vendas vinculadas a esta administradora.");
 
   await deleteAdministradoraDoc(id);
-  await refreshDashboardReadModels();
+  scheduleDashboardRefresh();
   revalidateAdministradoras();
 }

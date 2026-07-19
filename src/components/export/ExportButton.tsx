@@ -44,14 +44,14 @@ export function ExportButton<T>({
     if (isDisabled) return;
     setExporting(true);
     void import("@/lib/export/export-to-xlsx")
-      .then(({ exportToXlsx }) => {
+      .then(({ exportToXlsx }) =>
         exportToXlsx({
           fileName: buildExportFileName(fileNameBase),
           sheetName,
           rows,
           columns,
-        });
-      })
+        }),
+      )
       .finally(() => {
         setExporting(false);
       });
