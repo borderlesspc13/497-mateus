@@ -80,7 +80,7 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
       }
       error={
         error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null
@@ -118,7 +118,7 @@ export default function AdministradorasClient({ initialItems }: AdministradorasC
             <tbody>
               {filtered.map((row, index) => (
                 <tr key={row.id} className={tableRowClass(index)}>
-                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{row.nome}</td>
+                  <td className={`${tableCellClass()} font-medium text-foreground`}>{row.nome}</td>
                   <td className={tableCellClass()}>{row.cnpj}</td>
                   <td className={tableCellClass()}>
                     <div className="leading-5">

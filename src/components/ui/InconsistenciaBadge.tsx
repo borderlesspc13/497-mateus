@@ -4,11 +4,12 @@ import { STATUS_INCONSISTENCIA_LABELS } from "@/lib/vendas/atendimento";
 const CONFIG: Record<StatusInconsistencia, { label: string; className: string }> = {
   CONSISTENTE: {
     label: STATUS_INCONSISTENCIA_LABELS.CONSISTENTE,
-    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    className:
+      "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
   },
   INCONSISTENTE: {
     label: STATUS_INCONSISTENCIA_LABELS.INCONSISTENTE,
-    className: "border-amber-200 bg-amber-50 text-amber-800",
+    className: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
   },
 };
 

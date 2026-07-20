@@ -79,7 +79,7 @@ export default function VendedoresClient({ initialItems }: VendedoresClientProps
       }
       error={
         error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null
@@ -116,7 +116,7 @@ export default function VendedoresClient({ initialItems }: VendedoresClientProps
             <tbody>
               {filtered.map((item, index) => (
                 <tr key={item.id} className={tableRowClass(index)}>
-                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{item.nome}</td>
+                  <td className={`${tableCellClass()} font-medium text-foreground`}>{item.nome}</td>
                   <td className={tableCellClass()}>{item.email}</td>
                   <td className={tableCellClass()}>{item.telefone}</td>
                   <td className={tableCellClass()}>{item.equipe.nome}</td>

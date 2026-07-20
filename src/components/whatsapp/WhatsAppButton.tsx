@@ -83,7 +83,7 @@ export function WhatsAppButton({
         "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
         isDisabled
-          ? "cursor-not-allowed border-zinc-200 bg-zinc-50 text-zinc-300"
+          ? "cursor-not-allowed border-border bg-muted/50 text-muted-foreground/40"
           : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100",
         className,
       ].join(" ")}

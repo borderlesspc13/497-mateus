@@ -34,13 +34,13 @@ export function ModulePermissionsEditor({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-muted-foreground">
         {value.length} módulo(s) habilitado(s)
       </p>
 
       {MODULE_GROUPS.map((group) => (
         <div key={group.label}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {group.label}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -52,14 +52,14 @@ export function ModulePermissionsEditor({
                   className={[
                     "inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
                     active
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                      : "border-zinc-200 bg-white text-zinc-600",
-                    disabled ? "cursor-not-allowed opacity-60" : "hover:border-zinc-300",
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                      : "border-border bg-card text-muted-foreground",
+                    disabled ? "cursor-not-allowed opacity-60" : "hover:border-border",
                   ].join(" ")}
                 >
                   <input
                     type="checkbox"
-                    className="size-3.5 rounded border-zinc-300"
+                    className="size-3.5 rounded border-border"
                     checked={active}
                     disabled={disabled}
                     onChange={() => toggle(module)}

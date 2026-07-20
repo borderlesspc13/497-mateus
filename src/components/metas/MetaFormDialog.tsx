@@ -171,7 +171,7 @@ export function MetaFormDialog({
           {!isEdit ? (
             <>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Tipo</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">Tipo</span>
                 <select
                   value={tipo}
                   onChange={(e) => {
@@ -186,7 +186,7 @@ export function MetaFormDialog({
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   {tipo === "VENDEDOR" ? "Vendedor" : "Equipe"}
                 </span>
                 <select
@@ -206,7 +206,7 @@ export function MetaFormDialog({
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Período</span>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">Período</span>
                 <input
                   type="month"
                   value={periodo}
@@ -219,7 +219,7 @@ export function MetaFormDialog({
           ) : null}
 
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">Meta de vendas</span>
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Meta de vendas</span>
             <input
               type="number"
               min={1}
@@ -231,7 +231,7 @@ export function MetaFormDialog({
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">Meta de crédito (R$)</span>
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Meta de crédito (R$)</span>
             <input
               value={metaCredito}
               onChange={(e) => setMetaCredito(maskCurrencyInput(e.target.value))}
@@ -242,7 +242,7 @@ export function MetaFormDialog({
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">Meta de ativação (%)</span>
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Meta de ativação (%)</span>
             <input
               type="number"
               min={0}

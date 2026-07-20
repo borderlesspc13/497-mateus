@@ -30,14 +30,14 @@ function MetaItem({
 }) {
   return (
     <div className="min-w-0">
-      <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
-        <span className="text-zinc-400" aria-hidden>
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <span className="text-muted-foreground" aria-hidden>
           {icon}
         </span>
         {label}
       </div>
       <div className="mt-1 flex min-w-0 items-center gap-2">
-        <span className="truncate text-sm font-medium text-zinc-900">{value || "—"}</span>
+        <span className="truncate text-sm font-medium text-foreground">{value || "—"}</span>
         {action}
       </div>
     </div>
@@ -97,13 +97,13 @@ export function ConsorciadoFichaHero({ consorciado, vendas, editHref }: Consorci
                 {initials}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Ficha do consorciado
                 </p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   {consorciado.nome}
                 </h1>
-                <p className="mt-1 font-mono text-xs text-zinc-400">ID: {consorciado.id}</p>
+                <p className="mt-1 font-mono text-xs text-muted-foreground">ID: {consorciado.id}</p>
               </div>
             </div>
 
@@ -118,7 +118,7 @@ export function ConsorciadoFichaHero({ consorciado, vendas, editHref }: Consorci
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 border-t border-zinc-100 pt-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-4 border-t border-border/60 pt-5 sm:grid-cols-2 xl:grid-cols-4">
             <MetaItem
               icon={<User className="size-3.5" />}
               label="CPF / CNPJ"

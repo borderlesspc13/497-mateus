@@ -10,10 +10,10 @@ type AlertBannerProps = {
 };
 
 const TONE_CLASSES: Record<AlertTone, string> = {
-  error: "border-red-200 bg-red-50 text-red-700",
-  warning: "border-amber-200 bg-amber-50 text-amber-900",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  info: "border-sky-200 bg-sky-50 text-sky-900",
+  error: "border-destructive/30 bg-destructive/10 text-destructive",
+  warning: "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-300",
+  success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300",
+  info: "border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-300",
 };
 
 export function AlertBanner({ tone, title, children, className = "" }: AlertBannerProps) {

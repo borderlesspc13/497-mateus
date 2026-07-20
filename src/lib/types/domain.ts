@@ -291,6 +291,8 @@ export type DashboardStats = {
   nVendasAtivas: number;
   nVendasInadimplentes: number;
   nVendasCanceladas: number;
+  nVendasInconsistentes: number;
+  nVendasPosVendaPendentes: number;
   valorTotalCentavos: number;
   valorAtivasCentavos: number;
   valorCreditoComercializadoCentavos: number;

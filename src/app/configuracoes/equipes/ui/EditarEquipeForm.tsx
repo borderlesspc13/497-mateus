@@ -73,7 +73,7 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600">
+      <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
         Carregando...
       </div>
     );
@@ -116,7 +116,7 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
       <form onSubmit={(e) => void onSave(e)} className={`${panelClass()} p-6`}>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block md:col-span-2">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Nome da equipe <span className="text-red-600">*</span>
             </div>
             <input
@@ -127,7 +127,7 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
             />
           </label>
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">Supervisor</div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">Supervisor</div>
             <select
               value={supervisorId}
               onChange={(e) => setSupervisorId(e.target.value)}
@@ -142,7 +142,7 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
             </select>
           </label>
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">Diretor</div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">Diretor</div>
             <select
               value={diretorId}
               onChange={(e) => setDiretorId(e.target.value)}
@@ -159,7 +159,7 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
         </div>
 
         {error ? (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null}
@@ -168,7 +168,7 @@ export default function EditarEquipeForm({ id }: EditarEquipeFormProps) {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             {saving ? "Salvando..." : "Salvar alterações"}
           </button>

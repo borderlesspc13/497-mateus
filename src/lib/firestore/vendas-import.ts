@@ -14,13 +14,17 @@ import {
 import { COLLECTIONS, nowIso, type ConsorciadoDoc, type VendaDoc } from "@/lib/firestore/types";
 import type {
   ImportConfirmItem,
-  ImportConfirmResult,
   ImportReconciliationItem,
   ImportReconciliationSummary,
+  ImportRowInput,
 } from "@/lib/importacao/types";
-import type { ImportRowInput } from "@/lib/importacao/types";
-import { buildSpreadsheetContractSet } from "@/lib/importacao/reconciliation";
+import { buildStatusContractSet } from "@/lib/importacao/reconciliation";
 import { buildInadimplenciaReconciliationSummary } from "@/lib/importacao/inadimplencia-reconciliation";
+
+export type BatchUpdateVendaStatusResult = {
+  updated: number;
+  skipped: number;
+};
 
 export type { VendaContratoLookup };
 
@@ -125,7 +129,16 @@ export async function listInadimplentesMissingFromSpreadsheet(
 export async function preprocessInadimplenciaReconciliation(
   rows: ImportRowInput[],
 ): Promise<ImportReconciliationSummary> {
-  const spreadsheetContractNumbers = [...buildSpreadsheetContractSet(rows)];
+  const statusRows = rows.filter((row) => Boolean(row.statusOperacional));
+  if (statusRows.length === 0) {
+    return buildInadimplenciaReconciliationSummary({
+      missingFromSpreadsheet: [],
+      totalInadimplentesNoSistema: 0,
+      spreadsheetUniqueContractCount: 0,
+    });
+  }
+
+  const spreadsheetContractNumbers = [...buildStatusContractSet(statusRows)];
   const { missingFromSpreadsheet, totalInadimplentesNoSistema } =
     await listInadimplentesMissingFromSpreadsheet(spreadsheetContractNumbers);
 
@@ -138,7 +151,7 @@ export async function preprocessInadimplenciaReconciliation(
 
 export async function batchUpdateVendaStatus(
   updates: ImportConfirmItem[],
-): Promise<ImportConfirmResult> {
+): Promise<BatchUpdateVendaStatusResult> {
   if (updates.length === 0) {
     return { updated: 0, skipped: 0 };
   }

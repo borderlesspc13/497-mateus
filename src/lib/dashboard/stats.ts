@@ -67,6 +67,10 @@ export function buildDashboardStats(
   const nVendasAtivas = vendasAtivas.length;
   const nVendasInadimplentes = vendas.filter((v) => v.statusOperacional === "INADIMPLENTE").length;
   const nVendasCanceladas = vendas.filter((v) => v.statusOperacional === "CANCELADO").length;
+  const nVendasInconsistentes = vendas.filter(
+    (v) => v.statusInconsistencia === "INCONSISTENTE",
+  ).length;
+  const nVendasPosVendaPendentes = vendas.filter((v) => v.statusPosVenda === "PENDENTE").length;
 
   const vendasComValor = vendas.filter((v) => v.valorCentavos !== null);
   const valorTotalCentavos = sumValores(vendas);
@@ -131,6 +135,8 @@ export function buildDashboardStats(
     nVendasAtivas,
     nVendasInadimplentes,
     nVendasCanceladas,
+    nVendasInconsistentes,
+    nVendasPosVendaPendentes,
     valorTotalCentavos,
     valorAtivasCentavos,
     valorCreditoComercializadoCentavos,

@@ -41,7 +41,7 @@ export function PendenciaBadge({ venda }: PendenciaBadgeProps) {
       {nivel === "atrasado" ? (
         <Badge
           label="Atrasado"
-          className="border-red-200 bg-red-50 text-red-800"
+          className="border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-300"
           title={
             venda.dataPendencia
               ? `Pendência desde ${new Date(venda.dataPendencia).toLocaleDateString("pt-BR")}`
@@ -52,7 +52,7 @@ export function PendenciaBadge({ venda }: PendenciaBadgeProps) {
       {nivel === "pendente" ? (
         <Badge
           label="Alerta ativo"
-          className="border-amber-200 bg-amber-50 text-amber-900"
+          className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-300"
           title={
             venda.dataPendencia
               ? `Pendência em ${new Date(venda.dataPendencia).toLocaleDateString("pt-BR")}`
@@ -63,13 +63,13 @@ export function PendenciaBadge({ venda }: PendenciaBadgeProps) {
       {!checklistOk ? (
         <Badge
           label={`Ativação ${checklistPendente}/3`}
-          className="border-zinc-200 bg-zinc-100 text-zinc-700"
+          className="border-border bg-muted text-muted-foreground"
           title="Itens pendentes no checklist de ativação"
         />
       ) : (
         <Badge
           label="Ativado"
-          className="border-emerald-200 bg-emerald-50 text-emerald-800"
+          className="border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
           title="Checklist de ativação completo"
         />
       )}

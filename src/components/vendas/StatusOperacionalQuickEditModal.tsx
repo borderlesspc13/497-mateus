@@ -100,33 +100,33 @@ export function StatusOperacionalQuickEditModal({
           if (!isPending) onClose();
         }}
       />
-      <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
         <h2
           id="status-operacional-quick-edit-title"
-          className="text-lg font-semibold text-zinc-900"
+          className="text-lg font-semibold text-foreground"
         >
           Alterar status operacional
         </h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-600">
-          Contrato <span className="font-semibold text-zinc-900">{numeroContrato}</span>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Contrato <span className="font-semibold text-foreground">{numeroContrato}</span>
           {consorciadoNome ? (
             <>
               {" "}
-              · <span className="font-semibold text-zinc-900">{consorciadoNome}</span>
+              · <span className="font-semibold text-foreground">{consorciadoNome}</span>
             </>
           ) : null}
           . Confirme o novo status antes de salvar.
         </p>
 
-        <p className="mt-4 text-sm text-zinc-600">
+        <p className="mt-4 text-sm text-muted-foreground">
           Status atual:{" "}
-          <span className="font-semibold text-zinc-900">
+          <span className="font-semibold text-foreground">
             {STATUS_OPERACIONAL_LABELS[statusAtual]}
           </span>
         </p>
 
         <label className="mt-4 block">
-          <span className="mb-1 block text-xs font-medium text-zinc-600">Novo status</span>
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">Novo status</span>
           <select
             value={novoStatus}
             onChange={(e) => setNovoStatus(e.target.value as StatusOperacionalCota)}
@@ -143,7 +143,7 @@ export function StatusOperacionalQuickEditModal({
 
         {novoStatus === "CANCELADO" && novoStatus !== statusAtual ? (
           <label className="mt-4 block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
               Parcelas pagas antes do cancelamento <span className="text-red-600">*</span>
             </span>
             <input
@@ -156,7 +156,7 @@ export function StatusOperacionalQuickEditModal({
               placeholder="Ex.: 2"
               disabled={isPending}
             />
-            <span className="mt-1 block text-xs text-zinc-500">
+            <span className="mt-1 block text-xs text-muted-foreground">
               Necessário para calcular o estorno de comissão.
             </span>
           </label>
@@ -169,7 +169,7 @@ export function StatusOperacionalQuickEditModal({
         ) : null}
 
         {error ? (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">
+          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
             {error}
           </div>
         ) : null}

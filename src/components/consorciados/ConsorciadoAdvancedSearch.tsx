@@ -30,14 +30,14 @@ function SearchField({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="mb-1.5 block text-xs font-medium text-zinc-600">{label}</span>
+      <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className={formControlClass()}
       />
-      {hint ? <span className="mt-1 block text-[11px] text-zinc-400">{hint}</span> : null}
+      {hint ? <span className="mt-1 block text-[11px] text-muted-foreground">{hint}</span> : null}
     </label>
   );
 }
@@ -55,11 +55,11 @@ export function ConsorciadoAdvancedSearch({
   }
 
   return (
-    <div className={`rounded-2xl border border-zinc-200 bg-zinc-50/60 ${panelInsetClass()}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200/80 px-4 py-3.5 sm:px-5">
+    <div className={`rounded-2xl border border-border bg-muted/40 ${panelInsetClass()}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/80 px-4 py-3.5 sm:px-5">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900">Busca avançada</h3>
-          <p className="mt-0.5 text-xs text-zinc-500">
+          <h3 className="text-sm font-semibold text-foreground">Busca avançada</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Filtre por dados do consorciado ou pelos contratos/cotas vinculados.
           </p>
         </div>
@@ -109,7 +109,7 @@ export function ConsorciadoAdvancedSearch({
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-zinc-200/80 px-4 py-3 sm:px-5">
+      <div className="flex flex-wrap items-center gap-2 border-t border-border/80 px-4 py-3 sm:px-5">
         <SummaryChip
           label={hasFilters ? "Resultados" : "Consorciados"}
           value={hasFilters ? resultCount : totalCount}

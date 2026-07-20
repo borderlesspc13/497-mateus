@@ -76,7 +76,7 @@ export default function EquipesClient({ initialItems }: EquipesClientProps) {
       }
       error={
         error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null
@@ -111,7 +111,7 @@ export default function EquipesClient({ initialItems }: EquipesClientProps) {
             <tbody>
               {filtered.map((item, index) => (
                 <tr key={item.id} className={tableRowClass(index)}>
-                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{item.nome}</td>
+                  <td className={`${tableCellClass()} font-medium text-foreground`}>{item.nome}</td>
                   <td className={`${tableCellClass()} whitespace-nowrap`}>
                     {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                   </td>

@@ -4,11 +4,12 @@ import { STATUS_POS_VENDA_LABELS } from "@/lib/vendas/pos-venda";
 const CONFIG: Record<StatusPosVenda, { label: string; className: string }> = {
   PENDENTE: {
     label: STATUS_POS_VENDA_LABELS.PENDENTE,
-    className: "border-sky-200 bg-sky-50 text-sky-800",
+    className: "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300",
   },
   FEITO: {
     label: STATUS_POS_VENDA_LABELS.FEITO,
-    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    className:
+      "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
   },
 };
 

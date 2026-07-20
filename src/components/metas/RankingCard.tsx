@@ -45,16 +45,16 @@ export function RankingCard({
     .filter((c): c is Conquista => Boolean(c));
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex min-w-[3rem] items-center justify-center text-lg font-bold text-zinc-700">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex min-w-[3rem] items-center justify-center text-lg font-bold text-foreground/70">
         {medalForPosition(posicao)} {posicao <= 3 ? "" : `${posicao}º`}
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-semibold text-zinc-900">{nome}</span>
+          <span className="truncate font-semibold text-foreground">{nome}</span>
           {!temMeta ? (
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               Sem meta
             </span>
           ) : null}
@@ -84,14 +84,14 @@ export function RankingCard({
               aria-valuenow={pct}
               aria-valuemin={0}
               aria-valuemax={100}
-              className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100"
+              className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
             >
               <div
                 className={`h-full rounded-full transition-all duration-500 ${tone}`}
                 style={{ width: `${barWidth}%` }}
               />
             </div>
-            <div className="mt-1 flex justify-between text-xs text-zinc-600">
+            <div className="mt-1 flex justify-between text-xs text-muted-foreground">
               <span>
                 {realizadoVendas}
                 {metaVendas !== null ? ` / ${metaVendas} vnd` : " vnd"}
@@ -100,7 +100,7 @@ export function RankingCard({
             </div>
           </div>
         ) : (
-          <p className="mt-1 text-sm text-zinc-600">{realizadoVendas} vendas no período</p>
+          <p className="mt-1 text-sm text-muted-foreground">{realizadoVendas} vendas no período</p>
         )}
       </div>
     </div>

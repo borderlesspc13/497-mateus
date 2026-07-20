@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
+  liberarExtratoAction,
   listRepassesMapaPagamento,
+  marcarExtratoPagoAction,
   marcarExtratoRecebidoAction,
   marcarRepassePagoAction,
+  marcarRepassesPagosEmLoteAction,
   sincronizarExtratos,
 } from "@/actions/comissoes";
 import { ExportButton } from "@/components/export/ExportButton";
@@ -17,13 +20,17 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import {
   dataTableClass,
   formControlClass,
+  primaryActionClass,
   secondaryActionClass,
   tableCellClass,
   tableHeadCellClass,
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
-import { COMISSOES_EXPORT_COLUMNS } from "@/lib/export/columns/comissoes";
+import {
+  COMISSOES_EXPORT_COLUMNS,
+  REPASSES_EXPORT_COLUMNS,
+} from "@/lib/export/columns/comissoes";
 import { PAPEL_REPASSE_LABELS } from "@/lib/comissoes/regras-repasse";
 import type { ExtratoRow, ExtratoStatus, PapelRepasse, RepasseRow } from "@/lib/types/domain";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
@@ -38,13 +45,13 @@ type ComissoesClientProps = {
 function RepasseStatusBadge({ status }: { status: RepasseRow["status"] }) {
   if (status === "PAGO") {
     return (
-      <span className="inline-flex h-7 items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-800">
+      <span className="inline-flex h-7 items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
         Pago
       </span>
     );
   }
   return (
-    <span className="inline-flex h-7 items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-semibold text-amber-800">
+    <span className="inline-flex h-7 items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-semibold text-amber-800 dark:text-amber-300">
       Pendente
     </span>
   );
@@ -64,7 +71,9 @@ export default function ComissoesClient({
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [batchPaying, setBatchPaying] = useState(false);
   const [loadingMapa, setLoadingMapa] = useState(false);
+  const [selectedRepasseIds, setSelectedRepasseIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setItems(initialItems);
@@ -82,6 +91,7 @@ export default function ComissoesClient({
       .then((rows) => {
         if (!alive) return;
         setRepasses(rows);
+        setSelectedRepasseIds(new Set());
       })
       .catch((e: unknown) => {
         if (!alive) return;
@@ -115,6 +125,11 @@ export default function ComissoesClient({
     });
   }, [repasses, query]);
 
+  const pendenteRepasseIds = useMemo(
+    () => filteredRepasses.filter((r) => r.status === "PENDENTE").map((r) => r.id),
+    [filteredRepasses],
+  );
+
   const totaisExtratos = useMemo(() => {
     const pendente = filteredExtratos
       .filter((r) => r.status === "PENDENTE")
@@ -140,6 +155,10 @@ export default function ComissoesClient({
       .reduce((s, r) => s + r.valorCentavos, 0);
     return { pendente, pago };
   }, [filteredRepasses]);
+
+  const allPendentesSelected =
+    pendenteRepasseIds.length > 0 &&
+    pendenteRepasseIds.every((id) => selectedRepasseIds.has(id));
 
   async function onSync() {
     setError(null);
@@ -170,6 +189,38 @@ export default function ComissoesClient({
     }
   }
 
+  async function onLiberar(id: string) {
+    setError(null);
+    setActionId(id);
+    try {
+      await liberarExtratoAction(id);
+      setItems((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "LIBERADO" as const } : r)),
+      );
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao liberar extrato.");
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function onMarcarPago(id: string) {
+    setError(null);
+    setActionId(id);
+    try {
+      await marcarExtratoPagoAction(id);
+      setItems((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "PAGO" as const } : r)),
+      );
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao marcar extrato como pago.");
+    } finally {
+      setActionId(null);
+    }
+  }
+
   async function onMarcarRepassePago(id: string) {
     setError(null);
     setActionId(id);
@@ -178,12 +229,58 @@ export default function ComissoesClient({
       setRepasses((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: "PAGO" as const } : r)),
       );
+      setSelectedRepasseIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao marcar repasse como pago.");
     } finally {
       setActionId(null);
     }
+  }
+
+  async function onMarcarRepassesLote() {
+    const ids = [...selectedRepasseIds].filter((id) => pendenteRepasseIds.includes(id));
+    if (ids.length === 0) return;
+    setError(null);
+    setBatchPaying(true);
+    try {
+      const result = await marcarRepassesPagosEmLoteAction(ids);
+      setRepasses((prev) =>
+        prev.map((r) => (ids.includes(r.id) ? { ...r, status: "PAGO" as const } : r)),
+      );
+      setSelectedRepasseIds(new Set());
+      if (result.errors.length > 0) {
+        setError(
+          `${result.updated} pago(s). ${result.errors.length} falha(s): ${result.errors[0]}`,
+        );
+      }
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao pagar repasses em lote.");
+    } finally {
+      setBatchPaying(false);
+    }
+  }
+
+  function toggleRepasseSelection(id: string) {
+    setSelectedRepasseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllPendentes() {
+    if (allPendentesSelected) {
+      setSelectedRepasseIds(new Set());
+      return;
+    }
+    setSelectedRepasseIds(new Set(pendenteRepasseIds));
   }
 
   return (
@@ -196,7 +293,7 @@ export default function ComissoesClient({
               onClick={() => setTab("extratos")}
               className={
                 tab === "extratos"
-                  ? "inline-flex h-9 items-center rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white"
+                  ? "inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
                   : secondaryActionClass()
               }
             >
@@ -207,7 +304,7 @@ export default function ComissoesClient({
               onClick={() => setTab("mapa")}
               className={
                 tab === "mapa"
-                  ? "inline-flex h-9 items-center rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white"
+                  ? "inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
                   : secondaryActionClass()
               }
             >
@@ -253,21 +350,41 @@ export default function ComissoesClient({
               />
             </>
           ) : (
-            <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
-              <input
-                type="checkbox"
-                checked={incluirPagos}
-                onChange={(e) => setIncluirPagos(e.target.checked)}
-                className="rounded border-zinc-300"
+            <>
+              <label className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={incluirPagos}
+                  onChange={(e) => setIncluirPagos(e.target.checked)}
+                  className="rounded border-border"
+                />
+                Já pago
+              </label>
+              <ExportButton
+                fileNameBase="mapa-pagamento"
+                sheetName="Repasses"
+                rows={filteredRepasses}
+                columns={REPASSES_EXPORT_COLUMNS}
               />
-              Já pago
-            </label>
+              {selectedRepasseIds.size > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => void onMarcarRepassesLote()}
+                  disabled={batchPaying}
+                  className={primaryActionClass()}
+                >
+                  {batchPaying
+                    ? "Pagando..."
+                    : `Pagar selecionados (${selectedRepasseIds.size})`}
+                </button>
+              ) : null}
+            </>
           )}
         </>
       }
       error={
         error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null
@@ -278,15 +395,15 @@ export default function ComissoesClient({
           <div className="mb-6 grid gap-3 sm:grid-cols-4">
             {(
               [
-                ["Pendente", totaisExtratos.pendente, "border-zinc-200 bg-zinc-50"],
-                ["Recebido", totaisExtratos.recebido, "border-violet-200 bg-violet-50/50"],
-                ["Liberado", totaisExtratos.liberado, "border-blue-200 bg-blue-50/50"],
-                ["Pago", totaisExtratos.pago, "border-emerald-200 bg-emerald-50/50"],
+                ["Pendente", totaisExtratos.pendente, "border-border bg-muted/50"],
+                ["Recebido", totaisExtratos.recebido, "border-violet-500/30 bg-violet-500/10"],
+                ["Liberado", totaisExtratos.liberado, "border-blue-500/30 bg-blue-500/10"],
+                ["Pago", totaisExtratos.pago, "border-emerald-500/30 bg-emerald-500/10"],
               ] as const
             ).map(([label, centavos, cardClass]) => (
               <div key={label} className={`rounded-2xl border p-4 ${cardClass}`}>
-                <div className="text-xs font-medium text-zinc-500">{label}</div>
-                <div className="mt-1 text-lg font-semibold tabular-nums text-zinc-900">
+                <div className="text-xs font-medium text-muted-foreground">{label}</div>
+                <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                   {formatMoneyPtBrFromCentavos(centavos)}
                 </div>
               </div>
@@ -294,13 +411,13 @@ export default function ComissoesClient({
           </div>
 
           {syncing ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+            <div className="rounded-2xl border border-border bg-card p-6">
               <TableSkeleton rows={6} columns={8} />
             </div>
           ) : filteredExtratos.length === 0 ? (
             <EmptyState
               title={items.length === 0 ? "Nenhum extrato gerado" : "Nenhum resultado encontrado"}
-              description="Os extratos são gerados automaticamente ao registrar vendas ativas com plano e regras financeiras."
+              description="Os extratos são gerados automaticamente ao registrar vendas ativas com plano e regras financeiras. Remessas com PARCELA também marcam recebimento em /importacao."
             />
           ) : (
             <div className={tableWrapClass()}>
@@ -320,7 +437,7 @@ export default function ComissoesClient({
                 <tbody>
                   {filteredExtratos.map((row, index) => (
                     <tr key={row.id} className={tableRowClass(index)}>
-                      <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                      <td className={`${tableCellClass()} font-medium text-foreground`}>
                         <Link
                           href={`/vendas/${row.vendaId}`}
                           className="underline-offset-2 hover:underline"
@@ -339,19 +456,44 @@ export default function ComissoesClient({
                         <ExtratoStatusBadge status={row.status} />
                       </td>
                       <td className={`${tableCellClass()} pr-0 text-right`}>
-                        {row.tipo !== "ESTORNO" && row.status === "PENDENTE" ? (
-                          <button
-                            type="button"
-                            onClick={() => void onMarcarRecebido(row.id)}
-                            disabled={actionId === row.id}
-                            className={secondaryActionClass()}
-                          >
-                            {actionId === row.id ? "..." : "Marcar recebido"}
-                          </button>
-                        ) : null}
-                        {row.status === "RECEBIDO" ? (
-                          <span className="text-xs text-zinc-400">Repasse gerado</span>
-                        ) : null}
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {row.tipo !== "ESTORNO" && row.status === "PENDENTE" ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void onMarcarRecebido(row.id)}
+                                disabled={actionId === row.id}
+                                className={secondaryActionClass()}
+                              >
+                                {actionId === row.id ? "..." : "Recebido"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void onLiberar(row.id)}
+                                disabled={actionId === row.id}
+                                className={secondaryActionClass()}
+                              >
+                                {actionId === row.id ? "..." : "Liberar"}
+                              </button>
+                            </>
+                          ) : null}
+                          {row.status === "RECEBIDO" ? (
+                            <span className="text-xs text-muted-foreground">Repasse gerado</span>
+                          ) : null}
+                          {row.status === "LIBERADO" ? (
+                            <button
+                              type="button"
+                              onClick={() => void onMarcarPago(row.id)}
+                              disabled={actionId === row.id}
+                              className={secondaryActionClass()}
+                            >
+                              {actionId === row.id ? "..." : "Marcar pago"}
+                            </button>
+                          ) : null}
+                          {row.status === "PAGO" ? (
+                            <span className="text-xs text-muted-foreground">Concluído</span>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -361,21 +503,21 @@ export default function ComissoesClient({
           )}
         </>
       ) : loadingMapa ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
           <TableSkeleton rows={6} columns={8} />
         </div>
       ) : (
         <>
           <div className="mb-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
-              <div className="text-xs font-medium text-zinc-500">Repasse pendente</div>
-              <div className="mt-1 text-lg font-semibold tabular-nums text-zinc-900">
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <div className="text-xs font-medium text-muted-foreground">Repasse pendente</div>
+              <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                 {formatMoneyPtBrFromCentavos(totaisRepasses.pendente)}
               </div>
             </div>
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
-              <div className="text-xs font-medium text-zinc-500">Repasse pago</div>
-              <div className="mt-1 text-lg font-semibold tabular-nums text-zinc-900">
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+              <div className="text-xs font-medium text-muted-foreground">Repasse pago</div>
+              <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                 {formatMoneyPtBrFromCentavos(totaisRepasses.pago)}
               </div>
             </div>
@@ -384,13 +526,23 @@ export default function ComissoesClient({
           {filteredRepasses.length === 0 ? (
             <EmptyState
               title="Nenhum repasse no mapa"
-              description="Marque extratos como recebidos da administradora para gerar as linhas de repasse interno (vendedor, supervisor e diretor)."
+              description="Marque extratos como recebidos (na UI ou via remessa com coluna PARCELA) para gerar as linhas de repasse interno."
             />
           ) : (
             <div className={tableWrapClass()}>
               <table className={dataTableClass()}>
                 <thead>
                   <tr>
+                    <th className={tableHeadCellClass()}>
+                      <input
+                        type="checkbox"
+                        checked={allPendentesSelected}
+                        onChange={toggleSelectAllPendentes}
+                        disabled={pendenteRepasseIds.length === 0}
+                        className="rounded border-border"
+                        aria-label="Selecionar todos pendentes"
+                      />
+                    </th>
                     <th className={tableHeadCellClass()}>Contrato</th>
                     <th className={tableHeadCellClass()}>Beneficiário</th>
                     <th className={tableHeadCellClass()}>Papel</th>
@@ -405,7 +557,18 @@ export default function ComissoesClient({
                 <tbody>
                   {filteredRepasses.map((row, index) => (
                     <tr key={row.id} className={tableRowClass(index)}>
-                      <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                      <td className={tableCellClass()}>
+                        {row.status === "PENDENTE" ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedRepasseIds.has(row.id)}
+                            onChange={() => toggleRepasseSelection(row.id)}
+                            className="rounded border-border"
+                            aria-label={`Selecionar ${row.beneficiarioNome}`}
+                          />
+                        ) : null}
+                      </td>
+                      <td className={`${tableCellClass()} font-medium text-foreground`}>
                         {row.numeroContrato}
                       </td>
                       <td className={tableCellClass()}>{row.beneficiarioNome}</td>
@@ -429,12 +592,12 @@ export default function ComissoesClient({
                             type="button"
                             onClick={() => void onMarcarRepassePago(row.id)}
                             disabled={actionId === row.id}
-                            className="inline-flex h-9 items-center justify-center rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+                            className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                           >
                             {actionId === row.id ? "..." : "Marcar pago"}
                           </button>
                         ) : (
-                          <span className="text-xs text-zinc-400">Concluído</span>
+                          <span className="text-xs text-muted-foreground">Concluído</span>
                         )}
                       </td>
                     </tr>

@@ -40,38 +40,47 @@ export function ImportacaoReconciliationModal({
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && reconciliationComplete) onContinue();
+    };
+    document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, reconciliationComplete, onContinue]);
 
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-6"
+      className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-6 lg:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reconciliation-modal-title"
     >
-      <div className="absolute inset-0 bg-zinc-900/55 backdrop-blur-[2px]" aria-hidden />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-hidden />
 
-      <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-zinc-200 bg-white shadow-2xl sm:rounded-2xl">
-        <header className="border-b border-amber-200 bg-amber-50 px-5 py-4 sm:px-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+      <div className="relative flex h-[min(94vh,56rem)] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl border border-border bg-card text-card-foreground shadow-2xl sm:rounded-2xl">
+        <header className="shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-5 py-5 sm:px-8 sm:py-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
             Importação bloqueada — conciliação obrigatória
           </p>
-          <h2 id="reconciliation-modal-title" className="mt-1 text-lg font-semibold text-zinc-900">
-            Conciliação de Diferenças
+          <h2
+            id="reconciliation-modal-title"
+            className="mt-1.5 text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
+          >
+            Conciliação de diferenças
           </h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-700">
-            {describeInadimplenciaGap(reconciliation)} Para cada contrato listado abaixo, informe se
-            a situação atual é <span className="font-semibold">Ativo</span> (pagamento regularizado)
-            ou <span className="font-semibold">Cancelado</span> (com parcelas pagas).
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            {describeInadimplenciaGap(reconciliation)} Para cada contrato abaixo, escolha{" "}
+            <span className="font-semibold text-foreground">Ativo</span> (pagamento regularizado) ou{" "}
+            <span className="font-semibold text-foreground">Cancelado</span> (informe as parcelas
+            pagas).
           </p>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
           <ImportacaoReconciliationTable
             reconciliation={reconciliation}
             resolutions={resolutions}
@@ -81,15 +90,18 @@ export function ImportacaoReconciliationModal({
           />
         </div>
 
-        <footer className="flex flex-col gap-3 border-t border-zinc-100 bg-zinc-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p className="text-sm text-zinc-600">
+        <footer className="flex shrink-0 flex-col gap-3 border-t border-border bg-muted/40 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
+          <p className="max-w-xl text-sm text-muted-foreground">
             {reconciliationComplete
               ? "Conciliação concluída. Você pode liberar a importação e confirmar o lote."
               : `Defina o status de todos os ${reconciliation.totalDivergentes} contrato(s) órfão(s) para continuar.`}
           </p>
           <button
             type="button"
-            className={reconciliationComplete ? primaryCtaClass() : secondaryActionClass()}
+            className={[
+              reconciliationComplete ? primaryCtaClass() : secondaryActionClass(),
+              "w-full sm:w-auto sm:min-w-[14rem]",
+            ].join(" ")}
             disabled={!reconciliationComplete}
             onClick={onContinue}
           >

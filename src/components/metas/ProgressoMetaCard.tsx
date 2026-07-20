@@ -27,14 +27,14 @@ export function ProgressoMetaCard({
   const tone = progressBarTone(percentual);
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</p>
+    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
 
       {temMeta ? (
         <>
-          <p className="mt-2 text-lg font-bold text-zinc-900">
+          <p className="mt-2 text-lg font-bold text-foreground">
             {formatRealizado(unidade, realizado)}
-            <span className="text-sm font-normal text-zinc-500">
+            <span className="text-sm font-normal text-muted-foreground">
               {" "}
               / {formatRealizado(unidade, meta)}
             </span>
@@ -45,21 +45,21 @@ export function ProgressoMetaCard({
             aria-valuenow={Math.min(percentual, 100)}
             aria-valuemin={0}
             aria-valuemax={100}
-            className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-zinc-100"
+            className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted"
           >
             <div
               className={`h-full rounded-full transition-all duration-500 ${tone}`}
               style={{ width: `${barWidth}%` }}
             />
           </div>
-          <p className="mt-2 text-sm font-medium text-zinc-700">{formatarPercentual(percentual)}</p>
+          <p className="mt-2 text-sm font-medium text-foreground/70">{formatarPercentual(percentual)}</p>
         </>
       ) : (
         <>
-          <p className="mt-2 text-lg font-bold text-zinc-900">
+          <p className="mt-2 text-lg font-bold text-foreground">
             {formatRealizado(unidade, realizado)}
           </p>
-          <span className="mt-2 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+          <span className="mt-2 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
             Sem meta definida
           </span>
         </>

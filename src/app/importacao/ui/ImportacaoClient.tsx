@@ -20,11 +20,12 @@ import {
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import {
-  buildSpreadsheetContractSet,
+  buildStatusContractSet,
   isReconciliationComplete,
 } from "@/lib/importacao/reconciliation";
 import type {
   ImportConfirmItem,
+  ImportConfirmResult,
   ImportPreviewResult,
   ImportReconciliationItem,
   ImportReconciliationResolution,
@@ -48,9 +49,7 @@ export default function ImportacaoClient() {
   const [parsedRows, setParsedRows] = useState<ImportRowInput[]>([]);
   const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
-  const [confirmResult, setConfirmResult] = useState<{ updated: number; skipped: number } | null>(
-    null,
-  );
+  const [confirmResult, setConfirmResult] = useState<ImportConfirmResult | null>(null);
   const [filter, setFilter] = useState<PreviewFilter>("all");
   const [reconciliationResolutions, setReconciliationResolutions] = useState<
     Record<string, ImportReconciliationResolution | undefined>
@@ -119,7 +118,8 @@ export default function ImportacaoClient() {
     const reconciliationUpdates = preview.reconciliation.missingFromSpreadsheet.filter(
       (item) => reconciliationResolutions[item.numeroContrato],
     ).length;
-    return spreadsheetUpdates + reconciliationUpdates > 0;
+    const comissoesUpdates = preview.summary.comissoesToReceive;
+    return spreadsheetUpdates + reconciliationUpdates + comissoesUpdates > 0;
   }, [
     phase,
     preview,
@@ -204,11 +204,19 @@ export default function ImportacaoClient() {
       }));
 
     const updates = [...spreadsheetUpdates, ...reconciliationUpdates];
+    const comissoesRecebidas = preview.comissoes
+      .filter((item) => item.willUpdate)
+      .map((item) => ({
+        numeroContrato: item.numeroContrato,
+        parcelaNumero: item.parcelaNumero,
+        linha: item.linha,
+      }));
 
     try {
       const result = await confirmImportacaoStatus({
         updates,
-        spreadsheetContractNumbers: [...buildSpreadsheetContractSet(parsedRows)],
+        spreadsheetContractNumbers: [...buildStatusContractSet(parsedRows)],
+        comissoesRecebidas,
       });
       setConfirmResult(result);
       setPhase("done");
@@ -257,11 +265,13 @@ export default function ImportacaoClient() {
           title="Upload da remessa"
           description={
             <>
-              Arraste um arquivo .csv ou .xlsx com as colunas{" "}
-              <span className="font-semibold">CONTRATO</span> e{" "}
-              <span className="font-semibold">STATUS</span> (ATIVO, INADIMPLENTE ou CANCELADO).
-              Para cancelamentos, inclua também <span className="font-semibold">PARCELAS_PAGAS</span>.
-              Contratos inadimplentes no sistema que não constarem na remessa exigirão conciliação manual.
+              Arraste um arquivo .csv ou .xlsx com a coluna{" "}
+              <span className="font-semibold">CONTRATO</span> e, na mesma planilha,{" "}
+              <span className="font-semibold">STATUS</span> (ATIVO, INADIMPLENTE ou CANCELADO) e/ou{" "}
+              <span className="font-semibold">PARCELA</span> (comissão recebida da administradora).
+              Para cancelamentos, inclua <span className="font-semibold">PARCELAS_PAGAS</span>.
+              Contratos inadimplentes no sistema ausentes da remessa de status exigem conciliação
+              manual.
             </>
           }
         />
@@ -289,7 +299,7 @@ export default function ImportacaoClient() {
               "flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors",
               isDragging
                 ? "border-emerald-400 bg-emerald-50"
-                : "border-zinc-300 bg-zinc-50 hover:border-zinc-400 hover:bg-zinc-100/80",
+                : "border-border bg-muted/50 hover:border-border hover:bg-muted/80",
               isBusy ? "pointer-events-none opacity-60" : "",
             ].join(" ")}
           >
@@ -304,19 +314,19 @@ export default function ImportacaoClient() {
 
             {phase === "parsing" || phase === "previewing" ? (
               <>
-                <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-800" />
-                <p className="text-sm font-medium text-zinc-800">
+                <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-border border-t-zinc-800" />
+                <p className="text-sm font-medium text-foreground/80">
                   {phase === "parsing" ? "Lendo arquivo..." : "Gerando pré-visualização..."}
                 </p>
               </>
             ) : (
               <>
-                <p className="text-sm font-semibold text-zinc-900">
+                <p className="text-sm font-semibold text-foreground">
                   Arraste o arquivo aqui ou clique para selecionar
                 </p>
-                <p className="mt-2 text-xs text-zinc-500">CSV ou Excel (.xlsx) · até 10.000 linhas</p>
+                <p className="mt-2 text-xs text-muted-foreground">CSV ou Excel (.xlsx) · até 10.000 linhas</p>
                 {fileName ? (
-                  <p className="mt-4 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700">
+                  <p className="mt-4 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/70">
                     {fileName}
                   </p>
                 ) : null}
@@ -387,11 +397,20 @@ export default function ImportacaoClient() {
               actions={
                 <>
                   <SummaryChip label="Total" value={preview.summary.total} />
-                  <SummaryChip label="Atualizar" value={preview.summary.toUpdate} tone="green" />
+                  <SummaryChip label="Status" value={preview.summary.toUpdate} tone="green" />
+                  <SummaryChip
+                    label="Comissões"
+                    value={preview.summary.comissoesToReceive}
+                    tone="green"
+                  />
                   <SummaryChip label="Sem alteração" value={preview.summary.unchanged} />
                   <SummaryChip label="Não encontrados" value={preview.summary.notFound} tone="yellow" />
-                  {preview.summary.invalid > 0 ? (
-                    <SummaryChip label="Inválidos" value={preview.summary.invalid} tone="red" />
+                  {preview.summary.invalid > 0 || preview.summary.comissoesInvalid > 0 ? (
+                    <SummaryChip
+                      label="Inválidos"
+                      value={preview.summary.invalid + preview.summary.comissoesInvalid}
+                      tone="red"
+                    />
                   ) : null}
                   {preview.reconciliation.requiresManualReconciliation ? (
                     <SummaryChip
@@ -410,7 +429,7 @@ export default function ImportacaoClient() {
               }
             />
 
-            <div className={`border-b border-zinc-100 py-4 ${panelInsetClass()}`}>
+            <div className={`border-b border-border/60 py-4 ${panelInsetClass()}`}>
               <FilterChipBar>
                 <FilterChipButton active={filter === "all"} onClick={() => setFilter("all")}>
                   Todos ({preview.summary.total})
@@ -444,7 +463,7 @@ export default function ImportacaoClient() {
                   <tbody>
                     {previewRows.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className={`${tableCellClass()} text-zinc-500`}>
+                        <td colSpan={5} className={`${tableCellClass()} text-muted-foreground`}>
                           Nenhum registro neste filtro.
                         </td>
                       </tr>
@@ -461,7 +480,7 @@ export default function ImportacaoClient() {
                               ].join(" ")}
                             >
                               <td className={tableCellClass()}>{item.linha}</td>
-                              <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                              <td className={`${tableCellClass()} font-medium text-foreground`}>
                                 {item.numeroContrato}
                               </td>
                               <td className={tableCellClass()}>
@@ -476,7 +495,7 @@ export default function ImportacaoClient() {
                                     Será atualizado
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-zinc-500">Sem alteração</span>
+                                  <span className="text-xs text-muted-foreground">Sem alteração</span>
                                 )}
                               </td>
                             </tr>
@@ -491,7 +510,7 @@ export default function ImportacaoClient() {
                               className={[tableRowClass(index), "bg-amber-50/80"].join(" ")}
                             >
                               <td className={tableCellClass()}>{item.linha}</td>
-                              <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                              <td className={`${tableCellClass()} font-medium text-foreground`}>
                                 {item.numeroContrato}
                               </td>
                               <td className={tableCellClass()}>—</td>
@@ -511,14 +530,14 @@ export default function ImportacaoClient() {
                         return (
                           <tr
                             key={`invalid-${item.linha}`}
-                            className={[tableRowClass(index), "bg-red-50/60"].join(" ")}
+                            className={[tableRowClass(index), "bg-destructive/10"].join(" ")}
                           >
                             <td className={tableCellClass()}>{item.linha}</td>
                             <td className={tableCellClass()}>{item.numeroContrato ?? "—"}</td>
                             <td className={tableCellClass()}>—</td>
                             <td className={tableCellClass()}>—</td>
                             <td className={tableCellClass()}>
-                              <span className="text-xs font-semibold text-red-700">{item.error}</span>
+                              <span className="text-xs font-semibold text-destructive">{item.error}</span>
                             </td>
                           </tr>
                         );
@@ -528,22 +547,84 @@ export default function ImportacaoClient() {
                 </table>
               </div>
 
+              {preview.comissoes.length > 0 ? (
+                <div className="mt-8">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Comissões recebidas (parcela)
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Linhas com coluna PARCELA serão marcadas como RECEBIDO e geram repasses
+                    internos.
+                  </p>
+                  <div className={`${tableWrapClass()} mt-4`}>
+                    <table className={dataTableClass()}>
+                      <thead>
+                        <tr>
+                          <th className={tableHeadCellClass()}>Linha</th>
+                          <th className={tableHeadCellClass()}>Contrato</th>
+                          <th className={tableHeadCellClass()}>Parcela</th>
+                          <th className={tableHeadCellClass()}>Status atual</th>
+                          <th className={tableHeadCellClass()}>Resultado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {preview.comissoes.map((item, index) => (
+                          <tr
+                            key={`comissao-${item.numeroContrato}-${item.parcelaNumero}-${item.linha}`}
+                            className={[
+                              tableRowClass(index),
+                              item.error
+                                ? "bg-destructive/10"
+                                : item.willUpdate
+                                  ? "bg-emerald-50/70 dark:bg-emerald-500/10"
+                                  : "",
+                            ].join(" ")}
+                          >
+                            <td className={tableCellClass()}>{item.linha}</td>
+                            <td className={`${tableCellClass()} font-medium text-foreground`}>
+                              {item.numeroContrato}
+                            </td>
+                            <td className={tableCellClass()}>P{item.parcelaNumero}</td>
+                            <td className={tableCellClass()}>{item.statusAtual ?? "—"}</td>
+                            <td className={tableCellClass()}>
+                              {item.error ? (
+                                <span className="text-xs font-semibold text-destructive">
+                                  {item.error}
+                                </span>
+                              ) : item.willUpdate ? (
+                                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                                  Marcar recebido
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Já processado</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-sm text-zinc-600">
+                <div className="text-sm text-muted-foreground">
                   {requiresReconciliationGate && !reconciliationGatePassed
                     ? "Complete a conciliação no modal para liberar a confirmação."
                     : !reconciliationComplete
                       ? `Conciliação pendente: defina o status de ${preview.reconciliation.totalDivergentes} contrato(s) ausente(s) na planilha.`
-                      : preview.summary.toUpdate > 0 ||
-                          preview.reconciliation.missingFromSpreadsheet.some(
-                            (item) => reconciliationResolutions[item.numeroContrato],
-                          )
+                      : preview.summary.toUpdate +
+                            preview.summary.comissoesToReceive +
+                            preview.reconciliation.missingFromSpreadsheet.filter(
+                              (item) => reconciliationResolutions[item.numeroContrato],
+                            ).length >
+                          0
                         ? `${
                             preview.summary.toUpdate +
                             preview.reconciliation.missingFromSpreadsheet.filter(
                               (item) => reconciliationResolutions[item.numeroContrato],
                             ).length
-                          } contrato(s) serão atualizados após a confirmação.`
+                          } status e ${preview.summary.comissoesToReceive} comissão(ões) serão aplicados.`
                         : "Nenhuma alteração pendente para confirmar."}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -574,9 +655,18 @@ export default function ImportacaoClient() {
 
               {confirmResult ? (
                 <AlertBanner tone="success" className="mt-4">
-                  Importação concluída: {confirmResult.updated} venda(s) atualizada(s)
+                  Importação concluída: {confirmResult.updated} status atualizado(s)
                   {confirmResult.skipped > 0
-                    ? ` · ${confirmResult.skipped} ignorada(s) (já estavam no status ou não existiam)`
+                    ? ` · ${confirmResult.skipped} status ignorado(s)`
+                    : ""}
+                  {confirmResult.comissoesAtualizadas > 0
+                    ? ` · ${confirmResult.comissoesAtualizadas} comissão(ões) recebida(s)`
+                    : ""}
+                  {confirmResult.comissoesIgnoradas > 0
+                    ? ` · ${confirmResult.comissoesIgnoradas} comissão(ões) já processada(s)`
+                    : ""}
+                  {confirmResult.comissoesErros.length > 0
+                    ? ` · ${confirmResult.comissoesErros.length} erro(s) em comissão`
                     : ""}
                   .
                 </AlertBanner>

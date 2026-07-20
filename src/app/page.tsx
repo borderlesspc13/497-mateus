@@ -20,18 +20,18 @@ function DashboardFallback() {
       <KpiCardSkeleton />
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className={`${panelClass()} p-6 lg:col-span-2`}>
-          <div className="h-5 w-56 animate-pulse rounded bg-zinc-200" />
+          <div className="h-5 w-56 animate-pulse rounded bg-muted" />
           <div className="mt-6 space-y-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-8 animate-pulse rounded-lg bg-zinc-100" />
+              <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
         </div>
         <div className={`${panelClass()} p-6`}>
-          <div className="h-5 w-40 animate-pulse rounded bg-zinc-200" />
+          <div className="h-5 w-40 animate-pulse rounded bg-muted" />
           <div className="mt-6 space-y-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-6 animate-pulse rounded-lg bg-zinc-100" />
+              <div key={i} className="h-6 animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
         </div>
@@ -50,7 +50,7 @@ async function DashboardContent() {
     <ModuleGuard module="dashboard">
       {showMetaWidget ? (
         <div className="mb-6">
-          <Suspense fallback={<div className={`${panelClass()} h-36 animate-pulse bg-zinc-50`} />}>
+          <Suspense fallback={<div className={`${panelClass()} h-36 animate-pulse bg-muted/50`} />}>
             <DashboardMetaWidget permissions={permissions} />
           </Suspense>
         </div>

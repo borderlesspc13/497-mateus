@@ -41,11 +41,6 @@ export async function sincronizarExtratos(): Promise<{ gerados: number }> {
   return { gerados };
 }
 
-/** @deprecated Use marcarExtratoRecebidoAction. Mantido para compatibilidade da UI legada. */
-export async function liberarExtrato(id: string): Promise<void> {
-  await marcarExtratoRecebidoAction(id);
-}
-
 export async function marcarExtratoRecebidoAction(
   id: string,
 ): Promise<{ repassesGerados: number }> {
@@ -59,6 +54,24 @@ export async function marcarExtratoRecebidoAction(
   scheduleDashboardAndMetasRefresh();
   revalidateComissoes();
   return result;
+}
+
+/** PENDENTE → LIBERADO (sem gerar repasses). */
+export async function liberarExtratoAction(id: string): Promise<void> {
+  const user = await requireComissoesManager();
+  await updateExtratoStatus(id, "LIBERADO");
+  await writeAuditLog({
+    userId: user.uid,
+    acao: "comissao.liberada",
+    documentoId: id,
+  });
+  scheduleDashboardAndMetasRefresh();
+  revalidateComissoes();
+}
+
+/** @deprecated Use marcarExtratoRecebidoAction. */
+export async function liberarExtrato(id: string): Promise<void> {
+  await marcarExtratoRecebidoAction(id);
 }
 
 export async function importarComissoesRecebidas(
@@ -78,7 +91,8 @@ export async function importarComissoesRecebidas(
   return result;
 }
 
-export async function marcarExtratoPago(id: string): Promise<void> {
+/** LIBERADO → PAGO. */
+export async function marcarExtratoPagoAction(id: string): Promise<void> {
   const user = await requireComissoesManager();
   await updateExtratoStatus(id, "PAGO");
   await writeAuditLog({
@@ -90,6 +104,11 @@ export async function marcarExtratoPago(id: string): Promise<void> {
   revalidateComissoes();
 }
 
+/** @deprecated Use marcarExtratoPagoAction. */
+export async function marcarExtratoPago(id: string): Promise<void> {
+  await marcarExtratoPagoAction(id);
+}
+
 export async function marcarRepassePagoAction(id: string): Promise<void> {
   const user = await requireComissoesManager();
   await marcarRepassePago(id);
@@ -99,4 +118,41 @@ export async function marcarRepassePagoAction(id: string): Promise<void> {
     documentoId: id,
   });
   revalidateComissoes();
+}
+
+export async function marcarRepassesPagosEmLoteAction(
+  ids: string[],
+): Promise<{ updated: number; errors: string[] }> {
+  const user = await requireComissoesManager();
+  if (!Array.isArray(ids) || ids.length === 0) {
+    throw new Error("Nenhum repasse selecionado.");
+  }
+  if (ids.length > 500) {
+    throw new Error("Limite de 500 repasses por lote.");
+  }
+
+  let updated = 0;
+  const errors: string[] = [];
+
+  for (const id of ids) {
+    try {
+      await marcarRepassePago(id);
+      updated += 1;
+    } catch (e) {
+      errors.push(
+        `${id}: ${e instanceof Error ? e.message : "Erro ao marcar como pago."}`,
+      );
+    }
+  }
+
+  if (updated > 0) {
+    await writeAuditLog({
+      userId: user.uid,
+      acao: `repasse.pago_lote_${updated}`,
+      documentoId: "batch",
+    });
+  }
+
+  revalidateComissoes();
+  return { updated, errors };
 }

@@ -129,7 +129,7 @@ export default function ConsorciadoForm(props: ConsorciadoFormProps) {
 
   if (mode === "edit" && loading) {
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600">
+      <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
         Carregando consorciado...
       </div>
     );
@@ -211,7 +211,7 @@ export default function ConsorciadoForm(props: ConsorciadoFormProps) {
           <button
             type="button"
             onClick={() => router.push("/consorciados")}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground/70 hover:bg-muted/50"
             disabled={saving}
           >
             Cancelar
@@ -219,7 +219,7 @@ export default function ConsorciadoForm(props: ConsorciadoFormProps) {
         ) : null}
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           disabled={saving}
         >
           {saving ? "Salvando..." : mode === "create" ? "Salvar" : "Salvar alterações"}

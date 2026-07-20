@@ -99,27 +99,27 @@ export function RegrasFinanceirasPreview({
   }, [distribuicao, valorCreditoCentavos]);
 
   return (
-    <div className={`${panelClass()} mt-6 border-dashed bg-zinc-50/80 p-5`}>
-      <div className="text-sm font-medium text-zinc-900">Simulação do motor financeiro</div>
-      <p className="mt-1 text-xs leading-5 text-zinc-500">
+    <div className={`${panelClass()} mt-6 border-dashed bg-muted/50 p-5`}>
+      <div className="text-sm font-medium text-foreground">Simulação do motor financeiro</div>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
         Total das comissões distribuídas (Empresa + Vendedor + Supervisor + Diretor) sobre o
         crédito informado.
       </p>
 
       {"error" in preview ? (
-        <p className="mt-4 text-sm text-zinc-500">{preview.error}</p>
+        <p className="mt-4 text-sm text-muted-foreground">{preview.error}</p>
       ) : (
         <div className="mt-4 space-y-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Total das comissões distribuídas
               </div>
-              <div className="mt-1 text-2xl font-bold tabular-nums text-zinc-900">
+              <div className="mt-1 text-2xl font-bold tabular-nums text-foreground">
                 {formatMoneyPtBrFromCentavos(preview.totalDistribuidoCentavos)}
               </div>
             </div>
-            <div className="text-right text-xs text-zinc-500">
+            <div className="text-right text-xs text-muted-foreground">
               {formatPercentualInput(preview.percentualDistribuido)}% sobre{" "}
               {formatMoneyPtBrFromCentavos(valorCreditoCentavos!)}
             </div>
@@ -129,15 +129,15 @@ export function RegrasFinanceirasPreview({
             {preview.niveis.map((nivel) => (
               <div
                 key={nivel.key}
-                className="rounded-xl border border-zinc-200 bg-white px-4 py-3"
+                className="rounded-xl border border-border bg-card px-4 py-3"
               >
-                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {nivel.label}
                 </div>
-                <div className="mt-1 text-lg font-semibold tabular-nums text-zinc-900">
+                <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                   {formatMoneyPtBrFromCentavos(nivel.valorCentavos)}
                 </div>
-                <div className="mt-1 text-xs text-zinc-500">
+                <div className="mt-1 text-xs text-muted-foreground">
                   {formatPercentualInput(nivel.percentualTotal)}% do crédito ·{" "}
                   {nivel.parcelas.length} parcela{nivel.parcelas.length === 1 ? "" : "s"}
                 </div>
@@ -146,7 +146,7 @@ export function RegrasFinanceirasPreview({
           </div>
 
           {preview.exemploEstorno ? (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Prazo de estorno: {preview.diasParaEstorno} dias — vendas canceladas dentro desse
               prazo removem extratos pendentes/liberados (ex.: limite hoje seria{" "}
               {preview.exemploEstorno.toLocaleDateString("pt-BR")}).

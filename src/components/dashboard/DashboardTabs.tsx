@@ -34,10 +34,10 @@ function RankingPanelSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="h-72 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-50 lg:col-span-1" />
-        <div className="h-72 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-50 lg:col-span-2" />
+        <div className="h-72 animate-pulse rounded-2xl border border-border bg-muted/50 lg:col-span-1" />
+        <div className="h-72 animate-pulse rounded-2xl border border-border bg-muted/50 lg:col-span-2" />
       </div>
-      <div className="h-64 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-50" />
+      <div className="h-64 animate-pulse rounded-2xl border border-border bg-muted/50" />
     </div>
   );
 }
@@ -80,7 +80,7 @@ export function DashboardTabs({ stats, permissions }: DashboardTabsProps) {
       />
 
       <nav
-        className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-1.5"
+        className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-border bg-muted/50 p-1.5"
         aria-label="Separadores do dashboard"
       >
         {visibleTabs.map((tab) => {
@@ -93,8 +93,8 @@ export function DashboardTabs({ stats, permissions }: DashboardTabsProps) {
               className={[
                 "inline-flex h-10 flex-1 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all sm:flex-none sm:min-w-[11rem]",
                 isActive
-                  ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200"
-                  : "text-zinc-600 hover:bg-white/60 hover:text-zinc-900",
+                  ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                  : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
               ].join(" ")}
             >
               {tab.label}

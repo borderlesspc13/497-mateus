@@ -132,13 +132,13 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
     <div className="space-y-6">
       {showForm ? (
         <form onSubmit={(e) => void onCreate(e)} className={`${panelClass()} p-6`}>
-          <div className="text-sm font-medium text-zinc-900">Novo usuário</div>
-          <p className="mt-1 text-xs text-zinc-500">
+          <div className="text-sm font-medium text-foreground">Novo usuário</div>
+          <p className="mt-1 text-xs text-muted-foreground">
             A conta será criada no Firebase Auth com o e-mail e senha informados.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Nome <span className="text-red-600">*</span>
               </div>
               <input
@@ -149,7 +149,7 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
               />
             </label>
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 E-mail <span className="text-red-600">*</span>
               </div>
               <input
@@ -161,7 +161,7 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
               />
             </label>
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Senha inicial <span className="text-red-600">*</span>
               </div>
               <input
@@ -174,7 +174,7 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
               />
             </label>
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Perfil base <span className="text-red-600">*</span>
               </div>
               <select
@@ -198,9 +198,9 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
             </label>
           </div>
 
-          <div className="mt-6 border-t border-zinc-100 pt-4">
-            <p className="text-sm font-medium text-zinc-900">Módulos permitidos</p>
-            <p className="mt-1 text-xs text-zinc-500">
+          <div className="mt-6 border-t border-border/60 pt-4">
+            <p className="text-sm font-medium text-foreground">Módulos permitidos</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               Defina quais áreas do sistema este usuário poderá acessar.
             </p>
             <div className="mt-4">
@@ -250,7 +250,7 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
         }
         error={
           error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           ) : null
@@ -292,10 +292,10 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
                 {filtered.map((item, index) => (
                   <Fragment key={item.id}>
                     <tr className={tableRowClass(index)}>
-                      <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                      <td className={`${tableCellClass()} font-medium text-foreground`}>
                         {item.displayName ?? "—"}
                         {item.id === currentUserId ? (
-                          <span className="ml-2 text-xs font-normal text-zinc-500">(você)</span>
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">(você)</span>
                         ) : null}
                       </td>
                       <td className={tableCellClass()}>{item.email}</td>
@@ -329,15 +329,15 @@ export default function UsuariosClient({ initialItems, currentUserId }: Usuarios
                       </td>
                     </tr>
                     {permissionsEditingId === item.id ? (
-                      <tr key={`${item.id}-permissions`} className="bg-zinc-50/80">
+                      <tr key={`${item.id}-permissions`} className="bg-muted/50">
                         <td colSpan={5} className={`${tableCellClass()} py-5`}>
                           <div className="space-y-4">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                               <div>
-                                <p className="text-sm font-semibold text-zinc-900">
+                                <p className="text-sm font-semibold text-foreground">
                                   Módulos de {item.displayName ?? item.email}
                                 </p>
-                                <p className="text-xs text-zinc-500">
+                                <p className="text-xs text-muted-foreground">
                                   O menu lateral e as rotas respeitam apenas os módulos marcados.
                                 </p>
                               </div>

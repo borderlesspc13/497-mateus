@@ -1,11 +1,13 @@
 import type { ImportRowInput } from "@/lib/importacao/types";
 import {
   CONTRATO_COLUMN_CANDIDATES,
+  PARCELA_COMISSAO_COLUMN_CANDIDATES,
   PARCELAS_PAGAS_COLUMN_CANDIDATES,
   STATUS_COLUMN_CANDIDATES,
   findColumnKey,
   normalizeContrato,
   parseImportStatus,
+  parseParcelaComissao,
   parseParcelasPagas,
 } from "@/lib/importacao/status";
 
@@ -29,12 +31,15 @@ function parseRawRows(rawRows: RawRow[]): ParseImportFileResult {
   const contratoKey = findColumnKey(headers, CONTRATO_COLUMN_CANDIDATES);
   const statusKey = findColumnKey(headers, STATUS_COLUMN_CANDIDATES);
   const parcelasKey = findColumnKey(headers, PARCELAS_PAGAS_COLUMN_CANDIDATES);
+  const parcelaComissaoKey = findColumnKey(headers, PARCELA_COMISSAO_COLUMN_CANDIDATES);
 
   if (!contratoKey) {
     errors.push('Coluna "CONTRATO" não encontrada. Verifique o cabeçalho do arquivo.');
   }
-  if (!statusKey) {
-    errors.push('Coluna "STATUS" não encontrada. Verifique o cabeçalho do arquivo.');
+  if (!statusKey && !parcelaComissaoKey) {
+    errors.push(
+      'Informe ao menos a coluna "STATUS" (status operacional) ou "PARCELA" (comissão recebida).',
+    );
   }
   if (errors.length > 0) {
     return { rows: [], errors, warnings };
@@ -42,44 +47,85 @@ function parseRawRows(rawRows: RawRow[]): ParseImportFileResult {
 
   const rows: ImportRowInput[] = [];
   const seenContratos = new Map<string, number>();
+  const seenComissoes = new Map<string, number>();
 
   rawRows.forEach((raw, index) => {
     const linha = index + 2;
     const contrato = normalizeContrato(raw[contratoKey!]);
-    const status = parseImportStatus(raw[statusKey!]);
 
     if (!contrato) {
       errors.push(`Linha ${linha}: contrato vazio ou inválido.`);
       return;
     }
-    if (!status) {
+
+    const rawStatus = statusKey ? raw[statusKey] : undefined;
+    const hasStatusValue =
+      rawStatus !== null &&
+      rawStatus !== undefined &&
+      String(rawStatus).trim() !== "";
+    const status = hasStatusValue ? parseImportStatus(rawStatus) : null;
+
+    if (hasStatusValue && !status) {
       errors.push(
-        `Linha ${linha}: status inválido "${String(raw[statusKey!] ?? "")}". Use ATIVO, INADIMPLENTE ou CANCELADO.`,
+        `Linha ${linha}: status inválido "${String(rawStatus)}". Use ATIVO, INADIMPLENTE ou CANCELADO.`,
+      );
+      return;
+    }
+
+    const parcelaComissao = parcelaComissaoKey
+      ? parseParcelaComissao(raw[parcelaComissaoKey])
+      : null;
+    const rawParcela = parcelaComissaoKey ? raw[parcelaComissaoKey] : undefined;
+    const hasParcelaValue =
+      rawParcela !== null &&
+      rawParcela !== undefined &&
+      String(rawParcela).trim() !== "";
+
+    if (hasParcelaValue && parcelaComissao === null) {
+      errors.push(`Linha ${linha}: parcela de comissão inválida "${String(rawParcela)}".`);
+      return;
+    }
+
+    if (!status && parcelaComissao === null) {
+      errors.push(
+        `Linha ${linha}: informe STATUS e/ou PARCELA (comissão) para o contrato ${contrato}.`,
       );
       return;
     }
 
     const parcelasPagas = parcelasKey ? parseParcelasPagas(raw[parcelasKey]) : null;
     if (status === "CANCELADO" && parcelasPagas === null) {
-      errors.push(
-        `Linha ${linha}: informe PARCELAS_PAGAS para vendas canceladas.`,
-      );
+      errors.push(`Linha ${linha}: informe PARCELAS_PAGAS para vendas canceladas.`);
       return;
     }
 
-    const previousLine = seenContratos.get(contrato);
-    if (previousLine !== undefined) {
-      warnings.push(
-        `Contrato "${contrato}" duplicado (linhas ${previousLine} e ${linha}). Será usado o valor da última ocorrência.`,
-      );
+    if (status) {
+      const previousLine = seenContratos.get(contrato);
+      if (previousLine !== undefined) {
+        warnings.push(
+          `Contrato "${contrato}" com STATUS duplicado (linhas ${previousLine} e ${linha}). Será usado o valor da última ocorrência.`,
+        );
+      }
+      seenContratos.set(contrato, linha);
     }
-    seenContratos.set(contrato, linha);
+
+    if (parcelaComissao !== null) {
+      const comissaoKey = `${contrato}#${parcelaComissao}`;
+      const previousComissaoLine = seenComissoes.get(comissaoKey);
+      if (previousComissaoLine !== undefined) {
+        warnings.push(
+          `Comissão ${contrato} P${parcelaComissao} duplicada (linhas ${previousComissaoLine} e ${linha}). Será usada a última ocorrência.`,
+        );
+      }
+      seenComissoes.set(comissaoKey, linha);
+    }
 
     rows.push({
       numeroContrato: contrato,
-      statusOperacional: status,
+      ...(status ? { statusOperacional: status } : {}),
       linha,
       parcelasPagasCancelamento: status === "CANCELADO" ? parcelasPagas ?? undefined : undefined,
+      ...(parcelaComissao !== null ? { parcelaComissao } : {}),
     });
   });
 

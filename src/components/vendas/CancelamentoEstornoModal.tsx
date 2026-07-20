@@ -65,18 +65,18 @@ export function CancelamentoEstornoModal({
           if (!saving) onClose();
         }}
       />
-      <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
-        <h2 id="cancelamento-estorno-title" className="text-lg font-semibold text-zinc-900">
+      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <h2 id="cancelamento-estorno-title" className="text-lg font-semibold text-foreground">
           Cancelamento da venda
         </h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-600">
-          A venda <span className="font-semibold text-zinc-900">{numeroContrato}</span> será marcada como
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          A venda <span className="font-semibold text-foreground">{numeroContrato}</span> será marcada como
           cancelada. Informe quantas parcelas foram pagas antes do cancelamento para calcular o
           estorno de comissão automaticamente.
         </p>
 
         <label className="mt-5 block">
-          <span className="mb-1 block text-xs font-medium text-zinc-600">
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">
             Quantas parcelas foram pagas antes do cancelamento?{" "}
             <span className="text-red-600">*</span>
           </span>
@@ -94,7 +94,7 @@ export function CancelamentoEstornoModal({
         </label>
 
         {error ? (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">
+          <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
             {error}
           </div>
         ) : null}

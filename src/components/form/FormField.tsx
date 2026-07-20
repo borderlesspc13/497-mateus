@@ -23,7 +23,7 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <Label htmlFor={htmlFor} className="text-zinc-600">
+      <Label htmlFor={htmlFor} className="text-muted-foreground">
         {label}
         {required ? <span className="text-red-600"> *</span> : null}
       </Label>

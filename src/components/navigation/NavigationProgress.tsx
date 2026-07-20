@@ -65,7 +65,7 @@ export function NavigationProgress() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 bg-zinc-200/80"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 bg-muted/80"
       aria-hidden
     >
       <div

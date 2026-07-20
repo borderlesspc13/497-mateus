@@ -80,7 +80,7 @@ function db() {
   return getAdminFirestore();
 }
 
-const DASHBOARD_STATS_SNAPSHOT_ID = "home-stats-v1";
+const DASHBOARD_STATS_SNAPSHOT_ID = "home-stats-v2";
 const DASHBOARD_RANKING_SNAPSHOT_ID = "home-ranking-v1";
 
 type DashboardSnapshotEnvelope<T> = {

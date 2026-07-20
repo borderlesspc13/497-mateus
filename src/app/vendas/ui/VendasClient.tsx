@@ -14,10 +14,14 @@ import {
   dangerActionClass,
   dataTableClass,
   formControlClass,
+  listErrorClass,
   primaryActionClass,
   secondaryActionClass,
   tableCellClass,
   tableHeadCellClass,
+  tableLinkClass,
+  tableMutedTextClass,
+  tablePrimaryTextClass,
   tableRowClass,
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
@@ -161,13 +165,7 @@ export default function VendasClient({
           />
         </>
       }
-      error={
-        error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        ) : null
-      }
+      error={error ? <div className={listErrorClass()}>{error}</div> : null}
     >
       {isResetting ? (
         <TableSkeleton rows={8} columns={6} />
@@ -214,63 +212,59 @@ export default function VendasClient({
               <tbody>
                 {visibleItems.map((v, index) => (
                   <tr key={v.id} className={tableRowClass(index)}>
-                    <td className={`${tableCellClass()} font-medium text-zinc-900`}>{v.numeroContrato}</td>
+                    <td className={`${tableCellClass()} ${tablePrimaryTextClass()}`}>
+                      {v.numeroContrato}
+                    </td>
                     <td className={tableCellClass()}>
                       <div className="leading-5">
-                        <div className="text-zinc-900">
+                        <div className="text-foreground">
                           {v.grupo} / {v.cota}
                         </div>
-                        <div className="text-xs text-zinc-500">Venc. dia {v.dataVencimento}</div>
+                        <div className={tableMutedTextClass()}>Venc. dia {v.dataVencimento}</div>
                       </div>
                     </td>
                     <td className={tableCellClass()}>
                       <div className="leading-5">
                         {v.consorciado ? (
-                          <Link
-                            href={`/consorciados/${v.consorciado.id}`}
-                            className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
-                          >
+                          <Link href={`/consorciados/${v.consorciado.id}`} className={tableLinkClass()}>
                             {v.consorciado.nome}
                           </Link>
                         ) : (
-                          <div className="text-zinc-800">—</div>
+                          <div className="text-foreground/80">—</div>
                         )}
                         {v.consorciado?.cpf_cnpj ? (
-                          <div className="text-xs text-zinc-500">{v.consorciado.cpf_cnpj}</div>
+                          <div className={tableMutedTextClass()}>{v.consorciado.cpf_cnpj}</div>
                         ) : null}
                       </div>
                     </td>
                     <td className={tableCellClass()}>
                       <div className="leading-5">
-                        <div className="text-zinc-900">{v.equipe?.nome ?? "—"}</div>
-                        <div className="text-xs text-zinc-500">{v.vendedor?.nome ?? "—"}</div>
+                        <div className="text-foreground">{v.equipe?.nome ?? "—"}</div>
+                        <div className={tableMutedTextClass()}>{v.vendedor?.nome ?? "—"}</div>
                       </div>
                     </td>
                     <td className={tableCellClass()}>
                       <div className="leading-5">
                         <Link
                           href={`/administradoras/${v.administradoraId}`}
-                          className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
+                          className={tableLinkClass()}
                         >
                           {v.administradora?.nome ?? "—"}
                         </Link>
-                        <div className="text-xs text-zinc-500">{v.administradora?.cnpj ?? ""}</div>
+                        <div className={tableMutedTextClass()}>{v.administradora?.cnpj ?? ""}</div>
                       </div>
                     </td>
                     <td className={tableCellClass()}>
                       <div className="leading-5">
                         {v.plano ? (
-                          <Link
-                            href={`/planos/${v.plano.id}`}
-                            className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
-                          >
+                          <Link href={`/planos/${v.plano.id}`} className={tableLinkClass()}>
                             {v.plano.nome}
                           </Link>
                         ) : (
-                          <div className="text-zinc-800">—</div>
+                          <div className="text-foreground/80">—</div>
                         )}
                         {v.plano?.tipoBem ? (
-                          <div className="text-xs text-zinc-500">{v.plano.tipoBem}</div>
+                          <div className={tableMutedTextClass()}>{v.plano.tipoBem}</div>
                         ) : null}
                       </div>
                     </td>

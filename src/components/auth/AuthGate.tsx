@@ -7,8 +7,8 @@ import { clearServerSession } from "@/lib/firebase/auth-client";
 
 function AuthLoadingScreen({ message }: { message: string }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-      <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 text-sm text-zinc-600 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-muted/50">
+      <div className="rounded-xl border border-border bg-card px-6 py-4 text-sm text-muted-foreground shadow-sm">
         {message}
       </div>
     </div>

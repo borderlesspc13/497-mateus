@@ -399,9 +399,9 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
               />
             </div>
 
-            <div className="grid w-full gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid w-full gap-2 rounded-xl border border-border bg-muted/50 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <label className="block min-w-0">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Equipe
                 </span>
                 <select
@@ -419,7 +419,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
               </label>
 
               <label className="block min-w-0">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Vendedor
                 </span>
                 <select
@@ -438,7 +438,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
               </label>
 
               <label className="block min-w-0">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Data venda (de)
                 </span>
                 <input
@@ -450,7 +450,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
               </label>
 
               <label className="block min-w-0">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Data venda (até)
                 </span>
                 <input
@@ -462,7 +462,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
               </label>
 
               <label className="block min-w-0">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Administradora
                 </span>
                 <select
@@ -480,7 +480,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
               </label>
 
               <label className="block min-w-0">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Plano
                 </span>
                 <select
@@ -512,7 +512,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
         }
         error={
           paginatedError ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {paginatedError}
             </div>
           ) : null
@@ -548,15 +548,15 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
                   {visibleItems.map((v, index) => (
                     <tr
                       key={v.id}
-                      className={`${tableRowClass(index)} cursor-pointer hover:bg-zinc-50/80`}
+                      className={`${tableRowClass(index)} cursor-pointer hover:bg-muted/50`}
                       onClick={() => openDrawer(v)}
                     >
-                      <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                      <td className={`${tableCellClass()} font-medium text-foreground`}>
                         {v.numeroContrato}
                       </td>
                       <td className={tableCellClass()}>
                         {v.grupo} / {v.cota}
-                        <div className="text-xs text-zinc-500">Venc. dia {v.dataVencimento}</div>
+                        <div className="text-xs text-muted-foreground">Venc. dia {v.dataVencimento}</div>
                       </td>
                       <td className={tableCellClass()}>{v.consorciado?.nome ?? "—"}</td>
                       <td className={tableCellClass()}>{v.administradora?.nome ?? "—"}</td>
@@ -565,7 +565,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
                           <button
                             type="button"
                             onClick={() => openStatusEdit(v)}
-                            className="rounded-md text-left transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300"
+                            className="rounded-md text-left transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             title="Editar status"
                           >
                             <StatusBadge status={v.statusOperacional} />

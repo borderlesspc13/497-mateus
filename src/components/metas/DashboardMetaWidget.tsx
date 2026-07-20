@@ -21,8 +21,8 @@ export async function DashboardMetaWidget({ permissions }: DashboardMetaWidgetPr
     if (!minhaMeta && !minhaRealizacao) {
       return (
         <div className={`${panelClass()} p-6`}>
-          <h3 className="text-sm font-semibold text-zinc-900">🎯 Minha Meta — {label}</h3>
-          <p className="mt-2 text-sm text-zinc-600">
+          <h3 className="text-sm font-semibold text-foreground">🎯 Minha Meta — {label}</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
             Nenhuma meta definida para este mês.
           </p>
         </div>
@@ -35,7 +35,7 @@ export async function DashboardMetaWidget({ permissions }: DashboardMetaWidgetPr
     return (
       <div className={`${panelClass()} p-6`}>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-zinc-900">🎯 Minha Meta — {label}</h3>
+          <h3 className="text-sm font-semibold text-foreground">🎯 Minha Meta — {label}</h3>
           <Link href="/metas/minhas" className="text-sm font-medium text-sky-700 hover:text-sky-800">
             Ver detalhes →
           </Link>
@@ -64,7 +64,7 @@ export async function DashboardMetaWidget({ permissions }: DashboardMetaWidgetPr
           />
         </div>
         {r && r.conquistasDesbloqueadas.length > 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">
+          <p className="mt-3 text-sm text-muted-foreground">
             Conquistas:{" "}
             {conquistas
               .filter((c) => r.conquistasDesbloqueadas.includes(c.id))
@@ -81,13 +81,13 @@ export async function DashboardMetaWidget({ permissions }: DashboardMetaWidgetPr
   return (
     <div className={`${panelClass()} p-6`}>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-zinc-900">🏆 Ranking de {label.split(" ")[0]}</h3>
+        <h3 className="text-sm font-semibold text-foreground">🏆 Ranking de {label.split(" ")[0]}</h3>
         <Link href="/metas" className="text-sm font-medium text-sky-700 hover:text-sky-800">
           Ver ranking completo
         </Link>
       </div>
       {rankingTop.length === 0 ? (
-        <p className="mt-3 text-sm text-zinc-600">Nenhum dado de ranking para este mês.</p>
+        <p className="mt-3 text-sm text-muted-foreground">Nenhum dado de ranking para este mês.</p>
       ) : (
         <div className="mt-4 space-y-2">
           {rankingTop.map((item) => (

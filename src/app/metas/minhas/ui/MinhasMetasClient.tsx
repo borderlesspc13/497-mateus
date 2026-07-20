@@ -110,7 +110,7 @@ export function MinhasMetasClient({
           </div>
 
           <section className="mb-8">
-            <h2 className="mb-4 text-base font-semibold text-zinc-900">Conquistas do Mês</h2>
+            <h2 className="mb-4 text-base font-semibold text-foreground">Conquistas do Mês</h2>
             <div className="grid gap-3 md:grid-cols-2">
               {conquistas.map((conquista) => (
                 <ConquistaCard
@@ -127,7 +127,7 @@ export function MinhasMetasClient({
       )}
 
       <section>
-        <h2 className="mb-4 text-base font-semibold text-zinc-900">Ranking Geral do Mês</h2>
+        <h2 className="mb-4 text-base font-semibold text-foreground">Ranking Geral do Mês</h2>
         {ranking.length === 0 ? (
           <EmptyState title="Ranking indisponível" description="Sem dados para este período." />
         ) : (

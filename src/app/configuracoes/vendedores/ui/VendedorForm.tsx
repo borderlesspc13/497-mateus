@@ -115,7 +115,7 @@ export default function VendedorForm(props: VendedorFormProps) {
           <button
             type="button"
             onClick={() => router.push("/configuracoes/vendedores")}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground/70 hover:bg-muted/50"
             disabled={saving}
           >
             Cancelar
@@ -123,7 +123,7 @@ export default function VendedorForm(props: VendedorFormProps) {
           <button
             type="submit"
             disabled={saving || equipes.length === 0}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             {saving ? "Salvando..." : "Salvar"}
           </button>
@@ -133,7 +133,7 @@ export default function VendedorForm(props: VendedorFormProps) {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             {saving ? "Salvando..." : "Salvar alterações"}
           </button>

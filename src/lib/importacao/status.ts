@@ -39,6 +39,12 @@ export const CONTRATO_COLUMN_CANDIDATES = [
 ];
 export const STATUS_COLUMN_CANDIDATES = ["STATUS"];
 export const PARCELAS_PAGAS_COLUMN_CANDIDATES = ["PARCELAS_PAGAS", "PARCELAS PAGAS"];
+export const PARCELA_COMISSAO_COLUMN_CANDIDATES = [
+  "PARCELA_COMISSAO",
+  "PARCELA COMISSAO",
+  "COMISSAO_PARCELA",
+  "PARCELA",
+];
 
 export function parseParcelasPagas(raw: unknown): number | null {
   if (raw === null || raw === undefined || raw === "") return null;
@@ -46,3 +52,11 @@ export function parseParcelasPagas(raw: unknown): number | null {
   if (!Number.isInteger(parsed) || parsed < 0) return null;
   return parsed;
 }
+
+export function parseParcelaComissao(raw: unknown): number | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const parsed = typeof raw === "number" ? raw : Number.parseInt(String(raw).trim(), 10);
+  if (!Number.isInteger(parsed) || parsed < 1) return null;
+  return parsed;
+}
+

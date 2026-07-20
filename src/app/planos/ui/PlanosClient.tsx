@@ -109,7 +109,7 @@ export default function PlanosClient({
       }
       error={
         error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null
@@ -150,16 +150,16 @@ export default function PlanosClient({
           <tbody>
               {filtered.map((p, index) => (
                 <tr key={p.id} className={tableRowClass(index)}>
-                  <td className={`${tableCellClass()} font-medium text-zinc-900`}>{p.nome}</td>
+                  <td className={`${tableCellClass()} font-medium text-foreground`}>{p.nome}</td>
                   <td className={tableCellClass()}>
                     <div className="leading-5">
                       <Link
                         href={`/administradoras/${p.administradoraId}`}
-                        className="font-medium text-zinc-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-sm"
+                        className="font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                       >
                         {p.administradora?.nome ?? "—"}
                       </Link>
-                      <div className="text-xs text-zinc-500">{p.administradora?.cnpj ?? ""}</div>
+                      <div className="text-xs text-muted-foreground">{p.administradora?.cnpj ?? ""}</div>
                     </div>
                   </td>
                   <td className={tableCellClass()}>{p.tipoBem}</td>

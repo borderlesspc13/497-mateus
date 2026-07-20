@@ -20,7 +20,7 @@ export function CnpjInput({
 }: CnpjInputProps) {
   return (
     <label className="block">
-      <div className="mb-1 text-xs font-medium text-zinc-600">
+      <div className="mb-1 text-xs font-medium text-muted-foreground">
         {label}
         {required ? <span className="text-red-600"> *</span> : null}
       </div>
@@ -60,12 +60,12 @@ export function CurrencyInput({
 }: CurrencyInputProps) {
   return (
     <label className="block">
-      <div className="mb-1 text-xs font-medium text-zinc-600">
+      <div className="mb-1 text-xs font-medium text-muted-foreground">
         {label}
         {required ? <span className="text-red-600"> *</span> : null}
       </div>
       <div className="relative">
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-zinc-500">
+        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
           R$
         </span>
         <input

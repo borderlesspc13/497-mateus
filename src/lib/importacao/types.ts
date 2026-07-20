@@ -1,10 +1,14 @@
-import type { StatusOperacionalCota } from "@/lib/types/domain";
+import type { ExtratoStatus, StatusOperacionalCota } from "@/lib/types/domain";
 
+/** Linha normalizada da remessa unificada (status e/ou comissão). */
 export type ImportRowInput = {
   numeroContrato: string;
-  statusOperacional: StatusOperacionalCota;
+  /** Ausente quando a linha só marca comissão recebida. */
+  statusOperacional?: StatusOperacionalCota;
   linha: number;
   parcelasPagasCancelamento?: number;
+  /** Parcela de comissão a marcar como RECEBIDO. */
+  parcelaComissao?: number;
 };
 
 export type ImportPreviewMatched = {
@@ -32,16 +36,31 @@ export type ImportPreviewInvalid = {
   error: string;
 };
 
+export type ImportPreviewComissao = {
+  linha: number;
+  numeroContrato: string;
+  parcelaNumero: number;
+  vendaId: string | null;
+  extratoId: string | null;
+  statusAtual: ExtratoStatus | null;
+  willUpdate: boolean;
+  error?: string;
+};
+
 export type ImportPreviewResult = {
   matched: ImportPreviewMatched[];
   notFound: ImportPreviewNotFound[];
   invalid: ImportPreviewInvalid[];
+  comissoes: ImportPreviewComissao[];
   summary: {
     total: number;
     toUpdate: number;
     notFound: number;
     unchanged: number;
     invalid: number;
+    comissoesToReceive: number;
+    comissoesSkipped: number;
+    comissoesInvalid: number;
   };
   reconciliation: ImportReconciliationSummary;
 };
@@ -53,9 +72,18 @@ export type ImportConfirmItem = {
   parcelasPagasCancelamento?: number;
 };
 
+export type ImportConfirmComissaoItem = {
+  numeroContrato: string;
+  parcelaNumero: number;
+  linha?: number;
+};
+
 export type ImportConfirmResult = {
   updated: number;
   skipped: number;
+  comissoesAtualizadas: number;
+  comissoesIgnoradas: number;
+  comissoesErros: string[];
 };
 
 export type ImportReconciliationItem = {
@@ -88,4 +116,5 @@ export type ImportReconciliationSummary = {
 export type ImportConfirmPayload = {
   updates: ImportConfirmItem[];
   spreadsheetContractNumbers: string[];
+  comissoesRecebidas: ImportConfirmComissaoItem[];
 };

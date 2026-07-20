@@ -37,13 +37,13 @@ function formatDateTime(iso: string) {
 function tipoRegistroClass(tipo: HistoricoAtendimentoWithVenda["tipoRegistro"]) {
   switch (tipo) {
     case "COBRANCA":
-      return "border-red-200 bg-red-50 text-red-800";
+      return "border-destructive/30 bg-destructive/10 text-destructive";
     case "COBRANCA_WHATSAPP":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800";
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
     case "POS_VENDA":
-      return "border-sky-200 bg-sky-50 text-sky-800";
+      return "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300";
     case "INCONSISTENCIA":
-      return "border-amber-200 bg-amber-50 text-amber-800";
+      return "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300";
   }
 }
 
@@ -51,10 +51,10 @@ function TimelineEntry({ item }: { item: HistoricoAtendimentoWithVenda }) {
   return (
     <li className="relative pl-7 pb-6 last:pb-0">
       <span
-        className="absolute left-0 top-2 h-2.5 w-2.5 rounded-full bg-zinc-900 ring-4 ring-white"
+        className="absolute left-0 top-2 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-card"
         aria-hidden
       />
-      <div className="rounded-xl border border-zinc-200 bg-white p-3.5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-3.5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <span
@@ -65,15 +65,15 @@ function TimelineEntry({ item }: { item: HistoricoAtendimentoWithVenda }) {
             >
               {TIPO_REGISTRO_LABELS[item.tipoRegistro]}
             </span>
-            <span className="text-xs font-medium text-zinc-600">
+            <span className="text-xs font-medium text-muted-foreground">
               Contrato {item.numeroContrato} · Grupo {item.grupo} · Cota {item.cota}
             </span>
           </div>
-          <time className="text-xs tabular-nums text-zinc-500" dateTime={item.dataRegistro}>
+          <time className="text-xs tabular-nums text-muted-foreground" dateTime={item.dataRegistro}>
             {formatDateTime(item.dataRegistro)}
           </time>
         </div>
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
           {item.observacao}
         </p>
       </div>
@@ -116,13 +116,13 @@ function VendaStatusList({
       {vendas.map((venda) => (
         <li
           key={venda.id}
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50/60 px-3.5 py-3"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/40 px-3.5 py-3"
         >
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-zinc-900">
+            <p className="text-sm font-semibold text-foreground">
               Contrato {venda.numeroContrato}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-600">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Grupo {venda.grupo} · Cota {venda.cota} · {venda.plano?.nome ?? "Plano não informado"}
             </p>
           </div>
@@ -220,7 +220,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
       return <EmptyState title={emptyTitle} description={emptyDescription} />;
     }
     return (
-      <ol className="ml-1 border-l border-zinc-200">
+      <ol className="ml-1 border-l border-border">
         {items.map((item) => (
           <TimelineEntry key={`${item.vendaId}-${item.id}`} item={item} />
         ))}
@@ -261,7 +261,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
         {activeTab === "inconsistencias" ? (
           <div className="space-y-6">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Cotas com inconsistência ativa
               </h3>
               <div className="mt-3">
@@ -274,7 +274,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Registros de inconsistência
               </h3>
               <div className="mt-3">
@@ -291,7 +291,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
         {activeTab === "inadimplencias" ? (
           <div className="space-y-6">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Cotas inadimplentes
               </h3>
               <div className="mt-3">
@@ -304,7 +304,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Registros de cobrança
               </h3>
               <div className="mt-3">

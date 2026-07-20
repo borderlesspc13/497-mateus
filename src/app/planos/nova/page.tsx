@@ -8,7 +8,7 @@ import PlanoForm from "../ui/PlanoForm";
 
 function NovoPlanoFallback() {
   return (
-    <div className={`${panelClass()} px-6 py-10 text-center text-sm text-zinc-600`}>
+    <div className={`${panelClass()} px-6 py-10 text-center text-sm text-muted-foreground`}>
       Carregando formulário…
     </div>
   );

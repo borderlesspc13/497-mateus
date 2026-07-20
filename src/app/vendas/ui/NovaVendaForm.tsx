@@ -73,7 +73,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-xs font-medium text-zinc-600">
+      <div className="mb-1 text-xs font-medium text-muted-foreground">
         {label}
         {required ? <span className="text-red-600"> *</span> : null}
       </div>
@@ -92,8 +92,8 @@ function modeButtonClass(active: boolean) {
   return [
     "inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors",
     active
-      ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
-      : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50",
+      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+      : "border-border bg-card text-foreground/70 hover:border-border hover:bg-muted/50",
   ].join(" ");
 }
 
@@ -102,7 +102,9 @@ function StepBadge({ number, done }: { number: number; done: boolean }) {
     <span
       className={[
         "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-        done ? "bg-emerald-100 text-emerald-800" : "bg-zinc-900 text-white",
+        done
+          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+          : "bg-primary text-primary-foreground",
       ].join(" ")}
     >
       {done ? "✓" : number}
@@ -329,12 +331,12 @@ export default function NovaVendaForm({
   return (
     <form onSubmit={(e) => void onSubmit(e)} className={formSectionClass()}>
       {/* Passo 1 */}
-      <section className="border-b border-zinc-100 p-6 sm:p-8">
+      <section className="border-b border-border/60 p-6 sm:p-8">
         <div className="flex items-start gap-3">
           <StepBadge number={1} done={consorciadoPronto} />
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-zinc-900">Consorciado</h2>
-            <p className="mt-1 text-sm leading-6 text-zinc-600">
+            <h2 className="text-base font-semibold text-foreground">Consorciado</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Evite duplicidade: busque um cliente existente antes de criar um novo cadastro.
             </p>
           </div>
@@ -366,7 +368,7 @@ export default function NovaVendaForm({
         </div>
 
         {!consorciadoMode ? (
-          <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+          <p className="mt-4 rounded-xl border border-dashed border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
             Selecione uma das opções acima para continuar.
           </p>
         ) : null}
@@ -374,7 +376,7 @@ export default function NovaVendaForm({
         {consorciadoMode === "existente" ? (
           <div className="relative z-20 mt-5 space-y-3">
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Buscar consorciado <span className="text-red-600"> *</span>
               </div>
               <ConsorciadoAutocomplete
@@ -388,7 +390,7 @@ export default function NovaVendaForm({
                 required
               />
             </label>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               A busca consulta o Firestore em tempo real por nome ou CPF/CNPJ.
             </p>
             {consorciadoSelecionado ? (
@@ -436,8 +438,8 @@ export default function NovaVendaForm({
         <div className="flex items-start gap-3">
           <StepBadge number={2} done={false} />
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-zinc-900">Dados operacionais da venda</h2>
-            <p className="mt-1 text-sm leading-6 text-zinc-600">
+            <h2 className="text-base font-semibold text-foreground">Dados operacionais da venda</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Contrato, cota, valores e equipe responsável pela venda.
             </p>
           </div>
@@ -519,7 +521,7 @@ export default function NovaVendaForm({
             />
 
             <label className="block md:col-span-2">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Administradora <span className="text-red-600"> *</span>
               </div>
               <select
@@ -544,7 +546,7 @@ export default function NovaVendaForm({
             </label>
 
             <label className="block md:col-span-2">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Plano <span className="text-red-600"> *</span>
               </div>
               <select
@@ -562,7 +564,7 @@ export default function NovaVendaForm({
                 ))}
               </select>
               {form.administradoraId && planos.length === 0 ? (
-                <p className="mt-2 text-xs text-zinc-500">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Nenhum plano para esta administradora.{" "}
                   <Link href="/planos/nova" className="font-medium underline">
                     Cadastrar plano
@@ -572,7 +574,7 @@ export default function NovaVendaForm({
             </label>
 
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Equipe <span className="text-red-600"> *</span>
               </div>
               <select
@@ -597,7 +599,7 @@ export default function NovaVendaForm({
             </label>
 
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Vendedor <span className="text-red-600"> *</span>
               </div>
               <select
@@ -617,7 +619,7 @@ export default function NovaVendaForm({
             </label>
 
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-zinc-600">
+              <div className="mb-1 text-xs font-medium text-muted-foreground">
                 Status <span className="text-red-600"> *</span>
               </div>
               <select
@@ -640,13 +642,13 @@ export default function NovaVendaForm({
         </fieldset>
       </section>
 
-      <footer className="flex flex-col gap-4 border-t border-zinc-100 bg-zinc-50/80 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <footer className="flex flex-col gap-4 border-t border-border/60 bg-muted/50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         {error ? (
-          <div className="flex-1 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="flex-1 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
           </div>
         ) : (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             {consorciadoPronto
               ? "Revise os dados antes de registrar a venda."
               : "Complete o passo 1 para habilitar o registro."}
@@ -657,7 +659,7 @@ export default function NovaVendaForm({
           <button
             type="button"
             onClick={() => router.push("/vendas")}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-card px-5 text-sm font-medium text-foreground/70 hover:bg-muted/50"
             disabled={saving}
           >
             Cancelar

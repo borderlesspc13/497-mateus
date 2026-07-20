@@ -203,11 +203,11 @@ export default function PlanoForm(props: PlanoFormProps) {
             ))}
           </select>
           {mode === "create" && administradoras.length === 0 ? (
-            <div className="mt-2 text-xs text-zinc-500">
+            <div className="mt-2 text-xs text-muted-foreground">
               Cadastre uma administradora antes de criar um plano.{" "}
               <Link
                 href="/administradoras/nova"
-                className="font-medium text-zinc-800 underline-offset-2 hover:underline"
+                className="font-medium text-foreground/80 underline-offset-2 hover:underline"
               >
                 Nova administradora
               </Link>
@@ -272,7 +272,7 @@ export default function PlanoForm(props: PlanoFormProps) {
           <button
             type="button"
             onClick={() => router.push("/planos")}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground/70 hover:bg-muted/50"
             disabled={saving}
           >
             Cancelar
@@ -280,7 +280,7 @@ export default function PlanoForm(props: PlanoFormProps) {
         ) : null}
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           disabled={saving || (mode === "create" && administradoras.length === 0)}
         >
           {saving ? "Salvando..." : mode === "create" ? "Salvar" : "Salvar alterações"}

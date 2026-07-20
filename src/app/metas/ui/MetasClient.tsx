@@ -112,7 +112,7 @@ export function MetasClient({
       <div className={`${panelClass()} mb-6 p-4`}>
         <div className="flex flex-wrap gap-4">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">Período</span>
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Período</span>
             <input
               type="month"
               value={periodo}
@@ -124,7 +124,7 @@ export function MetasClient({
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-zinc-600">Tipo</span>
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Tipo</span>
             <select
               value={tipo}
               onChange={(e) => {
@@ -148,7 +148,7 @@ export function MetasClient({
       ) : null}
 
       <section className="mb-8">
-        <h2 className="mb-4 text-base font-semibold text-zinc-900">Ranking do Período</h2>
+        <h2 className="mb-4 text-base font-semibold text-foreground">Ranking do Período</h2>
         {rankingFiltrado.length === 0 ? (
           <EmptyState
             title="Sem ranking"
@@ -174,7 +174,7 @@ export function MetasClient({
       </section>
 
       <section>
-        <h2 className="mb-4 text-base font-semibold text-zinc-900">Metas Cadastradas</h2>
+        <h2 className="mb-4 text-base font-semibold text-foreground">Metas Cadastradas</h2>
         {metasFiltradas.length === 0 ? (
           <EmptyState
             title="Nenhuma meta cadastrada"

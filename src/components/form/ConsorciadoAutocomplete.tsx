@@ -189,13 +189,13 @@ export function ConsorciadoAutocomplete({
         autoComplete="off"
       />
       {remoteSearch && remoteLoading ? (
-        <p className="mt-1 text-xs text-zinc-500">Consultando base de consorciados...</p>
+        <p className="mt-1 text-xs text-muted-foreground">Consultando base de consorciados...</p>
       ) : null}
       {isOpen && filtered.length > 0 ? (
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-xl"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-border bg-card py-1 shadow-xl"
         >
           {filtered.map((item, index) => (
             <li key={item.id} role="option" aria-selected={item.id === value}>
@@ -205,19 +205,19 @@ export function ConsorciadoAutocomplete({
                 onClick={() => selectItem(item)}
                 className={[
                   "flex w-full flex-col px-3 py-2 text-left text-sm transition-colors",
-                  index === highlightIndex ? "bg-zinc-100" : "hover:bg-zinc-50",
-                  item.id === value ? "font-medium text-zinc-900" : "text-zinc-700",
+                  index === highlightIndex ? "bg-muted" : "hover:bg-muted/50",
+                  item.id === value ? "font-medium text-foreground" : "text-foreground/70",
                 ].join(" ")}
               >
                 <span>{item.nome}</span>
-                <span className="text-xs text-zinc-500">{item.cpf_cnpj}</span>
+                <span className="text-xs text-muted-foreground">{item.cpf_cnpj}</span>
               </button>
             </li>
           ))}
         </ul>
       ) : null}
       {isOpen && !remoteLoading && query.trim() && filtered.length === 0 ? (
-        <div className="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-500 shadow-lg">
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground shadow-lg">
           Nenhum consorciado encontrado. Use &quot;Criar Novo Consorciado&quot; se for um cadastro inédito.
         </div>
       ) : null}

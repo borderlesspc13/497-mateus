@@ -277,7 +277,7 @@ export default function EditarVendaForm({
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="block md:col-span-2">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Consorciado <span className="text-red-600"> *</span>
             </div>
             <ConsorciadoAutocomplete
@@ -286,11 +286,11 @@ export default function EditarVendaForm({
               remoteSearch
               required
             />
-            <div className="mt-2 text-xs text-zinc-500">
+            <div className="mt-2 text-xs text-muted-foreground">
               Não encontrou?{" "}
               <Link
                 href="/consorciados/nova"
-                className="font-medium text-zinc-800 underline-offset-2 hover:underline"
+                className="font-medium text-foreground/80 underline-offset-2 hover:underline"
               >
                 Novo consorciado
               </Link>
@@ -298,7 +298,7 @@ export default function EditarVendaForm({
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Contrato <span className="text-red-600">*</span>
             </div>
             <input
@@ -308,7 +308,7 @@ export default function EditarVendaForm({
             />
           </label>
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Grupo <span className="text-red-600">*</span>
             </div>
             <input
@@ -318,7 +318,7 @@ export default function EditarVendaForm({
             />
           </label>
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Cota <span className="text-red-600">*</span>
             </div>
             <input
@@ -328,7 +328,7 @@ export default function EditarVendaForm({
             />
           </label>
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Dia de vencimento <span className="text-red-600">*</span>
             </div>
             <input
@@ -342,7 +342,7 @@ export default function EditarVendaForm({
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Equipe <span className="text-red-600">*</span>
             </div>
             <select
@@ -366,7 +366,7 @@ export default function EditarVendaForm({
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Vendedor responsável <span className="text-red-600">*</span>
             </div>
             <select
@@ -385,7 +385,7 @@ export default function EditarVendaForm({
           </label>
 
           <label className="block md:col-span-2">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Administradora <span className="text-red-600"> *</span>
             </div>
             <select
@@ -408,7 +408,7 @@ export default function EditarVendaForm({
           </label>
 
           <label className="block md:col-span-2">
-            <div className="mb-1 text-xs font-medium text-zinc-600">Plano (opcional)</div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">Plano (opcional)</div>
             <select
               value={form.planoId}
               onChange={(e) => setForm((p) => ({ ...p, planoId: e.target.value }))}
@@ -425,7 +425,7 @@ export default function EditarVendaForm({
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">
+            <div className="mb-1 text-xs font-medium text-muted-foreground">
               Título <span className="text-red-600">*</span>
             </div>
             <input
@@ -436,7 +436,7 @@ export default function EditarVendaForm({
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">Status</div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">Status</div>
             <select
               value={form.statusOperacional}
               onChange={(e) =>
@@ -461,7 +461,7 @@ export default function EditarVendaForm({
           />
 
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">Data da venda</div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">Data da venda</div>
             <input
               type="date"
               value={form.dataVenda}
@@ -474,25 +474,25 @@ export default function EditarVendaForm({
         <div className="mt-8 text-sm font-medium">Detalhes</div>
         <div className="mt-3 grid gap-4">
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">Descrição</div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">Descrição</div>
             <textarea
               value={form.descricao}
               onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))}
-              className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
+              className="min-h-24 w-full rounded-lg border border-border bg-card p-3 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
             />
           </label>
           <label className="block">
-            <div className="mb-1 text-xs font-medium text-zinc-600">Observações</div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">Observações</div>
             <textarea
               value={form.observacoes}
               onChange={(e) => setForm((p) => ({ ...p, observacoes: e.target.value }))}
-              className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
+              className="min-h-24 w-full rounded-lg border border-border bg-card p-3 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
             />
           </label>
         </div>
 
         {error ? (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null}
@@ -500,7 +500,7 @@ export default function EditarVendaForm({
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             disabled={saving || equipes.length === 0}
           >
             {saving ? "Salvando..." : "Salvar alterações"}

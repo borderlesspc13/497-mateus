@@ -34,7 +34,7 @@ function CotaContractCard({
   const isInconsistente = venda.statusInconsistencia === "INCONSISTENTE";
 
   return (
-    <article className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50/40">
+    <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-border hover:bg-muted/40">
       <div className="flex min-h-full">
         <div
           className={`w-1.5 shrink-0 ${STATUS_ACCENT_BAR[venda.statusOperacional]}`}
@@ -48,13 +48,13 @@ function CotaContractCard({
             onClick={() => onOpenAtendimento(venda)}
           >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="text-base font-semibold text-zinc-900">
+              <span className="text-base font-semibold text-foreground">
                 Contrato {venda.numeroContrato}
               </span>
               <span className="hidden text-zinc-300 sm:inline" aria-hidden>
                 ·
               </span>
-              <span className="text-sm font-medium text-zinc-600">
+              <span className="text-sm font-medium text-muted-foreground">
                 Grupo {venda.grupo} · Cota {venda.cota}
               </span>
               <span className="flex flex-wrap items-center gap-2 sm:ml-1">
@@ -63,26 +63,26 @@ function CotaContractCard({
               </span>
             </div>
 
-            <p className="mt-3 text-sm leading-relaxed text-zinc-700">
+            <p className="mt-3 text-sm leading-relaxed text-foreground/70">
               {venda.plano?.nome ?? "Plano não informado"}
             </p>
 
-            <dl className="mt-4 grid gap-3 text-sm text-zinc-500 sm:grid-cols-3 sm:gap-4">
+            <dl className="mt-4 grid gap-3 text-sm text-muted-foreground sm:grid-cols-3 sm:gap-4">
               <div className="space-y-0.5">
-                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Administradora
                 </dt>
-                <dd className="font-medium text-zinc-800">{venda.administradora.nome}</dd>
+                <dd className="font-medium text-foreground/80">{venda.administradora.nome}</dd>
               </div>
               <div className="space-y-0.5">
-                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Vencimento
                 </dt>
-                <dd className="font-medium text-zinc-800">Dia {venda.dataVencimento}</dd>
+                <dd className="font-medium text-foreground/80">Dia {venda.dataVencimento}</dd>
               </div>
               <div className="space-y-0.5">
-                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">Valor</dt>
-                <dd className="font-semibold tabular-nums text-zinc-900">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Valor</dt>
+                <dd className="font-semibold tabular-nums text-foreground">
                   {formatMoneyPtBrFromCentavos(venda.valorCentavos)}
                 </dd>
               </div>
@@ -90,7 +90,7 @@ function CotaContractCard({
           </button>
 
           <div
-            className="flex shrink-0 items-center gap-3 border-t border-zinc-100 pt-4 sm:border-t-0 sm:pt-0"
+            className="flex shrink-0 items-center gap-3 border-t border-border/60 pt-4 sm:border-t-0 sm:pt-0"
             onClick={(e) => e.stopPropagation()}
           >
             <WhatsAppButton

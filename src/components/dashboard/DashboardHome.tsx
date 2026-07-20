@@ -63,8 +63,8 @@ const KPI_TONE_STYLES: Record<
   },
   zinc: {
     border: "border-t-zinc-400",
-    icon: "border-zinc-200 bg-zinc-50 text-zinc-600",
-    link: "text-zinc-700 group-hover:text-zinc-900",
+    icon: "border-border bg-muted/50 text-muted-foreground",
+    link: "text-foreground/70 group-hover:text-foreground",
   },
 };
 
@@ -101,7 +101,7 @@ function KpiCard({
     <div className="flex h-full min-w-0 flex-col">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {label}
           </p>
           <p
@@ -109,7 +109,7 @@ function KpiCard({
               "mt-2.5 max-w-full tabular-nums tracking-tight",
               isCurrency ? "break-words leading-tight" : "overflow-hidden text-ellipsis whitespace-nowrap leading-none",
               valueClass,
-              muted ? "text-zinc-400" : "text-zinc-900",
+              muted ? "text-muted-foreground" : "text-foreground",
             ].join(" ")}
             title={value}
           >
@@ -119,14 +119,14 @@ function KpiCard({
         <div
           className={[
             "grid h-11 w-11 shrink-0 place-items-center rounded-xl border",
-            muted ? "border-dashed border-zinc-300 bg-zinc-50 text-zinc-400" : styles.icon,
+            muted ? "border-dashed border-border bg-muted/50 text-muted-foreground" : styles.icon,
           ].join(" ")}
         >
           {icon}
         </div>
       </div>
 
-      <p className="mt-3 line-clamp-2 text-sm leading-5 text-zinc-500">{hint}</p>
+      <p className="mt-3 line-clamp-2 text-sm leading-5 text-muted-foreground">{hint}</p>
 
       {href && linkLabel ? (
         <span
@@ -147,10 +147,10 @@ function KpiCard({
   );
 
   const cardClass = [
-    "group relative flex min-h-[11.5rem] min-w-0 overflow-hidden rounded-2xl border border-zinc-200/90 border-t-[3px] bg-white p-5 shadow-sm transition-all duration-200",
-    muted ? "border-dashed hover:border-zinc-300" : styles.border,
+    "group relative flex min-h-[11.5rem] min-w-0 overflow-hidden rounded-2xl border border-border/90 border-t-[3px] bg-card p-5 shadow-sm transition-all duration-200",
+    muted ? "border-dashed hover:border-border" : styles.border,
     href
-      ? "hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300"
+      ? "hover:-translate-y-0.5 hover:border-border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       : "hover:shadow-md",
   ].join(" ");
 
@@ -216,8 +216,8 @@ function formatDate(iso: string | null) {
 function SectionTitle({ title, description }: { title: string; description: string }) {
   return (
     <div>
-      <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
-      <p className="mt-1.5 text-sm leading-6 text-zinc-600">{description}</p>
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{description}</p>
     </div>
   );
 }
@@ -227,6 +227,8 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
   const maxMesQtd = Math.max(...stats.vendasPorMes.map((m) => m.quantidade), 1);
   const showComissoes = canAccessModule(permissions, "comissoes");
   const showInadimplencia = canAccessModule(permissions, "inadimplencia");
+  const showInconsistencia = canAccessModule(permissions, "inconsistencia");
+  const showPosVenda = canAccessModule(permissions, "pos-venda");
   const showConsorciados = canAccessModule(permissions, "consorciados");
   const showVendas = canAccessModule(permissions, "vendas");
   const mesAtual = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -279,6 +281,26 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
+          label="Inconsistências"
+          value={String(stats.nVendasInconsistentes)}
+          hint="Cotas marcadas como inconsistentes."
+          icon={<IconChart />}
+          href={showInconsistencia ? "/controle/inconsistencia" : undefined}
+          linkLabel={showInconsistencia ? "Ver inconsistência" : undefined}
+          tone="rose"
+          muted={!showInconsistencia}
+        />
+        <KpiCard
+          label="Pós-venda pendente"
+          value={String(stats.nVendasPosVendaPendentes)}
+          hint="Cotas aguardando pós-venda."
+          icon={<IconSpark />}
+          href={showPosVenda ? "/controle/pos-venda" : undefined}
+          linkLabel={showPosVenda ? "Ver pós-venda" : undefined}
+          tone="sky"
+          muted={!showPosVenda}
+        />
+        <KpiCard
           label="Consorciados"
           value={String(stats.nConsorciados)}
           hint="Base cadastral do CRM operacional."
@@ -296,6 +318,9 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
           linkLabel={showVendas ? "Ver todas" : undefined}
           tone="emerald"
         />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
         <KpiCard
           label="Valor total (carteira)"
           value={formatMoneyPtBrFromCentavos(stats.valorTotalCentavos)}
@@ -326,20 +351,20 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
               return (
                 <div key={mes.key}>
                   <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <span className="font-semibold capitalize text-zinc-800">{mes.label}</span>
-                    <span className="tabular-nums text-zinc-500">
+                    <span className="font-semibold capitalize text-foreground/80">{mes.label}</span>
+                    <span className="tabular-nums text-muted-foreground">
                       {mes.quantidade} venda{mes.quantidade === 1 ? "" : "s"} ·{" "}
                       {formatMoneyPtBrFromCentavos(mes.valorCentavos)}
                     </span>
                   </div>
                   <div className="space-y-2">
-                    <div className="h-2.5 overflow-hidden rounded-full bg-zinc-100">
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-zinc-900 transition-all"
+                        className="h-full rounded-full bg-primary transition-all"
                         style={{ width: `${Math.max(valorPct, mes.valorCentavos > 0 ? 4 : 0)}%` }}
                       />
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full bg-zinc-400 transition-all"
                         style={{ width: `${Math.max(qtdPct, mes.quantidade > 0 ? 4 : 0)}%` }}
@@ -351,9 +376,9 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
             })}
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-5 text-xs font-medium text-zinc-500">
+          <div className="mt-6 flex flex-wrap gap-5 text-xs font-medium text-muted-foreground">
             <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-7 rounded-full bg-zinc-900" />
+              <span className="h-2.5 w-7 rounded-full bg-primary" />
               Valor (R$)
             </span>
             <span className="inline-flex items-center gap-2">
@@ -375,12 +400,12 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
               return (
                 <div key={row.label}>
                   <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="font-medium text-zinc-800">{row.label}</span>
-                    <span className="tabular-nums text-zinc-500">
+                    <span className="font-medium text-foreground/80">{row.label}</span>
+                    <span className="tabular-nums text-muted-foreground">
                       {row.count} ({pct}%)
                     </span>
                   </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-zinc-100">
+                  <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                     <div
                       className={`h-full rounded-full ${row.tone}`}
                       style={{ width: `${Math.max(pct, row.count > 0 ? 4 : 0)}%` }}
@@ -402,7 +427,7 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
           {showVendas ? (
             <Link
               href="/vendas"
-              className="shrink-0 text-xs font-semibold text-zinc-900 underline-offset-4 hover:underline"
+              className="shrink-0 text-xs font-semibold text-foreground underline-offset-4 hover:underline"
             >
               Ver todas
             </Link>
@@ -418,7 +443,7 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
                 showVendas ? (
                   <Link
                     href="/vendas/nova"
-                    className="inline-flex h-11 items-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800"
+                    className="inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                   >
                     Nova venda
                   </Link>
@@ -443,11 +468,11 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
                     <td className={tableCellClass()}>
                       <Link
                         href={`/vendas/${v.id}`}
-                        className="font-semibold text-zinc-900 underline-offset-2 hover:underline"
+                        className="font-semibold text-foreground underline-offset-2 hover:underline"
                       >
                         {v.titulo}
                       </Link>
-                      <div className="mt-0.5 text-xs text-zinc-500">
+                      <div className="mt-0.5 text-xs text-muted-foreground">
                         {v.consorciadoNome ?? "Sem consorciado"} · {v.administradoraNome}
                       </div>
                     </td>

@@ -18,7 +18,7 @@ const MEDAL_STYLES = [
   {
     ring: "ring-zinc-300/60",
     bg: "bg-gradient-to-br from-zinc-50 to-zinc-100",
-    icon: "text-zinc-500",
+    icon: "text-muted-foreground",
     label: "2º",
   },
   {
@@ -69,7 +69,7 @@ function VendedorRankCard({
   return (
     <article
       className={[
-        "relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm transition-shadow hover:shadow-md",
+        "relative overflow-hidden rounded-2xl border border-border/90 bg-card p-5 shadow-sm transition-shadow hover:shadow-md",
         medal ? `ring-2 ${medal.ring}` : "",
       ].join(" ")}
     >
@@ -77,13 +77,13 @@ function VendedorRankCard({
         <div
           className={[
             "grid h-12 w-12 shrink-0 place-items-center rounded-xl border",
-            medal ? medal.bg : "border-zinc-200 bg-zinc-50",
+            medal ? medal.bg : "border-border bg-muted/50",
           ].join(" ")}
         >
           {medal ? (
             <IconMedal className={`h-6 w-6 ${medal.icon}`} />
           ) : (
-            <span className="text-sm font-bold text-zinc-600">{position}º</span>
+            <span className="text-sm font-bold text-muted-foreground">{position}º</span>
           )}
         </div>
 
@@ -94,20 +94,20 @@ function VendedorRankCard({
                 {medal.label} lugar
               </span>
             ) : null}
-            <h3 className="truncate text-base font-semibold text-zinc-900">{vendedor.nome}</h3>
+            <h3 className="truncate text-base font-semibold text-foreground">{vendedor.nome}</h3>
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
-            Equipe <span className="font-medium text-zinc-700">{vendedor.equipeNome}</span>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Equipe <span className="font-medium text-foreground/70">{vendedor.equipeNome}</span>
             {" · "}
             {vendedor.quantidadeVendas} venda{vendedor.quantidadeVendas === 1 ? "" : "s"}
           </p>
-          <p className="mt-2 text-lg font-bold tabular-nums tracking-tight text-zinc-900">
+          <p className="mt-2 text-lg font-bold tabular-nums tracking-tight text-foreground">
             {formatMoneyPtBrFromCentavos(vendedor.creditoCentavos)}
           </p>
         </div>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-100">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
         <div
           className={[
             "h-full rounded-full transition-all",
@@ -140,20 +140,20 @@ export function DashboardRankingPanel({ ranking }: DashboardRankingPanelProps) {
                 <IconTrophy className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Melhor equipe
                 </p>
-                <h2 className="text-lg font-semibold capitalize text-zinc-900">{ranking.mesLabel}</h2>
+                <h2 className="text-lg font-semibold capitalize text-foreground">{ranking.mesLabel}</h2>
               </div>
             </div>
 
             {ranking.melhorEquipe ? (
               <div className="mt-6">
-                <p className="text-2xl font-bold text-zinc-900">{ranking.melhorEquipe.nome}</p>
+                <p className="text-2xl font-bold text-foreground">{ranking.melhorEquipe.nome}</p>
                 <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-amber-700">
                   {formatMoneyPtBrFromCentavos(ranking.melhorEquipe.creditoCentavos)}
                 </p>
-                <p className="mt-2 text-sm text-zinc-500">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {ranking.melhorEquipe.quantidadeVendas} venda
                   {ranking.melhorEquipe.quantidadeVendas === 1 ? "" : "s"} ativa
                   {ranking.melhorEquipe.quantidadeVendas === 1 ? "" : "s"} no mês
@@ -173,8 +173,8 @@ export function DashboardRankingPanel({ ranking }: DashboardRankingPanelProps) {
         <section className={`${panelClass()} p-6 lg:col-span-2`}>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">Top 5 vendedores do mês</h2>
-              <p className="mt-1.5 text-sm leading-6 text-zinc-600">
+              <h2 className="text-lg font-semibold text-foreground">Top 5 vendedores do mês</h2>
+              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
                 Ranking por volume de crédito vendido em vendas com status Ativo (
                 <span className="capitalize">{ranking.mesLabel}</span>).
               </p>
@@ -192,7 +192,7 @@ export function DashboardRankingPanel({ ranking }: DashboardRankingPanelProps) {
                 action={
                   <Link
                     href="/vendas/nova"
-                    className="inline-flex h-11 items-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800"
+                    className="inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                   >
                     Nova venda
                   </Link>
@@ -218,8 +218,8 @@ export function DashboardRankingPanel({ ranking }: DashboardRankingPanelProps) {
         <section className={`${panelClass()} p-6`}>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">Ranking por equipe</h2>
-              <p className="mt-1.5 text-sm text-zinc-600">
+              <h2 className="text-lg font-semibold text-foreground">Ranking por equipe</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
                 Comparativo de crédito comercializado entre equipes no mês.
               </p>
             </div>
@@ -236,19 +236,19 @@ export function DashboardRankingPanel({ ranking }: DashboardRankingPanelProps) {
                 <div key={equipe.id}>
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm">
                     <div className="flex items-center gap-3">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-100 text-xs font-bold text-zinc-700">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-100 text-xs font-bold text-foreground/70">
                         {index + 1}
                       </span>
-                      <span className="font-semibold text-zinc-900">{equipe.nome}</span>
+                      <span className="font-semibold text-foreground">{equipe.nome}</span>
                     </div>
-                    <span className="tabular-nums text-zinc-500">
+                    <span className="tabular-nums text-muted-foreground">
                       {equipe.quantidadeVendas} venda{equipe.quantidadeVendas === 1 ? "" : "s"} ·{" "}
                       {formatMoneyPtBrFromCentavos(equipe.creditoCentavos)}
                     </span>
                   </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-zinc-100">
+                  <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-zinc-900 transition-all"
+                      className="h-full rounded-full bg-primary transition-all"
                       style={{ width: `${Math.max(pct, equipe.creditoCentavos > 0 ? 4 : 0)}%` }}
                     />
                   </div>

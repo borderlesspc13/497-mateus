@@ -142,16 +142,16 @@ export default function ConsorciadosClient({
                     return (
                       <tr
                         key={item.id}
-                        className={`${tableRowClass(index)} cursor-pointer hover:bg-zinc-50/80`}
+                        className={`${tableRowClass(index)} cursor-pointer hover:bg-muted/50`}
                         onClick={() => openFicha(item.id)}
                       >
-                        <td className={`${tableCellClass()} font-medium text-zinc-900`}>
+                        <td className={`${tableCellClass()} font-medium text-foreground`}>
                           {item.nome}
                         </td>
                         <td className={tableCellClass()}>{item.cpf_cnpj}</td>
                         <td className={tableCellClass()}>{item.telefone}</td>
                         <td className={tableCellClass()}>
-                          <span className="tabular-nums text-sm text-zinc-800">
+                          <span className="tabular-nums text-sm text-foreground/80">
                             {stats?.totalCotas ?? 0}
                           </span>
                         </td>
@@ -172,7 +172,7 @@ export default function ConsorciadosClient({
                               />
                             ) : null}
                             {!stats || (stats.inadimplentes === 0 && stats.inconsistentes === 0) ? (
-                              <span className="text-xs text-zinc-400">—</span>
+                              <span className="text-xs text-muted-foreground">—</span>
                             ) : null}
                           </div>
                         </td>
@@ -205,9 +205,9 @@ export default function ConsorciadosClient({
         )}
       </DataListPanel>
 
-      <p className="text-center text-xs text-zinc-400">
+      <p className="text-center text-xs text-muted-foreground">
         Novos consorciados podem ser cadastrados durante o fluxo de{" "}
-        <Link href="/vendas/nova" className="font-medium text-zinc-600 underline-offset-2 hover:underline">
+        <Link href="/vendas/nova" className="font-medium text-muted-foreground underline-offset-2 hover:underline">
           Nova venda
         </Link>
         .

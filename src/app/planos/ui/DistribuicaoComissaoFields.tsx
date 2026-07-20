@@ -64,11 +64,11 @@ function valorMonetarioDoPercentual(
 function ValorCalculado({ centavos }: { centavos: number | null }) {
   if (centavos === null) {
     return (
-      <p className="mt-1 text-[11px] text-zinc-400">Informe o valor do crédito para calcular</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">Informe o valor do crédito para calcular</p>
     );
   }
   return (
-    <p className="mt-1 text-[11px] font-medium tabular-nums text-zinc-700">
+    <p className="mt-1 text-[11px] font-medium tabular-nums text-foreground/70">
       {formatMoneyPtBrFromCentavos(centavos)}
     </p>
   );
@@ -147,30 +147,30 @@ function DistribuicaoSection({
     <Collapsible
       open={open}
       onOpenChange={onOpenChange}
-      className={`rounded-xl border bg-white ${
-        hasError ? "border-red-300 ring-1 ring-red-200" : "border-zinc-200/80"
+      className={`rounded-xl border bg-card ${
+        hasError ? "border-red-300 ring-1 ring-red-200" : "border-border/80"
       }`}
     >
-      <CollapsibleTrigger className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left hover:bg-zinc-50/80">
+      <CollapsibleTrigger className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left hover:bg-muted/50">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-zinc-900 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
               {config.badge}
             </span>
-            <span className="text-sm font-semibold text-zinc-900">{config.title}</span>
+            <span className="text-sm font-semibold text-foreground">{config.title}</span>
             {hasError ? (
               <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700">
                 Revisar
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-xs leading-5 text-zinc-500">{config.description}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{config.description}</p>
         </div>
         <ChevronDown
-          className={`mt-0.5 size-4 shrink-0 text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
         />
       </CollapsibleTrigger>
-      <CollapsibleContent className="border-t border-zinc-200/80 px-4 py-4">
+      <CollapsibleContent className="border-t border-border/80 px-4 py-4">
         <NivelDistribuicaoFields
           config={config}
           valorCreditoCentavos={valorCreditoCentavos}
@@ -303,7 +303,7 @@ function NivelDistribuicaoFields({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
             Porcentagem total (%) <span className="text-red-600">*</span>
           </div>
           <input
@@ -318,7 +318,7 @@ function NivelDistribuicaoFields({
         </label>
 
         <label className="block">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
             Número de parcelas <span className="text-red-600">*</span>
           </div>
           <input
@@ -336,7 +336,7 @@ function NivelDistribuicaoFields({
         <button
           type="button"
           onClick={alinharRepassesAEmpresa}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground/70 hover:bg-muted/50"
         >
           <Link2 className="size-3.5" />
           Alinhar parcelas dos repasses à empresa
@@ -347,15 +347,15 @@ function NivelDistribuicaoFields({
         className={`rounded-xl border border-dashed p-4 ${
           somaDivergente
             ? "border-amber-300 bg-amber-50/80"
-            : "border-zinc-200 bg-zinc-50/70"
+            : "border-border bg-muted/50"
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Distribuição por parcela
             </div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Informe o percentual exato de cada parcela. O valor em R$ é calculado
               automaticamente sobre o crédito do plano.
             </p>
@@ -363,7 +363,7 @@ function NivelDistribuicaoFields({
           <button
             type="button"
             onClick={distribuirIgualmente}
-            className="inline-flex h-8 items-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+            className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground/70 hover:bg-muted/50"
           >
             Distribuir igualmente
           </button>
@@ -377,7 +377,7 @@ function NivelDistribuicaoFields({
             );
             return (
               <label key={field.id} className="block">
-                <div className="mb-1 text-xs font-medium text-zinc-600">P{index + 1}</div>
+                <div className="mb-1 text-xs font-medium text-muted-foreground">P{index + 1}</div>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -396,7 +396,7 @@ function NivelDistribuicaoFields({
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
           <span
             className={
-              somaDivergente ? "font-semibold text-amber-800" : "font-medium text-zinc-600"
+              somaDivergente ? "font-semibold text-amber-800" : "font-medium text-muted-foreground"
             }
           >
             Soma das parcelas: {formatPercentualInput(somaParcelas)}%
@@ -489,9 +489,9 @@ export const DistribuicaoComissaoFields = forwardRef<
 
   return (
     <FormProvider {...methods}>
-      <div className={`${panelClass()} mt-8 border-zinc-200/80 p-5`}>
-        <div className="text-sm font-semibold text-zinc-900">Distribuição de comissões</div>
-        <p className="mt-1.5 text-xs leading-5 text-zinc-500">
+      <div className={`${panelClass()} mt-8 border-border/80 p-5`}>
+        <div className="text-sm font-semibold text-foreground">Distribuição de comissões</div>
+        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
           Configure em cascata o recebimento da empresa e os repasses internos (Vendedor →
           Supervisor → Diretor). Os valores em R$ são calculados automaticamente com base no
           valor do crédito e no percentual de cada parcela.
@@ -505,8 +505,8 @@ export const DistribuicaoComissaoFields = forwardRef<
             hasError={nivelTemErro(formErrors, "empresa") || Boolean(formErrors.diasParaEstorno)}
             valorCreditoCentavos={valorCreditoCentavos}
             extra={
-              <label className="mt-4 block border-t border-zinc-200/80 pt-4">
-                <div className="mb-1 text-xs font-medium text-zinc-600">
+              <label className="mt-4 block border-t border-border/80 pt-4">
+                <div className="mb-1 text-xs font-medium text-muted-foreground">
                   Dias para estorno <span className="text-red-600">*</span>
                 </div>
                 <input

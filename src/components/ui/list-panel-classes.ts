@@ -42,7 +42,7 @@ export function tableWrapClass() {
 }
 
 export function dataTableClass() {
-  return "w-full min-w-full border-collapse text-left text-sm";
+  return "w-full min-w-max border-collapse text-left text-sm";
 }
 
 export function tableHeadCellClass() {
@@ -59,8 +59,24 @@ export function tableCellClass() {
   ].join(" ");
 }
 
+export function tablePrimaryTextClass() {
+  return "font-medium text-foreground";
+}
+
+export function tableMutedTextClass() {
+  return "text-xs text-muted-foreground";
+}
+
+export function tableLinkClass() {
+  return "font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm";
+}
+
 export function tableRowClass(index: number) {
   return index % 2 === 1 ? "bg-muted/50" : "bg-card";
+}
+
+export function listErrorClass() {
+  return "rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive";
 }
 
 export function primaryActionClass() {

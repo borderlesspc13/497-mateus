@@ -92,13 +92,13 @@ export default function CadastroForm() {
   return (
     <div className={`${panelClass()} p-6 sm:p-8`}>
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Criar conta</h1>
-        <p className="text-sm text-zinc-600">Cadastre-se para acessar o sistema operacional.</p>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Criar conta</h1>
+        <p className="text-sm text-muted-foreground">Cadastre-se para acessar o sistema operacional.</p>
       </div>
 
       <form onSubmit={(e) => void onSubmit(e)} className="mt-6 space-y-4">
         <label className="block">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
             Nome <span className="text-red-600">*</span>
           </div>
           <input
@@ -112,7 +112,7 @@ export default function CadastroForm() {
         </label>
 
         <label className="block">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
             E-mail <span className="text-red-600">*</span>
           </div>
           <input
@@ -126,7 +126,7 @@ export default function CadastroForm() {
         </label>
 
         <label className="block">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
             Senha <span className="text-red-600">*</span>
           </div>
           <input
@@ -140,7 +140,7 @@ export default function CadastroForm() {
         </label>
 
         <label className="block">
-          <div className="mb-1 text-xs font-medium text-zinc-600">
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
             Confirmar senha <span className="text-red-600">*</span>
           </div>
           <input
@@ -154,7 +154,7 @@ export default function CadastroForm() {
         </label>
 
         {error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         ) : null}
@@ -162,17 +162,17 @@ export default function CadastroForm() {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
         >
           {loading ? "Cadastrando..." : "Criar conta"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-zinc-600">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         Já tem conta?{" "}
         <Link
           href="/login"
-          className="font-medium text-zinc-900 underline-offset-2 hover:underline"
+          className="font-medium text-foreground underline-offset-2 hover:underline"
         >
           Fazer login
         </Link>

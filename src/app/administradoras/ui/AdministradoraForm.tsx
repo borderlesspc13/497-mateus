@@ -212,7 +212,7 @@ export default function AdministradoraForm(props: AdministradoraFormProps) {
 
       <div className="mt-8 text-sm font-medium">Regras operacionais</div>
       {mode === "create" ? (
-        <div className="mt-2 text-xs text-zinc-500">
+        <div className="mt-2 text-xs text-muted-foreground">
           Por enquanto é um campo livre (texto/JSON). Depois a gente transforma em regras
           estruturadas.
         </div>
@@ -221,7 +221,7 @@ export default function AdministradoraForm(props: AdministradoraFormProps) {
         value={form.regrasOperacionaisJson}
         onChange={(e) => setForm((p) => ({ ...p, regrasOperacionaisJson: e.target.value }))}
         placeholder={mode === "create" ? 'Ex.: {"comissaoPadrao": 0.02}' : undefined}
-        className="mt-3 min-h-28 w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/50"
+        className="mt-3 min-h-28 w-full rounded-lg border border-border bg-card p-3 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
       />
 
       {error ? (
@@ -235,7 +235,7 @@ export default function AdministradoraForm(props: AdministradoraFormProps) {
           <button
             type="button"
             onClick={() => router.push("/administradoras")}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground/70 hover:bg-muted/50"
             disabled={saving}
           >
             Cancelar
@@ -243,7 +243,7 @@ export default function AdministradoraForm(props: AdministradoraFormProps) {
         ) : null}
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           disabled={saving}
         >
           {saving ? "Salvando..." : mode === "create" ? "Salvar" : "Salvar alterações"}
@@ -267,7 +267,7 @@ export default function AdministradoraForm(props: AdministradoraFormProps) {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Link
                 href={`/planos?administradoraId=${encodeURIComponent(props.item.id)}`}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground/70 shadow-sm hover:bg-muted/50"
               >
                 Ver planos
               </Link>

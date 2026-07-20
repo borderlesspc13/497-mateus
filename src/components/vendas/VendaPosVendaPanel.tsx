@@ -51,13 +51,13 @@ function formatDateTime(iso: string) {
 function tipoBadgeClass(tipo: HistoricoAtendimentoTipo) {
   switch (tipo) {
     case "chamada":
-      return "border-sky-200 bg-sky-50 text-sky-800";
+      return "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300";
     case "email":
-      return "border-violet-200 bg-violet-50 text-violet-800";
+      return "border-violet-500/30 bg-violet-500/10 text-violet-800 dark:text-violet-300";
     case "nota":
-      return "border-zinc-200 bg-zinc-100 text-zinc-700";
+      return "border-border bg-muted text-muted-foreground";
     case "atualizacao":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800";
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
   }
 }
 
@@ -65,10 +65,10 @@ function TimelineItem({ item }: { item: HistoricoAtendimentoRow }) {
   return (
     <li className="relative pl-8 pb-8 last:pb-0">
       <span
-        className="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-white bg-zinc-900 shadow-sm ring-2 ring-zinc-200"
+        className="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-card bg-primary shadow-sm ring-2 ring-border"
         aria-hidden
       />
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4">
+      <div className="rounded-2xl border border-border bg-muted/50 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span
             className={[
@@ -78,9 +78,9 @@ function TimelineItem({ item }: { item: HistoricoAtendimentoRow }) {
           >
             {HISTORICO_TIPO_LABELS[item.tipo]}
           </span>
-          <time className="text-xs font-medium text-zinc-500">{formatDateTime(item.data)}</time>
+          <time className="text-xs font-medium text-muted-foreground">{formatDateTime(item.data)}</time>
         </div>
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-700">{item.descricao}</p>
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/70">{item.descricao}</p>
       </div>
     </li>
   );
@@ -208,14 +208,14 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
   return (
     <div className="mt-10 space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-900">Pós-venda e CRM operacional</h2>
-        <p className="mt-1.5 text-sm leading-6 text-zinc-600">
+        <h2 className="text-xl font-semibold text-foreground">Pós-venda e CRM operacional</h2>
+        <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
           Ativação, pendências e histórico de atendimento sincronizados em tempo real com o Firestore.
         </p>
       </div>
 
       {(syncError || actionError) && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {actionError ?? syncError}
         </div>
       )}
@@ -224,8 +224,8 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
         <section className={`${panelClass()} p-6`}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold text-zinc-900">Checklist de ativação</h3>
-              <p className="mt-1 text-sm text-zinc-600">
+              <h3 className="text-base font-semibold text-foreground">Checklist de ativação</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Marque os marcos de ativação do consorciado após a venda.
               </p>
             </div>
@@ -233,8 +233,8 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
               className={[
                 "inline-flex h-7 shrink-0 items-center rounded-full border px-2.5 text-xs font-semibold",
                 checklistCompleto
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-amber-200 bg-amber-50 text-amber-900",
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-300",
               ].join(" ")}
             >
               {checklistCompleto ? "Completo" : "Em andamento"}
@@ -251,8 +251,8 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
                     className={[
                       "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors",
                       checked
-                        ? "border-emerald-200 bg-emerald-50/60"
-                        : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50",
+                        ? "border-emerald-500/30 bg-emerald-500/10"
+                        : "border-border bg-card hover:border-border hover:bg-muted/50",
                       isSaving ? "opacity-60" : "",
                     ].join(" ")}
                   >
@@ -261,9 +261,9 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
                       checked={checked}
                       disabled={isSaving}
                       onChange={(e) => void onToggleChecklist(item.key, e.target.checked)}
-                      className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400"
+                      className="h-4 w-4 rounded border-border text-foreground focus:ring-zinc-400"
                     />
-                    <span className="text-sm font-medium text-zinc-800">{item.label}</span>
+                    <span className="text-sm font-medium text-foreground/80">{item.label}</span>
                   </label>
                 </li>
               );
@@ -272,14 +272,14 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
         </section>
 
         <section className={`${panelClass()} p-6`}>
-          <h3 className="text-base font-semibold text-zinc-900">Agenda e alertas</h3>
-          <p className="mt-1 text-sm text-zinc-600">
+          <h3 className="text-base font-semibold text-foreground">Agenda e alertas</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             Defina uma data de pendência e ative alertas para a equipa acompanhar.
           </p>
 
           <div className="mt-6 space-y-4">
             <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-zinc-600">Data de pendência</div>
+              <div className="mb-1.5 text-xs font-medium text-muted-foreground">Data de pendência</div>
               <input
                 type="date"
                 value={dataPendenciaInput}
@@ -288,21 +288,21 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
               />
             </label>
 
-            <label className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3.5">
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3.5">
               <input
                 type="checkbox"
                 checked={alertaAtivoInput}
                 onChange={(e) => setAlertaAtivoInput(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400"
+                className="h-4 w-4 rounded border-border text-foreground focus:ring-zinc-400"
               />
-              <span className="text-sm font-medium text-zinc-800">Alerta de pós-venda ativo</span>
+              <span className="text-sm font-medium text-foreground/80">Alerta de pós-venda ativo</span>
             </label>
 
             <button
               type="button"
               onClick={() => void onSavePendencia()}
               disabled={savingPendencia}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
               {savingPendencia ? "Salvando..." : "Salvar agenda e alerta"}
             </button>
@@ -311,14 +311,14 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
       </div>
 
       <section className={`${panelClass()} p-6`}>
-        <h3 className="text-base font-semibold text-zinc-900">Histórico de atendimento</h3>
-        <p className="mt-1 text-sm text-zinc-600">
+        <h3 className="text-base font-semibold text-foreground">Histórico de atendimento</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
           Registre chamadas, e-mails e anotações sobre o relacionamento com o consorciado.
         </p>
 
         <form onSubmit={(e) => void onAddHistorico(e)} className="mt-6 grid gap-4 lg:grid-cols-3">
           <label className="block lg:col-span-1">
-            <div className="mb-1.5 text-xs font-medium text-zinc-600">Tipo</div>
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Tipo</div>
             <select
               value={historicoTipo}
               onChange={(e) => setHistoricoTipo(e.target.value as HistoricoAtendimentoTipo)}
@@ -333,14 +333,14 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
           </label>
 
           <label className="block lg:col-span-2">
-            <div className="mb-1.5 text-xs font-medium text-zinc-600">
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">
               Descrição <span className="text-red-600">*</span>
             </div>
             <textarea
               value={historicoDescricao}
               onChange={(e) => setHistoricoDescricao(e.target.value)}
               placeholder="Resumo da interação, combinados, próximos passos..."
-              className="min-h-24 w-full rounded-xl border border-zinc-200 bg-white p-3.5 text-sm text-zinc-900 shadow-sm outline-none focus-visible:border-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-300/60"
+              className="min-h-24 w-full rounded-xl border border-border bg-card p-3.5 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/60"
             />
           </label>
 
@@ -348,7 +348,7 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
             <button
               type="submit"
               disabled={savingHistorico}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
               {savingHistorico ? "Registrando..." : "Adicionar ao histórico"}
             </button>
@@ -362,7 +362,7 @@ export function VendaPosVendaPanel({ vendaId, initial }: VendaPosVendaPanelProps
               description="Adicione a primeira anotação para iniciar a linha do tempo desta venda."
             />
           ) : (
-            <ol className="relative border-l-2 border-zinc-200 pl-2">
+            <ol className="relative border-l-2 border-border pl-2">
               {historico.map((item) => (
                 <TimelineItem key={item.id} item={item} />
               ))}
