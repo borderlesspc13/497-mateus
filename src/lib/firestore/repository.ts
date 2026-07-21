@@ -10,7 +10,11 @@ import {
 import { buildDashboardStats } from "@/lib/dashboard/stats";
 import { DEFAULT_CHECKLIST_ATIVACAO, DEFAULT_STATUS_POS_VENDA } from "@/lib/vendas/pos-venda";
 import { withNumeroContratoFields, normalizeNumeroContrato } from "@/lib/firestore/contrato-matriz";
-import { gerarRepassesParaExtratoRecebido } from "@/lib/comissoes/gerar-repasse";
+import {
+  deleteRepassesByExtratoId,
+  gerarRepassesParaExtratoRecebido,
+  syncRepassesParaExtrato,
+} from "@/lib/comissoes/gerar-repasse";
 import {
   normalizeVendaFields,
   resolveDataContrato,
@@ -1370,6 +1374,10 @@ async function applyExtratosComissaoForVenda(
           await db().collection(COLLECTIONS.extratos).doc(id).set(doc);
           changed += 1;
         }
+
+        // Gera/atualiza mapa de pagamento (PREVISTO na venda; PENDENTE se já recebido).
+        const repassesGerados = await syncRepassesParaExtrato(id, doc);
+        if (repassesGerados > 0) changed += 1;
       }
     }
   }
@@ -1390,6 +1398,7 @@ async function applyExtratosComissaoForVenda(
       );
 
     if (deveEstornar) {
+      await deleteRepassesByExtratoId(extrato.id, { onlyPrevistos: false });
       await db().collection(COLLECTIONS.extratos).doc(extrato.id).delete();
       changed += 1;
     }
@@ -1437,6 +1446,7 @@ export async function syncExtratosComissao(): Promise<number> {
   for (const extrato of existing) {
     if ((extrato.tipo ?? "COMISSAO") === "ESTORNO") continue;
     if (vendaIds.has(extrato.vendaId)) continue;
+    await deleteRepassesByExtratoId(extrato.id, { onlyPrevistos: false });
     await db().collection(COLLECTIONS.extratos).doc(extrato.id).delete();
     changed += 1;
   }
@@ -1573,6 +1583,8 @@ async function listRepasseDocs(): Promise<DocWithId<RepasseDoc>[]> {
 
 export type MapaPagamentoFilters = {
   incluirPagos?: boolean;
+  /** Se informado, restringe aos status listados. */
+  status?: RepasseStatus[];
 };
 
 export async function listMapaPagamento(
@@ -1583,12 +1595,10 @@ export async function listMapaPagamento(
 
   const vendaIds = [...new Set(repasses.map((r) => r.vendaId))];
   const planoIds = [...new Set(repasses.map((r) => r.planoId))];
-  const extratoIds = [...new Set(repasses.map((r) => r.extratoOrigemId))];
 
-  const [vendaDocs, planoMap, extratoDocs] = await Promise.all([
+  const [vendaDocs, planoMap] = await Promise.all([
     fetchDocsByIds<VendaDoc>(COLLECTIONS.vendas, vendaIds),
     fetchDocsByIds<PlanoDoc>(COLLECTIONS.planos, planoIds),
-    fetchDocsByIds<ExtratoDoc>(COLLECTIONS.extratos, extratoIds),
   ]);
 
   const vendas = [...vendaDocs.values()].map(normalizeVendaDoc);
@@ -1600,17 +1610,15 @@ export async function listMapaPagamento(
       .map((v) => [v.id, v] as const),
   );
 
-  const extratoStatusMap = new Map<string, ExtratoStatus>();
-  for (const [id, extrato] of extratoDocs) {
-    extratoStatusMap.set(id, extrato.status);
-  }
+  const statusFilter = filters.status?.length
+    ? new Set(filters.status)
+    : null;
 
   const rows: RepasseRow[] = [];
 
   for (const repasse of sortByCreatedAtDesc(repasses)) {
-    const extratoStatus = extratoStatusMap.get(repasse.extratoOrigemId);
-    if (extratoStatus !== "RECEBIDO") continue;
     if (!filters.incluirPagos && repasse.status === "PAGO") continue;
+    if (statusFilter && !statusFilter.has(repasse.status)) continue;
 
     const venda = vendaMap.get(repasse.vendaId);
     const plano = planoMap.get(repasse.planoId);
@@ -1639,8 +1647,15 @@ export async function listMapaPagamento(
     });
   }
 
+  const statusOrder: Record<RepasseStatus, number> = {
+    PENDENTE: 0,
+    PREVISTO: 1,
+    PAGO: 2,
+  };
+
   return rows.sort(
     (a, b) =>
+      statusOrder[a.status] - statusOrder[b.status] ||
       b.updatedAt.localeCompare(a.updatedAt) ||
       a.numeroContrato.localeCompare(b.numeroContrato) ||
       a.papel.localeCompare(b.papel),

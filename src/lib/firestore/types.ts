@@ -128,11 +128,16 @@ export type EquipeDoc = {
   updatedAt: string;
 };
 
-export type RepasseStatus = "PENDENTE" | "PAGO";
+export type RepasseStatus = "PREVISTO" | "PENDENTE" | "PAGO";
 
 export type PapelRepasse = "VENDEDOR" | "SUPERVISOR" | "DIRETOR";
 
-/** Linha do mapa de pagamento interno — gerada ao marcar extrato como RECEBIDO. */
+/**
+ * Linha do mapa de pagamento interno.
+ * PREVISTO: gerado na venda (extrato ainda pendente na administradora).
+ * PENDENTE: extrato recebido — liberado para pagamento à pessoa.
+ * PAGO: repasse quitado.
+ */
 export type RepasseDoc = {
   extratoOrigemId: string;
   vendaId: string;

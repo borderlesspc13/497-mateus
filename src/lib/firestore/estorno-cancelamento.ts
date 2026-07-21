@@ -1,4 +1,5 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { deleteRepassesByExtratoId } from "@/lib/comissoes/gerar-repasse";
 import { resolvePlanoRegrasFinanceiras } from "@/lib/planos/regras-financeiras";
 import { normalizeVendaFields } from "@/lib/firestore/legacy";
 import { COLLECTIONS, nowIso, type ExtratoDoc, type PlanoDoc, type VendaDoc } from "@/lib/firestore/types";
@@ -104,6 +105,7 @@ export async function aplicarEstornoCancelamentoVenda(
       );
 
     if (deveEstornar) {
+      await deleteRepassesByExtratoId(extratoDoc.id, { onlyPrevistos: false });
       await extratoDoc.ref.delete();
     }
   }

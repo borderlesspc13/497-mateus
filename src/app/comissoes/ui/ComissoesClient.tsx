@@ -50,9 +50,16 @@ function RepasseStatusBadge({ status }: { status: RepasseRow["status"] }) {
       </span>
     );
   }
+  if (status === "PREVISTO") {
+    return (
+      <span className="inline-flex h-7 items-center rounded-full border border-border bg-muted/60 px-3 text-xs font-semibold text-muted-foreground">
+        Previsto
+      </span>
+    );
+  }
   return (
     <span className="inline-flex h-7 items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-semibold text-amber-800 dark:text-amber-300">
-      Pendente
+      A pagar
     </span>
   );
 }
@@ -68,6 +75,7 @@ export default function ComissoesClient({
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | ExtratoStatus>("");
   const [incluirPagos, setIncluirPagos] = useState(false);
+  const [statusRepasseFilter, setStatusRepasseFilter] = useState<"" | RepasseRow["status"]>("");
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -87,7 +95,7 @@ export default function ComissoesClient({
     if (tab !== "mapa") return;
     let alive = true;
     setLoadingMapa(true);
-    void listRepassesMapaPagamento({ incluirPagos })
+    void listRepassesMapaPagamento({ incluirPagos: true })
       .then((rows) => {
         if (!alive) return;
         setRepasses(rows);
@@ -104,7 +112,7 @@ export default function ComissoesClient({
     return () => {
       alive = false;
     };
-  }, [tab, incluirPagos, initialRepasses]);
+  }, [tab, initialRepasses]);
 
   const filteredExtratos = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -119,11 +127,13 @@ export default function ComissoesClient({
   const filteredRepasses = useMemo(() => {
     const q = query.trim().toLowerCase();
     return repasses.filter((row) => {
+      if (!incluirPagos && row.status === "PAGO") return false;
+      if (statusRepasseFilter && row.status !== statusRepasseFilter) return false;
       if (!q) return true;
       const hay = `${row.numeroContrato} ${row.beneficiarioNome} ${row.planoNome} ${row.papel} ${row.parcelaLabel} ${row.consorciadoNome ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [repasses, query]);
+  }, [repasses, query, statusRepasseFilter, incluirPagos]);
 
   const pendenteRepasseIds = useMemo(
     () => filteredRepasses.filter((r) => r.status === "PENDENTE").map((r) => r.id),
@@ -147,13 +157,16 @@ export default function ComissoesClient({
   }, [filteredExtratos]);
 
   const totaisRepasses = useMemo(() => {
+    const previsto = filteredRepasses
+      .filter((r) => r.status === "PREVISTO")
+      .reduce((s, r) => s + r.valorCentavos, 0);
     const pendente = filteredRepasses
       .filter((r) => r.status === "PENDENTE")
       .reduce((s, r) => s + r.valorCentavos, 0);
     const pago = filteredRepasses
       .filter((r) => r.status === "PAGO")
       .reduce((s, r) => s + r.valorCentavos, 0);
-    return { pendente, pago };
+    return { previsto, pendente, pago };
   }, [filteredRepasses]);
 
   const allPendentesSelected =
@@ -351,6 +364,18 @@ export default function ComissoesClient({
             </>
           ) : (
             <>
+              <select
+                value={statusRepasseFilter}
+                onChange={(e) =>
+                  setStatusRepasseFilter(e.target.value as typeof statusRepasseFilter)
+                }
+                className={formControlClass("sm")}
+              >
+                <option value="">Todos status</option>
+                <option value="PREVISTO">Previsto</option>
+                <option value="PENDENTE">A pagar</option>
+                <option value="PAGO">Pago</option>
+              </select>
               <label className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <input
                   type="checkbox"
@@ -478,7 +503,7 @@ export default function ComissoesClient({
                             </>
                           ) : null}
                           {row.status === "RECEBIDO" ? (
-                            <span className="text-xs text-muted-foreground">Repasse gerado</span>
+                            <span className="text-xs text-muted-foreground">Liberado p/ mapa</span>
                           ) : null}
                           {row.status === "LIBERADO" ? (
                             <button
@@ -508,15 +533,21 @@ export default function ComissoesClient({
         </div>
       ) : (
         <>
-          <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          <div className="mb-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-muted/50 p-4">
+              <div className="text-xs font-medium text-muted-foreground">Previsto</div>
+              <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+                {formatMoneyPtBrFromCentavos(totaisRepasses.previsto)}
+              </div>
+            </div>
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-              <div className="text-xs font-medium text-muted-foreground">Repasse pendente</div>
+              <div className="text-xs font-medium text-muted-foreground">A pagar</div>
               <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                 {formatMoneyPtBrFromCentavos(totaisRepasses.pendente)}
               </div>
             </div>
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-              <div className="text-xs font-medium text-muted-foreground">Repasse pago</div>
+              <div className="text-xs font-medium text-muted-foreground">Pago</div>
               <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                 {formatMoneyPtBrFromCentavos(totaisRepasses.pago)}
               </div>
@@ -526,7 +557,7 @@ export default function ComissoesClient({
           {filteredRepasses.length === 0 ? (
             <EmptyState
               title="Nenhum repasse no mapa"
-              description="Marque extratos como recebidos (na UI ou via remessa com coluna PARCELA) para gerar as linhas de repasse interno."
+              description="Ao registrar uma venda ativa, os repasses previstos (vendedor, supervisor e diretor) aparecem aqui. Quando a administradora confirma o recebimento, o status muda para A pagar."
             />
           ) : (
             <div className={tableWrapClass()}>
@@ -596,6 +627,8 @@ export default function ComissoesClient({
                           >
                             {actionId === row.id ? "..." : "Marcar pago"}
                           </button>
+                        ) : row.status === "PREVISTO" ? (
+                          <span className="text-xs text-muted-foreground">Aguarda recebimento</span>
                         ) : (
                           <span className="text-xs text-muted-foreground">Concluído</span>
                         )}

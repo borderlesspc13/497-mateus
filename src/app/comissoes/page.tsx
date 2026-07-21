@@ -21,7 +21,7 @@ export default async function ComissoesPage() {
           { label: "Comissões" },
         ]}
         title="Comissões e repasses"
-        description="Extratos da administradora e mapa de pagamento interno (vendedor, supervisor e diretor) gerado ao confirmar recebimento."
+        description="Extratos da administradora e mapa de pagamento interno (vendedor, supervisor e diretor). Os repasses previstos nascem com a venda e liberam para pagamento ao confirmar o recebimento."
       />
 
       <Suspense fallback={<PageLoading rows={8} columns={5} withHeader={false} />}>

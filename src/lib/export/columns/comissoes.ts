@@ -53,7 +53,8 @@ export const REPASSES_EXPORT_COLUMNS: ExportColumnDef<RepasseRow>[] = [
     accessor: (row) => row.status,
     format: "status",
     statusLabels: {
-      PENDENTE: "Pendente",
+      PREVISTO: "Previsto",
+      PENDENTE: "A pagar",
       PAGO: "Pago",
     },
   },

@@ -553,8 +553,8 @@ export default function ImportacaoClient() {
                     Comissões recebidas (parcela)
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Linhas com coluna PARCELA serão marcadas como RECEBIDO e geram repasses
-                    internos.
+                    Linhas com coluna PARCELA serão marcadas como RECEBIDO e liberam
+                    os repasses previstos (PREVISTO → A pagar) no mapa de pagamento.
                   </p>
                   <div className={`${tableWrapClass()} mt-4`}>
                     <table className={dataTableClass()}>

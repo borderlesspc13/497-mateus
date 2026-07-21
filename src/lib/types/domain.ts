@@ -126,7 +126,7 @@ export type ExtratoRow = {
   updatedAt: string;
 };
 
-export type RepasseStatus = "PENDENTE" | "PAGO";
+export type RepasseStatus = "PREVISTO" | "PENDENTE" | "PAGO";
 
 export type PapelRepasse = "VENDEDOR" | "SUPERVISOR" | "DIRETOR";
 
