@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { addHistoricoAtendimentoUniversal } from "@/lib/firestore/vendas-historico-client";
 import type { StatusOperacionalCota } from "@/lib/types/domain";
 import { formatPhoneForWhatsApp } from "@/lib/whatsapp/phone";
@@ -40,6 +41,7 @@ export function WhatsAppButton({
   className = "",
   title = "Enviar mensagem via WhatsApp",
 }: WhatsAppButtonProps) {
+  const { user } = useAuth();
   const [isLogging, setIsLogging] = useState(false);
   const formattedPhone = formatPhoneForWhatsApp(telefone);
   const isDisabled = !formattedPhone || isLogging;
@@ -59,11 +61,18 @@ export function WhatsAppButton({
 
     setIsLogging(true);
     try {
+      const autor = user
+        ? {
+            usuarioId: user.uid,
+            usuarioNome: user.displayName?.trim() || user.email || "Usuário",
+          }
+        : null;
       await addHistoricoAtendimentoUniversal(
         vendaId,
         numeroContrato,
         "COBRANCA_WHATSAPP",
         HISTORICO_OBSERVACAO,
+        autor,
       );
     } catch {
       // Não bloqueia o envio se o histórico falhar.

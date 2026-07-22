@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DashboardCampanhasPanel } from "@/components/dashboard/DashboardCampanhasPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
@@ -11,11 +12,12 @@ import {
   tableWrapClass,
 } from "@/components/ui/list-panel-classes";
 import { canAccessModule, type AppModule } from "@/lib/auth/modules";
-import type { DashboardStats } from "@/lib/types/domain";
+import type { CampanhaRow, DashboardStats } from "@/lib/types/domain";
 import { formatMoneyPtBrFromCentavos } from "@/lib/validators/currency";
 
 type DashboardHomeProps = {
   stats: DashboardStats;
+  campanhas: CampanhaRow[];
   permissions: AppModule[];
 };
 
@@ -165,15 +167,6 @@ function KpiCard({
   return <article className={cardClass}>{content}</article>;
 }
 
-function IconUsers() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  );
-}
-
-
 function IconCart() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.5" aria-hidden>
@@ -222,14 +215,13 @@ function SectionTitle({ title, description }: { title: string; description: stri
   );
 }
 
-export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
+export function DashboardHome({ stats, campanhas, permissions }: DashboardHomeProps) {
   const maxMesValor = Math.max(...stats.vendasPorMes.map((m) => m.valorCentavos), 1);
   const maxMesQtd = Math.max(...stats.vendasPorMes.map((m) => m.quantidade), 1);
   const showComissoes = canAccessModule(permissions, "comissoes");
   const showInadimplencia = canAccessModule(permissions, "inadimplencia");
   const showInconsistencia = canAccessModule(permissions, "inconsistencia");
   const showPosVenda = canAccessModule(permissions, "pos-venda");
-  const showConsorciados = canAccessModule(permissions, "consorciados");
   const showVendas = canAccessModule(permissions, "vendas");
   const mesAtual = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -243,13 +235,23 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4">
         <KpiCard
-          label="Vendas ativas"
-          value={String(stats.nVendasAtivas)}
-          hint="Cotas com status operacional Ativo."
+          label="Vendas realizadas"
+          value={String(stats.nVendas)}
+          hint={`${stats.nVendasAtivas} ativas na carteira`}
           icon={<IconCart />}
           href={showVendas ? "/vendas" : undefined}
           linkLabel={showVendas ? "Ver vendas" : undefined}
           tone="emerald"
+        />
+        <KpiCard
+          label="Inadimplência atual"
+          value={String(stats.nVendasInadimplentes)}
+          hint="Cotas com status Inadimplente."
+          icon={<IconChart />}
+          href={showInadimplencia ? "/controle/inadimplencia" : undefined}
+          linkLabel={showInadimplencia ? "Ver inadimplência" : undefined}
+          tone="amber"
+          muted={!showInadimplencia}
         />
         <KpiCard
           label="Crédito comercializado"
@@ -267,19 +269,18 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
           linkLabel={showComissoes ? "Ver extratos" : undefined}
           tone="violet"
         />
-        <KpiCard
-          label="Cotas inadimplentes"
-          value={String(stats.nVendasInadimplentes)}
-          hint="Vendas com status Inadimplente."
-          icon={<IconChart />}
-          href={showInadimplencia ? "/controle/inadimplencia" : undefined}
-          linkLabel={showInadimplencia ? "Ver inadimplência" : undefined}
-          tone="amber"
-          muted={!showInadimplencia}
-        />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <KpiCard
+          label="Vendas ativas"
+          value={String(stats.nVendasAtivas)}
+          hint="Cotas com status operacional Ativo."
+          icon={<IconCart />}
+          href={showVendas ? "/vendas" : undefined}
+          linkLabel={showVendas ? "Ver vendas" : undefined}
+          tone="emerald"
+        />
         <KpiCard
           label="Inconsistências"
           value={String(stats.nVendasInconsistentes)}
@@ -300,24 +301,10 @@ export function DashboardHome({ stats, permissions }: DashboardHomeProps) {
           tone="sky"
           muted={!showPosVenda}
         />
-        <KpiCard
-          label="Consorciados"
-          value={String(stats.nConsorciados)}
-          hint="Base cadastral do CRM operacional."
-          icon={<IconUsers />}
-          href={showConsorciados ? "/consorciados" : undefined}
-          linkLabel={showConsorciados ? "Ver cadastro" : undefined}
-          tone="zinc"
-        />
-        <KpiCard
-          label="Vendas"
-          value={String(stats.nVendas)}
-          hint={`${stats.nVendasAtivas} ativas na carteira`}
-          icon={<IconCart />}
-          href={showVendas ? "/vendas" : undefined}
-          linkLabel={showVendas ? "Ver todas" : undefined}
-          tone="emerald"
-        />
+      </div>
+
+      <div className="mt-6">
+        <DashboardCampanhasPanel campanhas={campanhas} permissions={permissions} />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">

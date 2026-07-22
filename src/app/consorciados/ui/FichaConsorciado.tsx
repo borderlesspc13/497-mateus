@@ -97,7 +97,7 @@ export default function FichaConsorciado({ id }: FichaConsorciadoProps) {
         onOpenAtendimento={openAtendimento}
       />
 
-      <ConsorciadoHistoricoTabs vendas={vendas} />
+      <ConsorciadoHistoricoTabs consorciado={consorciado} vendas={vendas} />
 
       <VendaAtendimentoDrawer
         venda={selectedVenda}

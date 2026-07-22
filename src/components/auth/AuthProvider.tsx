@@ -60,6 +60,7 @@ export function AuthProvider({ children, initialServerUser }: AuthProviderProps)
       const profile = await getMyProfile();
       setUser({
         ...baseUser,
+        displayName: profile?.displayName ?? baseUser.displayName,
         role: profile?.role ?? null,
         permissions: (profile?.permissions ?? []) as AppModule[],
       });
@@ -75,6 +76,7 @@ export function AuthProvider({ children, initialServerUser }: AuthProviderProps)
       prev
         ? {
             ...prev,
+            displayName: profile?.displayName ?? prev.displayName,
             role: profile?.role ?? prev.role,
             permissions: (profile?.permissions ?? prev.permissions) as AppModule[],
           }
@@ -94,15 +96,10 @@ export function AuthProvider({ children, initialServerUser }: AuthProviderProps)
         if (!prev || prev.uid !== nextUser.uid) return prev;
         return {
           ...prev,
-          displayName: nextUser.displayName,
+          displayName: nextUser.displayName ?? prev.displayName,
           email: nextUser.email,
         };
       });
-
-      if (initialUser?.uid === nextUser.uid) {
-        setLoading(false);
-        return;
-      }
 
       void loadProfile(nextUser).finally(() => setLoading(false));
     });

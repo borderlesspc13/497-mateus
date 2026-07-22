@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { updateVendaStatusInconsistencia, updateVendaStatusPosVenda } from "@/actions/vendas";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InconsistenciaBadge } from "@/components/ui/InconsistenciaBadge";
@@ -41,23 +42,30 @@ type VendaAtendimentoDrawerProps = {
 function formatDateTime(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return (
+    d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }) +
+    " " +
+    d.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
 }
 
 function tipoRegistroClass(tipo: TipoRegistroAtendimento) {
   switch (tipo) {
+    case "ATENDIMENTO":
+      return "border-primary/30 bg-primary/10 text-foreground";
     case "COBRANCA":
       return "border-destructive/30 bg-destructive/10 text-destructive";
     case "COBRANCA_WHATSAPP":
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
     case "POS_VENDA":
-      return "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300";
+      return "border-sky-500/30 bg-sky-50 text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300";
     case "INCONSISTENCIA":
       return "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300";
   }
@@ -84,6 +92,11 @@ function TimelineEntry({ item }: { item: HistoricoAtendimentoUniversalRow }) {
             {formatDateTime(item.dataRegistro)}
           </time>
         </div>
+        {item.usuarioNome ? (
+          <p className="mt-1.5 text-xs font-medium text-muted-foreground">
+            Registrado por <span className="text-foreground/80">{item.usuarioNome}</span>
+          </p>
+        ) : null}
         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
           {item.observacao}
         </p>
@@ -115,6 +128,7 @@ export function VendaAtendimentoDrawer({
   onPosVendaCompleted,
 }: VendaAtendimentoDrawerProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [historico, setHistorico] = useState<HistoricoAtendimentoUniversalRow[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
   const [historicoError, setHistoricoError] = useState<string | null>(null);
@@ -122,7 +136,8 @@ export function VendaAtendimentoDrawer({
   const [observacao, setObservacao] = useState("");
   const [savingRegistro, setSavingRegistro] = useState(false);
   const [savingInconsistencia, setSavingInconsistencia] = useState(false);
-  const [statusInconsistencia, setStatusInconsistencia] = useState<StatusInconsistencia>("CONSISTENTE");
+  const [statusInconsistencia, setStatusInconsistencia] =
+    useState<StatusInconsistencia>("CONSISTENTE");
   const [statusPosVenda, setStatusPosVenda] = useState<StatusPosVenda>("PENDENTE");
   const [marcarPosVendaFeito, setMarcarPosVendaFeito] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -172,11 +187,18 @@ export function VendaAtendimentoDrawer({
     setSavingRegistro(true);
     try {
       const tipo = showPosVendaControls ? ("POS_VENDA" as const) : tipoRegistro;
+      const autor = user
+        ? {
+            usuarioId: user.uid,
+            usuarioNome: user.displayName?.trim() || user.email || "Usuário",
+          }
+        : null;
       await addHistoricoAtendimentoUniversal(
         venda.id,
         venda.numeroContrato,
         tipo,
         observacao,
+        autor,
       );
 
       if (showPosVendaControls && marcarPosVendaFeito && statusPosVenda !== "FEITO") {
@@ -318,7 +340,7 @@ export function VendaAtendimentoDrawer({
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <h3 className="text-sm font-semibold text-foreground">Timeline de atendimento</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Registros universais desta cota, do mais recente ao mais antigo.
+              Registros desta cota com o usuário responsável, do mais recente ao mais antigo.
             </p>
 
             <div className="mt-4">
@@ -331,10 +353,10 @@ export function VendaAtendimentoDrawer({
               ) : historico.length === 0 ? (
                 <EmptyState
                   title="Nenhum registro ainda"
-                  description="Adicione a primeira interação de cobrança, pós-venda ou inconsistência abaixo."
+                  description="Adicione a primeira interação de atendimento, cobrança, pós-venda ou inconsistência abaixo."
                 />
               ) : (
-                <ol className="border-l border-border ml-1">
+                <ol className="ml-1 border-l border-border">
                   {historico.map((item) => (
                     <TimelineEntry key={item.id} item={item} />
                   ))}

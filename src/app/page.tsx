@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { listCampanhasAtivas } from "@/actions/campanhas";
 import { getDashboardStats } from "@/actions/dashboard";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { DashboardMetaWidget } from "@/components/metas/DashboardMetaWidget";
@@ -15,7 +16,7 @@ function DashboardFallback() {
       <PageFlowHeader
         crumbs={[{ label: "Dashboard" }]}
         title="Dashboard"
-        description="Indicadores operacionais em tempo real a partir do Firestore."
+        description="Vendas, inadimplência e campanhas em andamento."
       />
       <KpiCardSkeleton />
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -41,7 +42,11 @@ function DashboardFallback() {
 }
 
 async function DashboardContent() {
-  const [stats, session] = await Promise.all([getDashboardStats(), getServerSessionUser()]);
+  const [stats, campanhas, session] = await Promise.all([
+    getDashboardStats(),
+    listCampanhasAtivas(),
+    getServerSessionUser(),
+  ]);
   const permissions = session?.permissions ?? [];
   const showMetaWidget =
     canAccessModule(permissions, "metas") || canAccessModule(permissions, "metas-minhas");
@@ -55,7 +60,7 @@ async function DashboardContent() {
           </Suspense>
         </div>
       ) : null}
-      <DashboardTabs stats={stats} permissions={permissions} />
+      <DashboardTabs stats={stats} campanhas={campanhas} permissions={permissions} />
     </ModuleGuard>
   );
 }

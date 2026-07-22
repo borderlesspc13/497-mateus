@@ -25,6 +25,11 @@ const baseCards = [
     title: "Vendedores",
     description: "Vendedores vinculados às equipes para atribuição de cotas.",
   },
+  {
+    href: "/configuracoes/campanhas",
+    title: "Campanhas",
+    description: "Campanhas comerciais/operacionais exibidas no dashboard.",
+  },
 ];
 
 export default async function ConfiguracoesPage() {

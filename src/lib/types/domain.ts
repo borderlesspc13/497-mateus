@@ -34,6 +34,7 @@ export type StatusPosVenda = "PENDENTE" | "FEITO";
 export type StatusInconsistencia = "CONSISTENTE" | "INCONSISTENTE";
 
 export type TipoRegistroAtendimento =
+  | "ATENDIMENTO"
   | "COBRANCA"
   | "COBRANCA_WHATSAPP"
   | "POS_VENDA"
@@ -44,6 +45,30 @@ export type HistoricoAtendimentoUniversalRow = {
   dataRegistro: string;
   tipoRegistro: TipoRegistroAtendimento;
   observacao: string;
+  /** Usuário que registrou o atendimento (pode ser nulo em registros legados). */
+  usuarioId: string | null;
+  usuarioNome: string | null;
+};
+
+/** Nota de atendimento na ficha do consorciado (estilo SGA — independente da cota). */
+export type ConsorciadoHistoricoAtendimentoRow = {
+  id: string;
+  dataRegistro: string;
+  observacao: string;
+  usuarioId: string;
+  usuarioNome: string;
+};
+
+export type CampanhaRow = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  dataInicio: string;
+  dataFim: string | null;
+  ativa: boolean;
+  destaque: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ChecklistAtivacao = {

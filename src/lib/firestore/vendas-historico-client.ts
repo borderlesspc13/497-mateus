@@ -28,6 +28,20 @@ async function getDb() {
   return db;
 }
 
+function mapHistoricoDoc(
+  id: string,
+  data: HistoricoAtendimentoUniversalDoc,
+): HistoricoAtendimentoUniversalRow {
+  return {
+    id,
+    dataRegistro: data.dataRegistro,
+    tipoRegistro: data.tipoRegistro,
+    observacao: data.observacao,
+    usuarioId: data.usuarioId ?? null,
+    usuarioNome: data.usuarioNome ?? null,
+  };
+}
+
 export function subscribeHistoricoAtendimentoUniversal(
   vendaId: string,
   onChange: (items: HistoricoAtendimentoUniversalRow[]) => void,
@@ -51,15 +65,9 @@ export function subscribeHistoricoAtendimentoUniversal(
       unsubscribe = onSnapshot(
         q,
         (snap) => {
-          const items = snap.docs.map((item) => {
-            const data = item.data() as HistoricoAtendimentoUniversalDoc;
-            return {
-              id: item.id,
-              dataRegistro: data.dataRegistro,
-              tipoRegistro: data.tipoRegistro,
-              observacao: data.observacao,
-            };
-          });
+          const items = snap.docs.map((item) =>
+            mapHistoricoDoc(item.id, item.data() as HistoricoAtendimentoUniversalDoc),
+          );
           onChange(items);
         },
         (error) => onError?.(error),
@@ -86,6 +94,11 @@ export type VendaHistoricoRef = {
   cota: string;
 };
 
+export type HistoricoAutorInput = {
+  usuarioId: string;
+  usuarioNome: string;
+};
+
 export async function fetchHistoricoAtendimentoForVendas(
   vendas: VendaHistoricoRef[],
 ): Promise<HistoricoAtendimentoWithVenda[]> {
@@ -106,16 +119,13 @@ export async function fetchHistoricoAtendimentoForVendas(
         ),
       );
       return snap.docs.map((item) => {
-        const data = item.data() as HistoricoAtendimentoUniversalDoc;
+        const mapped = mapHistoricoDoc(item.id, item.data() as HistoricoAtendimentoUniversalDoc);
         return {
-          id: item.id,
+          ...mapped,
           vendaId: venda.id,
           numeroContrato: venda.numeroContrato,
           grupo: venda.grupo,
           cota: venda.cota,
-          dataRegistro: data.dataRegistro,
-          tipoRegistro: data.tipoRegistro,
-          observacao: data.observacao,
         };
       });
     }),
@@ -131,6 +141,7 @@ export async function addHistoricoAtendimentoUniversal(
   numeroContrato: string,
   tipoRegistro: TipoRegistroAtendimento,
   observacao: string,
+  autor?: HistoricoAutorInput | null,
 ): Promise<void> {
   const trimmed = observacao.trim();
   if (!trimmed) throw new Error("Informe a observação do registro.");
@@ -143,6 +154,8 @@ export async function addHistoricoAtendimentoUniversal(
     dataRegistro: nowIso(),
     tipoRegistro,
     observacao: trimmed,
+    usuarioId: autor?.usuarioId ?? null,
+    usuarioNome: autor?.usuarioNome ?? null,
   };
   await addDoc(
     collection(

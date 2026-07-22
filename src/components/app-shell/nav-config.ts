@@ -56,6 +56,7 @@ const BASE_CONFIG_NAV: NavLinkItem[] = [
   { href: "/planos", label: "Planos", icon: Wallet, module: "planos" },
   { href: "/configuracoes/equipes", label: "Equipes", icon: Users, module: "configuracoes" },
   { href: "/configuracoes/vendedores", label: "Vendedores", icon: Users, module: "configuracoes" },
+  { href: "/configuracoes/campanhas", label: "Campanhas", icon: Target, module: "configuracoes" },
 ];
 
 function filterNavByPermissions(
@@ -182,6 +183,7 @@ const ROUTE_LABELS: Record<string, string> = {
   planos: "Planos",
   equipes: "Equipes",
   vendedores: "Vendedores",
+  campanhas: "Campanhas",
   usuarios: "Usuários",
   nova: "Nova",
   editar: "Editar",

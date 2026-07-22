@@ -7,12 +7,13 @@ import { DashboardHome } from "@/components/dashboard/DashboardHome";
 import { DashboardRankingPanel } from "@/components/dashboard/DashboardRankingPanel";
 import type { AppModule } from "@/lib/auth/modules";
 import { canAccessModule } from "@/lib/auth/modules";
-import type { DashboardRanking, DashboardStats } from "@/lib/types/domain";
+import type { CampanhaRow, DashboardRanking, DashboardStats } from "@/lib/types/domain";
 
 type DashboardTab = "overview" | "ranking";
 
 type DashboardTabsProps = {
   stats: DashboardStats;
+  campanhas: CampanhaRow[];
   permissions: AppModule[];
 };
 
@@ -20,12 +21,12 @@ const TABS: { id: DashboardTab; label: string; description: string; requiresMeta
   {
     id: "overview",
     label: "Visão Geral",
-    description: "Indicadores operacionais em tempo real a partir do Firestore.",
+    description: "Vendas, inadimplência e campanhas em andamento.",
   },
   {
     id: "ranking",
-    label: "Campanhas & Ranking",
-    description: "Metas e desempenho comercial do mês — top vendedores e melhor equipe.",
+    label: "Ranking & Metas",
+    description: "Desempenho comercial do mês — top vendedores e melhor equipe.",
     requiresMetas: true,
   },
 ];
@@ -42,7 +43,7 @@ function RankingPanelSkeleton() {
   );
 }
 
-export function DashboardTabs({ stats, permissions }: DashboardTabsProps) {
+export function DashboardTabs({ stats, campanhas, permissions }: DashboardTabsProps) {
   const visibleTabs = TABS.filter(
     (tab) =>
       !tab.requiresMetas ||
@@ -104,7 +105,7 @@ export function DashboardTabs({ stats, permissions }: DashboardTabsProps) {
       </nav>
 
       {activeTab === "overview" ? (
-        <DashboardHome stats={stats} permissions={permissions} />
+        <DashboardHome stats={stats} campanhas={campanhas} permissions={permissions} />
       ) : !ranking ? (
         <RankingPanelSkeleton />
       ) : (

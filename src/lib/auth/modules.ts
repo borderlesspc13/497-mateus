@@ -198,6 +198,7 @@ export const NAV_MODULE_BY_HREF: Record<string, AppModule> = {
   "/planos": "planos",
   "/configuracoes/equipes": "configuracoes",
   "/configuracoes/vendedores": "configuracoes",
+  "/configuracoes/campanhas": "configuracoes",
   "/configuracoes/usuarios": "usuarios",
 };
 

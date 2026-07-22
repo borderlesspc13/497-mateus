@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterChipBar, FilterChipButton } from "@/components/ui/FilterChipButton";
@@ -10,17 +11,36 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { panelClass, panelInsetClass } from "@/components/ui/list-panel-classes";
 import {
+  addConsorciadoHistoricoAtendimento,
+  subscribeConsorciadoHistoricoAtendimento,
+} from "@/lib/firestore/consorciados-historico-client";
+import {
   fetchHistoricoAtendimentoForVendas,
   type HistoricoAtendimentoWithVenda,
 } from "@/lib/firestore/vendas-historico-client";
-import type { VendaRow } from "@/lib/types/domain";
+import type {
+  ConsorciadoHistoricoAtendimentoRow,
+  ConsorciadoRow,
+  VendaRow,
+} from "@/lib/types/domain";
 import { TIPO_REGISTRO_LABELS } from "@/lib/vendas/atendimento";
 
 type HistoricoTab = "atendimentos" | "inconsistencias" | "inadimplencias";
 
 type ConsorciadoHistoricoTabsProps = {
+  consorciado: ConsorciadoRow;
   vendas: VendaRow[];
 };
+
+type TimelineItem =
+  | {
+      kind: "ficha";
+      id: string;
+      dataRegistro: string;
+      observacao: string;
+      usuarioNome: string | null;
+    }
+  | (HistoricoAtendimentoWithVenda & { kind: "cota" });
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -34,20 +54,44 @@ function formatDateTime(iso: string) {
   });
 }
 
+function resolveAutorLabel(user: {
+  uid: string;
+  displayName: string | null;
+  email: string;
+} | null): { usuarioId: string; usuarioNome: string } | null {
+  if (!user) return null;
+  return {
+    usuarioId: user.uid,
+    usuarioNome: user.displayName?.trim() || user.email || "Usuário",
+  };
+}
+
 function tipoRegistroClass(tipo: HistoricoAtendimentoWithVenda["tipoRegistro"]) {
   switch (tipo) {
+    case "ATENDIMENTO":
+      return "border-primary/30 bg-primary/10 text-foreground";
     case "COBRANCA":
       return "border-destructive/30 bg-destructive/10 text-destructive";
     case "COBRANCA_WHATSAPP":
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
     case "POS_VENDA":
-      return "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300";
+      return "border-sky-500/30 bg-sky-50 text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300";
     case "INCONSISTENCIA":
       return "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300";
   }
 }
 
-function TimelineEntry({ item }: { item: HistoricoAtendimentoWithVenda }) {
+function TimelineEntry({ item }: { item: TimelineItem }) {
+  const isFicha = item.kind === "ficha";
+  const tipoLabel = isFicha ? "Atendimento" : TIPO_REGISTRO_LABELS[item.tipoRegistro];
+  const tipoClass = isFicha
+    ? "border-primary/30 bg-primary/10 text-foreground"
+    : tipoRegistroClass(item.tipoRegistro);
+  const contexto = isFicha
+    ? "Ficha do consorciado"
+    : `Contrato ${item.numeroContrato} · Grupo ${item.grupo} · Cota ${item.cota}`;
+  const autor = item.usuarioNome?.trim() || null;
+
   return (
     <li className="relative pl-7 pb-6 last:pb-0">
       <span
@@ -60,19 +104,22 @@ function TimelineEntry({ item }: { item: HistoricoAtendimentoWithVenda }) {
             <span
               className={[
                 "inline-flex h-6 items-center rounded-full border px-2 text-[11px] font-semibold uppercase tracking-wide",
-                tipoRegistroClass(item.tipoRegistro),
+                tipoClass,
               ].join(" ")}
             >
-              {TIPO_REGISTRO_LABELS[item.tipoRegistro]}
+              {tipoLabel}
             </span>
-            <span className="text-xs font-medium text-muted-foreground">
-              Contrato {item.numeroContrato} · Grupo {item.grupo} · Cota {item.cota}
-            </span>
+            <span className="text-xs font-medium text-muted-foreground">{contexto}</span>
           </div>
           <time className="text-xs tabular-nums text-muted-foreground" dateTime={item.dataRegistro}>
             {formatDateTime(item.dataRegistro)}
           </time>
         </div>
+        {autor ? (
+          <p className="mt-1.5 text-xs font-medium text-muted-foreground">
+            Registrado por <span className="text-foreground/80">{autor}</span>
+          </p>
+        ) : null}
         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
           {item.observacao}
         </p>
@@ -106,9 +153,7 @@ function VendaStatusList({
   renderBadge: (venda: VendaRow) => ReactNode;
 }) {
   if (vendas.length === 0) {
-    return (
-      <EmptyState title={emptyTitle} description={emptyDescription} />
-    );
+    return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
 
   return (
@@ -139,20 +184,29 @@ const TAB_LABELS: Record<HistoricoTab, string> = {
   inadimplencias: "Inadimplências",
 };
 
-export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsProps) {
+export function ConsorciadoHistoricoTabs({
+  consorciado,
+  vendas,
+}: ConsorciadoHistoricoTabsProps) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<HistoricoTab>("atendimentos");
-  const [historico, setHistorico] = useState<HistoricoAtendimentoWithVenda[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [historicoCotas, setHistoricoCotas] = useState<HistoricoAtendimentoWithVenda[]>([]);
+  const [historicoFicha, setHistoricoFicha] = useState<ConsorciadoHistoricoAtendimentoRow[]>([]);
+  const [loadingCotas, setLoadingCotas] = useState(true);
+  const [loadingFicha, setLoadingFicha] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [observacao, setObservacao] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    setLoadingCotas(true);
     setError(null);
 
     if (vendas.length === 0) {
-      setHistorico([]);
-      setLoading(false);
+      setHistoricoCotas([]);
+      setLoadingCotas(false);
       return;
     }
 
@@ -166,7 +220,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
     )
       .then((items) => {
         if (!alive) return;
-        setHistorico(items);
+        setHistoricoCotas(items);
       })
       .catch((e: unknown) => {
         if (!alive) return;
@@ -174,7 +228,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
       })
       .finally(() => {
         if (!alive) return;
-        setLoading(false);
+        setLoadingCotas(false);
       });
 
     return () => {
@@ -182,17 +236,50 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
     };
   }, [vendas]);
 
+  useEffect(() => {
+    setLoadingFicha(true);
+    const unsub = subscribeConsorciadoHistoricoAtendimento(
+      consorciado.id,
+      (items) => {
+        setHistoricoFicha(items);
+        setLoadingFicha(false);
+      },
+      (err) => {
+        setError(err.message);
+        setLoadingFicha(false);
+      },
+    );
+    return unsub;
+  }, [consorciado.id]);
+
+  const timelineAtendimentos = useMemo<TimelineItem[]>(() => {
+    const fromFicha: TimelineItem[] = historicoFicha.map((item) => ({
+      kind: "ficha",
+      id: item.id,
+      dataRegistro: item.dataRegistro,
+      observacao: item.observacao,
+      usuarioNome: item.usuarioNome,
+    }));
+    const fromCotas: TimelineItem[] = historicoCotas.map((item) => ({
+      ...item,
+      kind: "cota",
+    }));
+    return [...fromFicha, ...fromCotas].sort((a, b) =>
+      b.dataRegistro.localeCompare(a.dataRegistro),
+    );
+  }, [historicoCotas, historicoFicha]);
+
   const inconsistenciaHistorico = useMemo(
-    () => historico.filter((item) => item.tipoRegistro === "INCONSISTENCIA"),
-    [historico],
+    () => historicoCotas.filter((item) => item.tipoRegistro === "INCONSISTENCIA"),
+    [historicoCotas],
   );
 
   const inadimplenciaHistorico = useMemo(
     () =>
-      historico.filter(
+      historicoCotas.filter(
         (item) => item.tipoRegistro === "COBRANCA" || item.tipoRegistro === "COBRANCA_WHATSAPP",
       ),
-    [historico],
+    [historicoCotas],
   );
 
   const vendasInconsistentes = useMemo(
@@ -206,12 +293,37 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
   );
 
   const tabCounts: Record<HistoricoTab, number> = {
-    atendimentos: historico.length,
+    atendimentos: timelineAtendimentos.length,
     inconsistencias: inconsistenciaHistorico.length + vendasInconsistentes.length,
     inadimplencias: inadimplenciaHistorico.length + vendasInadimplentes.length,
   };
 
-  function renderTimeline(items: HistoricoAtendimentoWithVenda[], emptyTitle: string, emptyDescription: string) {
+  const loading = loadingCotas || loadingFicha;
+
+  async function onAddAtendimento() {
+    setFormError(null);
+    const autor = resolveAutorLabel(user);
+    if (!autor?.usuarioId) {
+      setFormError("Faça login novamente para registrar o atendimento.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await addConsorciadoHistoricoAtendimento(consorciado.id, observacao, autor);
+      setObservacao("");
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Erro ao salvar atendimento.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function renderTimeline(
+    items: TimelineItem[],
+    emptyTitle: string,
+    emptyDescription: string,
+  ) {
     if (loading) return <TimelineSkeleton />;
     if (error) {
       return <AlertBanner tone="error">{error}</AlertBanner>;
@@ -222,7 +334,10 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
     return (
       <ol className="ml-1 border-l border-border">
         {items.map((item) => (
-          <TimelineEntry key={`${item.vendaId}-${item.id}`} item={item} />
+          <TimelineEntry
+            key={item.kind === "ficha" ? `ficha-${item.id}` : `cota-${item.vendaId}-${item.id}`}
+            item={item}
+          />
         ))}
       </ol>
     );
@@ -232,7 +347,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
     <section className={panelClass()}>
       <PanelSectionHeader
         title="Históricos vinculados"
-        description="Timeline consolidada de atendimentos, inconsistências e inadimplências das cotas deste consorciado."
+        description="Timeline consolidada de atendimentos da ficha e das cotas deste consorciado."
         meta={
           <FilterChipBar>
             {(Object.keys(TAB_LABELS) as HistoricoTab[]).map((tab) => (
@@ -251,11 +366,41 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
 
       <div className={`py-5 ${panelInsetClass()}`}>
         {activeTab === "atendimentos" ? (
-          renderTimeline(
-            historico,
-            "Nenhum atendimento registrado",
-            "Os registros de cobrança, pós-venda e inconsistência aparecerão aqui conforme forem lançados nas cotas.",
-          )
+          <div className="space-y-6">
+            <div className="rounded-xl border border-border bg-muted/30 p-4">
+              <h3 className="text-sm font-semibold text-foreground">Registrar atendimento</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Anote o que foi combinado na ligação ou contato. Seu usuário fica vinculado ao
+                registro.
+              </p>
+              <textarea
+                value={observacao}
+                onChange={(e) => setObservacao(e.target.value)}
+                placeholder="Ex.: Combinei retorno amanhã às 14h sobre a cota Volkswagen."
+                rows={3}
+                className="mt-3 w-full resize-y rounded-lg border border-border bg-card p-3 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              />
+              {formError ? (
+                <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                  {formError}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void onAddAtendimento()}
+                disabled={saving || !observacao.trim()}
+                className="mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+              >
+                {saving ? "Salvando..." : "Salvar atendimento"}
+              </button>
+            </div>
+
+            {renderTimeline(
+              timelineAtendimentos,
+              "Nenhum atendimento registrado",
+              "Registre o primeiro atendimento acima. Interações das cotas também aparecem nesta timeline.",
+            )}
+          </div>
         ) : null}
 
         {activeTab === "inconsistencias" ? (
@@ -269,7 +414,9 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
                   vendas={vendasInconsistentes}
                   emptyTitle="Nenhuma cota inconsistente no momento"
                   emptyDescription="Cotas marcadas como inconsistentes no controle operacional aparecem aqui."
-                  renderBadge={(venda) => <InconsistenciaBadge status={venda.statusInconsistencia} />}
+                  renderBadge={(venda) => (
+                    <InconsistenciaBadge status={venda.statusInconsistencia} />
+                  )}
                 />
               </div>
             </div>
@@ -279,7 +426,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
               </h3>
               <div className="mt-3">
                 {renderTimeline(
-                  inconsistenciaHistorico,
+                  inconsistenciaHistorico.map((item) => ({ ...item, kind: "cota" as const })),
                   "Nenhum registro de inconsistência",
                   "Tratativas de inconsistência lançadas nas cotas aparecerão nesta timeline.",
                 )}
@@ -309,7 +456,7 @@ export function ConsorciadoHistoricoTabs({ vendas }: ConsorciadoHistoricoTabsPro
               </h3>
               <div className="mt-3">
                 {renderTimeline(
-                  inadimplenciaHistorico,
+                  inadimplenciaHistorico.map((item) => ({ ...item, kind: "cota" as const })),
                   "Nenhum registro de cobrança",
                   "Interações de cobrança e WhatsApp registradas nas cotas aparecerão nesta timeline.",
                 )}

@@ -61,6 +61,15 @@ service cloud.firestore {
 
     match /consorciados/{docId} {
       allow read, write: if isSignedIn();
+
+      match /historico_atendimento/{historicoId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    match /campanhas/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isGerenteOrAdmin();
     }
 
     match /equipes/{docId} {

@@ -20,12 +20,17 @@ export const COLLECTIONS = {
   metas: "metas",
   realizacoes: "realizacoes",
   conquistas: "conquistas",
+  campanhas: "campanhas",
   dashboardSnapshots: "dashboard_snapshots",
   metasWidgetSnapshots: "metas_widget_snapshots",
 } as const;
 
 export const VENDA_SUBCOLLECTIONS = {
   historico: "historico",
+  historico_atendimento: "historico_atendimento",
+} as const;
+
+export const CONSORCIADO_SUBCOLLECTIONS = {
   historico_atendimento: "historico_atendimento",
 } as const;
 
@@ -179,6 +184,26 @@ export type HistoricoAtendimentoUniversalDoc = {
   dataRegistro: string;
   tipoRegistro: TipoRegistroAtendimento;
   observacao: string;
+  usuarioId?: string | null;
+  usuarioNome?: string | null;
+};
+
+export type ConsorciadoHistoricoAtendimentoDoc = {
+  dataRegistro: string;
+  observacao: string;
+  usuarioId: string;
+  usuarioNome: string;
+};
+
+export type CampanhaDoc = {
+  titulo: string;
+  descricao: string;
+  dataInicio: string;
+  dataFim: string | null;
+  ativa: boolean;
+  destaque: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type VendaDoc = {
