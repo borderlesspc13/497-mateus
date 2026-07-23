@@ -15,9 +15,14 @@ import { VendaAtendimentoDrawer } from "@/components/vendas/VendaAtendimentoDraw
 import { StatusOperacionalQuickEditModal } from "@/components/vendas/StatusOperacionalQuickEditModal";
 import {
   dataTableClass,
+  desktopTableClass,
   formControlClass,
+  mobileListCardClass,
+  mobileListClass,
+  rowActionsClass,
   secondaryActionClass,
   tableCellClass,
+  tableColFromClass,
   tableHeadCellClass,
   tableRowClass,
   tableWrapClass,
@@ -399,7 +404,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
               />
             </div>
 
-            <div className="grid w-full gap-2 rounded-xl border border-border bg-muted/50 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid w-full gap-2 rounded-xl border border-border bg-muted/50 p-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="block min-w-0">
                 <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Equipe
@@ -524,14 +529,83 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
           <EmptyState title="Nenhuma cota encontrada" description={emptyDescription} />
         ) : (
           <>
-            <div className={tableWrapClass()}>
+            <div className={mobileListClass()}>
+              {visibleItems.map((v) => (
+                <article
+                  key={v.id}
+                  className={`${mobileListCardClass()} cursor-pointer`}
+                  onClick={() => openDrawer(v)}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground">{v.numeroContrato}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        Grupo {v.grupo} · Cota {v.cota}
+                      </p>
+                    </div>
+                    <StatusBadge status={v.statusOperacional} />
+                  </div>
+                  <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                    <p className="text-foreground/80">{v.consorciado?.nome ?? "—"}</p>
+                    <p>{v.administradora?.nome ?? "—"}</p>
+                    <p className="tabular-nums font-medium text-foreground">
+                      {formatMoneyPtBrFromCentavos(v.valorCentavos)}
+                    </p>
+                    {modo === "inconsistencia" ? (
+                      <div className="pt-1">
+                        <InconsistenciaBadge status={v.statusInconsistencia} />
+                      </div>
+                    ) : null}
+                    {modo === "pos-venda" ? (
+                      <div className="pt-1">
+                        <PosVendaBadge status={v.statusPosVenda} />
+                      </div>
+                    ) : null}
+                  </div>
+                  <div
+                    className={`mt-4 border-t border-border/60 pt-3 ${rowActionsClass()}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {(modo === "inadimplencia" || modo === "inconsistencia") && (
+                      <WhatsAppButton
+                        telefone={v.consorciado?.telefone}
+                        nomeCliente={v.consorciado?.nome ?? ""}
+                        numeroContrato={v.numeroContrato}
+                        statusOperacional={v.statusOperacional}
+                        vendaId={v.id}
+                      />
+                    )}
+                    {modo === "inadimplencia" ? (
+                      <button
+                        type="button"
+                        onClick={() => openStatusEdit(v)}
+                        className={secondaryActionClass()}
+                      >
+                        Editar Status
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => openDrawer(v)}
+                      className={secondaryActionClass()}
+                    >
+                      Timeline
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className={`${desktopTableClass()} ${tableWrapClass()}`}>
               <table className={dataTableClass()}>
                 <thead>
                   <tr>
                     <th className={tableHeadCellClass()}>Contrato</th>
                     <th className={tableHeadCellClass()}>Grupo / Cota</th>
                     <th className={tableHeadCellClass()}>Consorciado</th>
-                    <th className={tableHeadCellClass()}>Administradora</th>
+                    <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>
+                      Administradora
+                    </th>
                     <th className={tableHeadCellClass()}>Status</th>
                     {modo === "inconsistencia" ? (
                       <th className={tableHeadCellClass()}>Inconsistência</th>
@@ -539,7 +613,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
                     {modo === "pos-venda" ? (
                       <th className={tableHeadCellClass()}>Pós-venda</th>
                     ) : null}
-                    <th className={tableHeadCellClass()}>Equipe</th>
+                    <th className={`${tableHeadCellClass()} ${tableColFromClass("xl")}`}>Equipe</th>
                     <th className={tableHeadCellClass()}>Valor</th>
                     <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ação</th>
                   </tr>
@@ -559,7 +633,9 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
                         <div className="text-xs text-muted-foreground">Venc. dia {v.dataVencimento}</div>
                       </td>
                       <td className={tableCellClass()}>{v.consorciado?.nome ?? "—"}</td>
-                      <td className={tableCellClass()}>{v.administradora?.nome ?? "—"}</td>
+                      <td className={`${tableCellClass()} ${tableColFromClass("lg")}`}>
+                        {v.administradora?.nome ?? "—"}
+                      </td>
                       <td className={tableCellClass()} onClick={(e) => e.stopPropagation()}>
                         {modo === "inadimplencia" ? (
                           <button
@@ -584,7 +660,9 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
                           <PosVendaBadge status={v.statusPosVenda} />
                         </td>
                       ) : null}
-                      <td className={tableCellClass()}>{v.equipe?.nome ?? "—"}</td>
+                      <td className={`${tableCellClass()} ${tableColFromClass("xl")}`}>
+                        {v.equipe?.nome ?? "—"}
+                      </td>
                       <td className={`${tableCellClass()} tabular-nums`}>
                         {formatMoneyPtBrFromCentavos(v.valorCentavos)}
                       </td>
@@ -592,7 +670,7 @@ export default function ControleCotasClient(props: ControleCotasClientProps) {
                         className={`${tableCellClass()} pr-0 text-right`}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center justify-end gap-2">
+                        <div className={rowActionsClass()}>
                           {(modo === "inadimplencia" || modo === "inconsistencia") && (
                             <WhatsAppButton
                               telefone={v.consorciado?.telefone}

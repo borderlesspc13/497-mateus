@@ -90,3 +90,33 @@ export function secondaryActionClass() {
 export function dangerActionClass() {
   return "inline-flex h-9 items-center justify-center rounded-xl border border-destructive/30 bg-background px-3.5 text-xs font-semibold text-destructive shadow-sm transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40";
 }
+
+/** Esconde coluna de tabela abaixo do breakpoint (th/td). */
+export function tableColFromClass(breakpoint: "md" | "lg" | "xl") {
+  if (breakpoint === "md") return "hidden md:table-cell";
+  if (breakpoint === "lg") return "hidden lg:table-cell";
+  return "hidden xl:table-cell";
+}
+
+export function rowActionsClass() {
+  return "flex flex-wrap items-center justify-end gap-2";
+}
+
+/** Tabela só a partir de md; use com mobileListClass no mobile. */
+export function desktopTableClass() {
+  return "hidden md:block";
+}
+
+export function mobileListClass() {
+  return `space-y-3 md:hidden ${panelInsetClass()}`;
+}
+
+export function mobileListCardClass() {
+  return "rounded-xl border border-border bg-card p-4 shadow-sm";
+}
+
+export function kpiGridClass(cols: 3 | 4 = 4) {
+  return cols === 3
+    ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+    : "grid grid-cols-2 gap-3 lg:grid-cols-4";
+}

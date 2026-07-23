@@ -236,7 +236,7 @@ export function VendaAtendimentoDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="venda-atendimento-modal-title"
@@ -247,7 +247,7 @@ export function VendaAtendimentoDrawer({
         aria-label="Fechar modal"
         onClick={onClose}
       />
-      <div className="relative flex max-h-[min(90vh,880px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+      <div className="relative flex max-h-[min(92vh,880px)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-2xl sm:rounded-2xl">
         <header className="shrink-0 border-b border-border px-5 py-4 sm:px-6">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

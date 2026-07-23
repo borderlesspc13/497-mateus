@@ -179,40 +179,46 @@ function AppLogo({ compact = false }: { compact?: boolean }) {
 function Breadcrumbs() {
   const pathname = usePathname();
   const items = buildBreadcrumbs(pathname);
+  const current = items[items.length - 1];
 
   return (
-    <nav aria-label="Breadcrumb" className="hidden min-w-0 md:block">
-      <ol className="flex flex-wrap items-center gap-1 text-sm">
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1;
-          return (
-            <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1">
-              {index > 0 ? (
-                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-              ) : null}
-              {item.href && !isLast ? (
-                <Link
-                  href={item.href}
-                  className="truncate text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <span
-                  className={cn(
-                    "truncate",
-                    isLast ? "font-semibold text-foreground" : "text-muted-foreground",
-                  )}
-                  aria-current={isLast ? "page" : undefined}
-                >
-                  {item.label}
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
+    <div className="min-w-0">
+      <nav aria-label="Breadcrumb" className="hidden min-w-0 md:block">
+        <ol className="flex flex-wrap items-center gap-1 text-sm">
+          {items.map((item, index) => {
+            const isLast = index === items.length - 1;
+            return (
+              <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1">
+                {index > 0 ? (
+                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                ) : null}
+                {item.href && !isLast ? (
+                  <Link
+                    href={item.href}
+                    className="truncate text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span
+                    className={cn(
+                      "truncate",
+                      isLast ? "font-semibold text-foreground" : "text-muted-foreground",
+                    )}
+                    aria-current={isLast ? "page" : undefined}
+                  >
+                    {item.label}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+      <p className="truncate text-sm font-semibold text-foreground md:hidden">
+        {current?.label ?? "Gestão Operacional"}
+      </p>
+    </div>
   );
 }
 
@@ -291,12 +297,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 >
                   {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
                 </Button>
-                <div className="min-w-0">
-                  <Breadcrumbs />
-                  <p className="truncate text-xs text-muted-foreground md:hidden">
-                    Gestão Operacional
-                  </p>
-                </div>
+                <Breadcrumbs />
               </div>
 
               <div className="flex items-center gap-2">

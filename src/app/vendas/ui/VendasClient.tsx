@@ -13,11 +13,16 @@ import { PendenciaBadge } from "@/components/vendas/PendenciaBadge";
 import {
   dangerActionClass,
   dataTableClass,
+  desktopTableClass,
   formControlClass,
   listErrorClass,
+  mobileListCardClass,
+  mobileListClass,
   primaryActionClass,
+  rowActionsClass,
   secondaryActionClass,
   tableCellClass,
+  tableColFromClass,
   tableHeadCellClass,
   tableLinkClass,
   tableMutedTextClass,
@@ -121,6 +126,24 @@ export default function VendasClient({
   const showEmpty = !isResetting && visibleItems.length === 0;
   const hasServerFilters = Boolean(statusOperacional || administradoraId);
 
+  function VendaActions({ venda }: { venda: VendaRow }) {
+    return (
+      <div className={rowActionsClass()}>
+        <Link href={`/vendas/${venda.id}`} className={secondaryActionClass()}>
+          Editar
+        </Link>
+        <button
+          type="button"
+          onClick={() => void onDelete(venda.id)}
+          disabled={deletingId === venda.id}
+          className={dangerActionClass()}
+        >
+          {deletingId === venda.id ? "Excluindo..." : "Excluir"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <DataListPanel
       toolbar={
@@ -153,7 +176,7 @@ export default function VendasClient({
             <option value="INADIMPLENTE">Inadimplente</option>
             <option value="CANCELADO">Cancelado</option>
           </select>
-          <Link href="/vendas/nova" className={primaryActionClass()}>
+          <Link href="/vendas/nova" className={`${primaryActionClass()} w-full sm:w-auto`}>
             Nova venda
           </Link>
           <ExportButton
@@ -191,21 +214,67 @@ export default function VendasClient({
         />
       ) : (
         <>
-          <div className={tableWrapClass()}>
+          <div className={mobileListClass()}>
+            {visibleItems.map((v) => (
+              <article key={v.id} className={mobileListCardClass()}>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">{v.numeroContrato}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      Grupo {v.grupo} · Cota {v.cota}
+                    </p>
+                  </div>
+                  <StatusBadge status={v.statusOperacional} />
+                </div>
+
+                <div className="mt-3 space-y-1.5 text-sm">
+                  {v.consorciado ? (
+                    <Link href={`/consorciados/${v.consorciado.id}`} className={tableLinkClass()}>
+                      {v.consorciado.nome}
+                    </Link>
+                  ) : (
+                    <p className="text-foreground/80">—</p>
+                  )}
+                  <p className="text-muted-foreground">
+                    {v.administradora?.nome ?? "—"}
+                    {v.plano?.nome ? ` · ${v.plano.nome}` : ""}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <PendenciaBadge venda={v} />
+                    <span className="tabular-nums font-medium text-foreground">
+                      {formatMoneyPtBrFromCentavos(v.valorCentavos)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 border-t border-border/60 pt-3">
+                  <VendaActions venda={v} />
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className={`${desktopTableClass()} ${tableWrapClass()}`}>
             <table className={dataTableClass()}>
               <thead>
                 <tr>
                   <th className={tableHeadCellClass()}>Contrato</th>
                   <th className={tableHeadCellClass()}>Grupo / Cota</th>
                   <th className={tableHeadCellClass()}>Consorciado</th>
-                  <th className={tableHeadCellClass()}>Equipe / Vendedor</th>
-                  <th className={tableHeadCellClass()}>Administradora</th>
-                  <th className={tableHeadCellClass()}>Plano</th>
+                  <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>
+                    Equipe / Vendedor
+                  </th>
+                  <th className={`${tableHeadCellClass()} ${tableColFromClass("md")}`}>
+                    Administradora
+                  </th>
+                  <th className={`${tableHeadCellClass()} ${tableColFromClass("xl")}`}>Plano</th>
                   <th className={tableHeadCellClass()}>Status</th>
-                  <th className={tableHeadCellClass()}>Pós-venda</th>
+                  <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>Pós-venda</th>
                   <th className={tableHeadCellClass()}>Valor</th>
-                  <th className={tableHeadCellClass()}>Data da venda</th>
-                  <th className={tableHeadCellClass()}>Criado em</th>
+                  <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>
+                    Data da venda
+                  </th>
+                  <th className={`${tableHeadCellClass()} ${tableColFromClass("xl")}`}>Criado em</th>
                   <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
                 </tr>
               </thead>
@@ -237,13 +306,13 @@ export default function VendasClient({
                         ) : null}
                       </div>
                     </td>
-                    <td className={tableCellClass()}>
+                    <td className={`${tableCellClass()} ${tableColFromClass("lg")}`}>
                       <div className="leading-5">
                         <div className="text-foreground">{v.equipe?.nome ?? "—"}</div>
                         <div className={tableMutedTextClass()}>{v.vendedor?.nome ?? "—"}</div>
                       </div>
                     </td>
-                    <td className={tableCellClass()}>
+                    <td className={`${tableCellClass()} ${tableColFromClass("md")}`}>
                       <div className="leading-5">
                         <Link
                           href={`/administradoras/${v.administradoraId}`}
@@ -254,7 +323,7 @@ export default function VendasClient({
                         <div className={tableMutedTextClass()}>{v.administradora?.cnpj ?? ""}</div>
                       </div>
                     </td>
-                    <td className={tableCellClass()}>
+                    <td className={`${tableCellClass()} ${tableColFromClass("xl")}`}>
                       <div className="leading-5">
                         {v.plano ? (
                           <Link href={`/planos/${v.plano.id}`} className={tableLinkClass()}>
@@ -271,32 +340,20 @@ export default function VendasClient({
                     <td className={tableCellClass()}>
                       <StatusBadge status={v.statusOperacional} />
                     </td>
-                    <td className={tableCellClass()}>
+                    <td className={`${tableCellClass()} ${tableColFromClass("lg")}`}>
                       <PendenciaBadge venda={v} />
                     </td>
                     <td className={`${tableCellClass()} whitespace-nowrap tabular-nums`}>
                       {formatMoneyPtBrFromCentavos(v.valorCentavos)}
                     </td>
-                    <td className={`${tableCellClass()} whitespace-nowrap`}>
+                    <td className={`${tableCellClass()} whitespace-nowrap ${tableColFromClass("lg")}`}>
                       {v.dataVenda ? new Date(v.dataVenda).toLocaleDateString("pt-BR") : "—"}
                     </td>
-                    <td className={`${tableCellClass()} whitespace-nowrap`}>
+                    <td className={`${tableCellClass()} whitespace-nowrap ${tableColFromClass("xl")}`}>
                       {new Date(v.createdAt).toLocaleDateString("pt-BR")}
                     </td>
                     <td className={`${tableCellClass()} pr-0 text-right`}>
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/vendas/${v.id}`} className={secondaryActionClass()}>
-                          Editar
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => void onDelete(v.id)}
-                          disabled={deletingId === v.id}
-                          className={dangerActionClass()}
-                        >
-                          {deletingId === v.id ? "Excluindo..." : "Excluir"}
-                        </button>
-                      </div>
+                      <VendaActions venda={v} />
                     </td>
                   </tr>
                 ))}

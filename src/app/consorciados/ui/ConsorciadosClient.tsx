@@ -12,8 +12,12 @@ import { PaginatedListFooter } from "@/components/ui/PaginatedListFooter";
 import { SummaryChip } from "@/components/ui/SummaryChip";
 import {
   dataTableClass,
+  desktopTableClass,
+  mobileListCardClass,
+  mobileListClass,
   secondaryActionClass,
   tableCellClass,
+  tableColFromClass,
   tableHeadCellClass,
   tableRowClass,
   tableWrapClass,
@@ -124,13 +128,60 @@ export default function ConsorciadosClient({
           />
         ) : (
           <>
-            <div className={tableWrapClass()}>
+            <div className={mobileListClass()}>
+              {visibleItems.map((item) => {
+                const stats = vendaStatsMap.get(item.id);
+                return (
+                  <article
+                    key={item.id}
+                    className={`${mobileListCardClass()} cursor-pointer`}
+                    onClick={() => openFicha(item.id)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground">{item.nome}</p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">{item.cpf_cnpj}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{item.telefone}</p>
+                      </div>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {stats?.totalCotas ?? 0} cota{(stats?.totalCotas ?? 0) === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {(stats?.inadimplentes ?? 0) > 0 ? (
+                        <SummaryChip label="Inadimpl." value={stats!.inadimplentes} tone="red" />
+                      ) : null}
+                      {(stats?.inconsistentes ?? 0) > 0 ? (
+                        <SummaryChip
+                          label="Inconsist."
+                          value={stats!.inconsistentes}
+                          tone="yellow"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="mt-4 border-t border-border/60 pt-3" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => openFicha(item.id)}
+                        className={`${secondaryActionClass()} w-full`}
+                      >
+                        Abrir ficha
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className={`${desktopTableClass()} ${tableWrapClass()}`}>
               <table className={dataTableClass()}>
                 <thead>
                   <tr>
                     <th className={tableHeadCellClass()}>Nome</th>
                     <th className={tableHeadCellClass()}>CPF / CNPJ</th>
-                    <th className={tableHeadCellClass()}>Telefone</th>
+                    <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>
+                      Telefone
+                    </th>
                     <th className={tableHeadCellClass()}>Cotas</th>
                     <th className={tableHeadCellClass()}>Situação</th>
                     <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
@@ -149,7 +200,9 @@ export default function ConsorciadosClient({
                           {item.nome}
                         </td>
                         <td className={tableCellClass()}>{item.cpf_cnpj}</td>
-                        <td className={tableCellClass()}>{item.telefone}</td>
+                        <td className={`${tableCellClass()} ${tableColFromClass("lg")}`}>
+                          {item.telefone}
+                        </td>
                         <td className={tableCellClass()}>
                           <span className="tabular-nums text-sm text-foreground/80">
                             {stats?.totalCotas ?? 0}

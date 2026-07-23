@@ -13,8 +13,10 @@ import {
   formControlClass,
   panelClass,
   primaryActionClass,
+  rowActionsClass,
   secondaryActionClass,
   tableCellClass,
+  tableColFromClass,
   tableHeadCellClass,
   tableRowClass,
   tableWrapClass,
@@ -138,12 +140,12 @@ export default function PlanosClient({
             <tr>
               <th className={tableHeadCellClass()}>Nome</th>
               <th className={tableHeadCellClass()}>Administradora</th>
-              <th className={tableHeadCellClass()}>Tipo de bem</th>
+              <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>Tipo de bem</th>
               <th className={tableHeadCellClass()}>Crédito</th>
-              <th className={tableHeadCellClass()}>Comissão</th>
-              <th className={tableHeadCellClass()}>Parcelas</th>
-              <th className={tableHeadCellClass()}>Estorno</th>
-              <th className={tableHeadCellClass()}>Criado em</th>
+              <th className={`${tableHeadCellClass()} ${tableColFromClass("md")}`}>Comissão</th>
+              <th className={`${tableHeadCellClass()} ${tableColFromClass("xl")}`}>Parcelas</th>
+              <th className={`${tableHeadCellClass()} ${tableColFromClass("xl")}`}>Estorno</th>
+              <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>Criado em</th>
               <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
             </tr>
           </thead>
@@ -162,26 +164,26 @@ export default function PlanosClient({
                       <div className="text-xs text-muted-foreground">{p.administradora?.cnpj ?? ""}</div>
                     </div>
                   </td>
-                  <td className={tableCellClass()}>{p.tipoBem}</td>
+                  <td className={`${tableCellClass()} ${tableColFromClass("lg")}`}>{p.tipoBem}</td>
                   <td className={`${tableCellClass()} whitespace-nowrap tabular-nums`}>
                     {formatMoneyPtBrFromCentavos(p.valorCreditoCentavos)}
                   </td>
-                  <td className={`${tableCellClass()} tabular-nums`}>
+                  <td className={`${tableCellClass()} tabular-nums ${tableColFromClass("md")}`}>
                     {p.percentualComissao != null
                       ? `${p.percentualComissao.toLocaleString("pt-BR")}%`
                       : "—"}
                   </td>
-                  <td className={tableCellClass()}>
+                  <td className={`${tableCellClass()} ${tableColFromClass("xl")}`}>
                     {p.parcelasRecebimento ?? "—"}
                   </td>
-                  <td className={`${tableCellClass()} tabular-nums`}>
+                  <td className={`${tableCellClass()} tabular-nums ${tableColFromClass("xl")}`}>
                     {p.diasParaEstorno != null ? `${p.diasParaEstorno} dias` : "—"}
                   </td>
-                  <td className={`${tableCellClass()} whitespace-nowrap`}>
+                  <td className={`${tableCellClass()} whitespace-nowrap ${tableColFromClass("lg")}`}>
                     {new Date(p.createdAt).toLocaleDateString("pt-BR")}
                   </td>
                   <td className={`${tableCellClass()} pr-0 text-right`}>
-                    <div className="flex justify-end gap-2">
+                    <div className={rowActionsClass()}>
                       <Link href={`/planos/${p.id}`} className={secondaryActionClass()}>
                         Editar
                       </Link>

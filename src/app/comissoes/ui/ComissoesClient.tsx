@@ -19,10 +19,16 @@ import { ExtratoStatusBadge } from "@/components/ui/ExtratoStatusBadge";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import {
   dataTableClass,
+  desktopTableClass,
   formControlClass,
+  kpiGridClass,
+  mobileListCardClass,
+  mobileListClass,
   primaryActionClass,
+  rowActionsClass,
   secondaryActionClass,
   tableCellClass,
+  tableColFromClass,
   tableHeadCellClass,
   tableRowClass,
   tableWrapClass,
@@ -300,28 +306,28 @@ export default function ComissoesClient({
     <DataListPanel
       toolbar={
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
             <button
               type="button"
               onClick={() => setTab("extratos")}
               className={
                 tab === "extratos"
-                  ? "inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
+                  ? "inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
                   : secondaryActionClass()
               }
             >
-              Extratos administradora
+              Extratos
             </button>
             <button
               type="button"
               onClick={() => setTab("mapa")}
               className={
                 tab === "mapa"
-                  ? "inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
+                  ? "inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
                   : secondaryActionClass()
               }
             >
-              Mapa de pagamento
+              Mapa
             </button>
           </div>
           <input
@@ -417,7 +423,7 @@ export default function ComissoesClient({
     >
       {tab === "extratos" ? (
         <>
-          <div className="mb-6 grid gap-3 sm:grid-cols-4">
+          <div className={`mb-6 ${kpiGridClass(4)} px-4 sm:px-6 lg:px-8`}>
             {(
               [
                 ["Pendente", totaisExtratos.pendente, "border-border bg-muted/50"],
@@ -426,9 +432,9 @@ export default function ComissoesClient({
                 ["Pago", totaisExtratos.pago, "border-emerald-500/30 bg-emerald-500/10"],
               ] as const
             ).map(([label, centavos, cardClass]) => (
-              <div key={label} className={`rounded-2xl border p-4 ${cardClass}`}>
+              <div key={label} className={`rounded-2xl border p-3 sm:p-4 ${cardClass}`}>
                 <div className="text-xs font-medium text-muted-foreground">{label}</div>
-                <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+                <div className="mt-1 text-sm font-semibold tabular-nums text-foreground sm:text-lg">
                   {formatMoneyPtBrFromCentavos(centavos)}
                 </div>
               </div>
@@ -445,14 +451,84 @@ export default function ComissoesClient({
               description="Os extratos são gerados automaticamente ao registrar vendas ativas com plano e regras financeiras. Remessas com PARCELA também marcam recebimento em /importacao."
             />
           ) : (
-            <div className={tableWrapClass()}>
+            <>
+            <div className={mobileListClass()}>
+              {filteredExtratos.map((row) => (
+                <article key={row.id} className={mobileListCardClass()}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/vendas/${row.vendaId}`}
+                        className="font-semibold text-foreground underline-offset-2 hover:underline"
+                      >
+                        {row.numeroContrato}
+                      </Link>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {row.consorciadoNome ?? "—"} · {row.parcelaLabel}
+                      </p>
+                    </div>
+                    <ExtratoStatusBadge status={row.status} />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                    <div className="text-sm text-muted-foreground">
+                      <p>{row.planoNome}</p>
+                      <p className="mt-1 tabular-nums font-semibold text-foreground">
+                        {formatMoneyPtBrFromCentavos(row.valorCentavos)}
+                      </p>
+                    </div>
+                    <div className={rowActionsClass()}>
+                      {row.tipo !== "ESTORNO" && row.status === "PENDENTE" ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void onMarcarRecebido(row.id)}
+                            disabled={actionId === row.id}
+                            className={secondaryActionClass()}
+                          >
+                            {actionId === row.id ? "..." : "Recebido"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void onLiberar(row.id)}
+                            disabled={actionId === row.id}
+                            className={secondaryActionClass()}
+                          >
+                            {actionId === row.id ? "..." : "Liberar"}
+                          </button>
+                        </>
+                      ) : null}
+                      {row.status === "RECEBIDO" ? (
+                        <span className="text-xs text-muted-foreground">Liberado p/ mapa</span>
+                      ) : null}
+                      {row.status === "LIBERADO" ? (
+                        <button
+                          type="button"
+                          onClick={() => void onMarcarPago(row.id)}
+                          disabled={actionId === row.id}
+                          className={secondaryActionClass()}
+                        >
+                          {actionId === row.id ? "..." : "Marcar pago"}
+                        </button>
+                      ) : null}
+                      {row.status === "PAGO" ? (
+                        <span className="text-xs text-muted-foreground">Concluído</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className={`${desktopTableClass()} ${tableWrapClass()}`}>
               <table className={dataTableClass()}>
                 <thead>
                   <tr>
                     <th className={tableHeadCellClass()}>Contrato</th>
                     <th className={tableHeadCellClass()}>Consorciado</th>
-                    <th className={tableHeadCellClass()}>Plano</th>
-                    <th className={tableHeadCellClass()}>Vendedor</th>
+                    <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>Plano</th>
+                    <th className={`${tableHeadCellClass()} ${tableColFromClass("xl")}`}>
+                      Vendedor
+                    </th>
                     <th className={tableHeadCellClass()}>Parcela</th>
                     <th className={tableHeadCellClass()}>Valor</th>
                     <th className={tableHeadCellClass()}>Status</th>
@@ -471,8 +547,12 @@ export default function ComissoesClient({
                         </Link>
                       </td>
                       <td className={tableCellClass()}>{row.consorciadoNome ?? "—"}</td>
-                      <td className={tableCellClass()}>{row.planoNome}</td>
-                      <td className={tableCellClass()}>{row.vendedorNome ?? "—"}</td>
+                      <td className={`${tableCellClass()} ${tableColFromClass("lg")}`}>
+                        {row.planoNome}
+                      </td>
+                      <td className={`${tableCellClass()} ${tableColFromClass("xl")}`}>
+                        {row.vendedorNome ?? "—"}
+                      </td>
                       <td className={tableCellClass()}>{row.parcelaLabel}</td>
                       <td className={`${tableCellClass()} tabular-nums font-medium`}>
                         {formatMoneyPtBrFromCentavos(row.valorCentavos)}
@@ -481,7 +561,7 @@ export default function ComissoesClient({
                         <ExtratoStatusBadge status={row.status} />
                       </td>
                       <td className={`${tableCellClass()} pr-0 text-right`}>
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className={rowActionsClass()}>
                           {row.tipo !== "ESTORNO" && row.status === "PENDENTE" ? (
                             <>
                               <button
@@ -525,6 +605,7 @@ export default function ComissoesClient({
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </>
       ) : loadingMapa ? (
@@ -533,22 +614,22 @@ export default function ComissoesClient({
         </div>
       ) : (
         <>
-          <div className="mb-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border bg-muted/50 p-4">
+          <div className={`mb-6 ${kpiGridClass(3)} px-4 sm:px-6 lg:px-8`}>
+            <div className="rounded-2xl border border-border bg-muted/50 p-3 sm:p-4">
               <div className="text-xs font-medium text-muted-foreground">Previsto</div>
-              <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+              <div className="mt-1 text-sm font-semibold tabular-nums text-foreground sm:text-lg">
                 {formatMoneyPtBrFromCentavos(totaisRepasses.previsto)}
               </div>
             </div>
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4">
               <div className="text-xs font-medium text-muted-foreground">A pagar</div>
-              <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+              <div className="mt-1 text-sm font-semibold tabular-nums text-foreground sm:text-lg">
                 {formatMoneyPtBrFromCentavos(totaisRepasses.pendente)}
               </div>
             </div>
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 sm:p-4 sm:col-span-2 lg:col-span-1">
               <div className="text-xs font-medium text-muted-foreground">Pago</div>
-              <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+              <div className="mt-1 text-sm font-semibold tabular-nums text-foreground sm:text-lg">
                 {formatMoneyPtBrFromCentavos(totaisRepasses.pago)}
               </div>
             </div>
@@ -560,7 +641,63 @@ export default function ComissoesClient({
               description="Ao registrar uma venda ativa, os repasses previstos (vendedor, supervisor e diretor) aparecem aqui. Quando a administradora confirma o recebimento, o status muda para A pagar."
             />
           ) : (
-            <div className={tableWrapClass()}>
+            <>
+            <div className={mobileListClass()}>
+              {filteredRepasses.map((row) => (
+                <article key={row.id} className={mobileListCardClass()}>
+                  <div className="flex items-start gap-3">
+                    {row.status === "PENDENTE" ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedRepasseIds.has(row.id)}
+                        onChange={() => toggleRepasseSelection(row.id)}
+                        className="mt-1 rounded border-border"
+                        aria-label={`Selecionar ${row.beneficiarioNome}`}
+                      />
+                    ) : (
+                      <span className="mt-1 size-4 shrink-0" aria-hidden />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-foreground">{row.beneficiarioNome}</p>
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            {row.numeroContrato} · {PAPEL_REPASSE_LABELS[row.papel as PapelRepasse]}
+                          </p>
+                        </div>
+                        <RepasseStatusBadge status={row.status} />
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                        <div className="text-sm text-muted-foreground">
+                          <p>
+                            {row.parcelaLabel} · {row.percentualPapel.toLocaleString("pt-BR")}%
+                          </p>
+                          <p className="mt-1 tabular-nums font-semibold text-foreground">
+                            {formatMoneyPtBrFromCentavos(row.valorCentavos)}
+                          </p>
+                        </div>
+                        {row.status === "PENDENTE" ? (
+                          <button
+                            type="button"
+                            onClick={() => void onMarcarRepassePago(row.id)}
+                            disabled={actionId === row.id}
+                            className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                          >
+                            {actionId === row.id ? "..." : "Marcar pago"}
+                          </button>
+                        ) : row.status === "PREVISTO" ? (
+                          <span className="text-xs text-muted-foreground">Aguarda recebimento</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Concluído</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className={`${desktopTableClass()} ${tableWrapClass()}`}>
               <table className={dataTableClass()}>
                 <thead>
                   <tr>
@@ -577,9 +714,9 @@ export default function ComissoesClient({
                     <th className={tableHeadCellClass()}>Contrato</th>
                     <th className={tableHeadCellClass()}>Beneficiário</th>
                     <th className={tableHeadCellClass()}>Papel</th>
-                    <th className={tableHeadCellClass()}>Plano</th>
+                    <th className={`${tableHeadCellClass()} ${tableColFromClass("lg")}`}>Plano</th>
                     <th className={tableHeadCellClass()}>Parcela</th>
-                    <th className={tableHeadCellClass()}>%</th>
+                    <th className={`${tableHeadCellClass()} ${tableColFromClass("xl")}`}>%</th>
                     <th className={tableHeadCellClass()}>Valor</th>
                     <th className={tableHeadCellClass()}>Status</th>
                     <th className={`${tableHeadCellClass()} pr-0 text-right`}>Ações</th>
@@ -606,9 +743,11 @@ export default function ComissoesClient({
                       <td className={tableCellClass()}>
                         {PAPEL_REPASSE_LABELS[row.papel as PapelRepasse]}
                       </td>
-                      <td className={tableCellClass()}>{row.planoNome}</td>
+                      <td className={`${tableCellClass()} ${tableColFromClass("lg")}`}>
+                        {row.planoNome}
+                      </td>
                       <td className={tableCellClass()}>{row.parcelaLabel}</td>
-                      <td className={`${tableCellClass()} tabular-nums`}>
+                      <td className={`${tableCellClass()} tabular-nums ${tableColFromClass("xl")}`}>
                         {row.percentualPapel.toLocaleString("pt-BR")}%
                       </td>
                       <td className={`${tableCellClass()} tabular-nums font-medium`}>
@@ -638,6 +777,7 @@ export default function ComissoesClient({
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </>
       )}

@@ -233,7 +233,7 @@ export function DashboardHome({ stats, campanhas, permissions }: DashboardHomePr
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Vendas realizadas"
           value={String(stats.nVendas)}
@@ -324,8 +324,8 @@ export function DashboardHome({ stats, campanhas, permissions }: DashboardHomePr
         />
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-5">
-        <section className={`${panelClass()} p-5 sm:p-6 xl:col-span-3`}>
+      <div className="mt-8 grid gap-6 lg:grid-cols-5">
+        <section className={`${panelClass()} p-5 sm:p-6 lg:col-span-3`}>
           <SectionTitle
             title="Vendas nos últimos 6 meses"
             description="Quantidade e valor por mês (data da venda ou cadastro)."
@@ -375,7 +375,7 @@ export function DashboardHome({ stats, campanhas, permissions }: DashboardHomePr
           </div>
         </section>
 
-        <section className={`${panelClass()} p-5 sm:p-6 xl:col-span-2`}>
+        <section className={`${panelClass()} p-5 sm:p-6 lg:col-span-2`}>
           <SectionTitle
             title="Vendas por status"
             description="Distribuição do pipeline comercial."
