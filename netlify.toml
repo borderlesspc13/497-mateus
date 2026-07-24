@@ -1,4 +1,5 @@
 # https://docs.netlify.com/build/configure-builds/file-based-configuration/
+# Next.js 16: o adapter OpenNext é aplicado automaticamente (sem plugin pinado).
 [build]
   command = "npm run build"
 

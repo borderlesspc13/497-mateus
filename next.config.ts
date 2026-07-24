@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Sem `output: "standalone"` — incompatível com o runtime Next.js do Netlify.
   experimental: {
     optimizePackageImports: ["lucide-react"],
     staleTimes: {
